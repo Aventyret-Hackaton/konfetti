@@ -1,0 +1,11 @@
+# Broken on purpose. Meant to copy four characters, but the second row
+# is only one length above the first: rows that close link up, and from
+# the end of the second row the walk drops into the first. It never stops.
+black    1200     0
+white    2400     0
+black    3600     0
+white    4800     0
+black    4800  1200
+white    3600  1200
+black    2400  1200
+white    1200  1200

@@ -1,0 +1,7 @@
+# The cyan of lessons/cover.solution.kft listed before green: now cyan is
+# lower in the pile, so green covers cyan and still adds. b -> c.
+black    1200      0
+red      2400      0
+cyan     3400      0
+green    3400      0
+white    4400      0

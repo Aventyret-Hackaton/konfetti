@@ -1,0 +1,5 @@
+# Echoes two characters. The third is never read.
+black    1200      0
+white    2400      0
+black    3600      0
+white    4800      0

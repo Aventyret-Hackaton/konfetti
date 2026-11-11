@@ -41,18 +41,35 @@ stderr for I/O and load errors, 2 with the usage text for bad arguments.
   as base64. Tests are at the bottom.
 - `web/index.html`: the page and the import map for three.js 0.170.0.
 - `web/main.js`: the editor: bits, crayon outline, wind physics, running,
-  debug mode, keys, themes, `window.konfetti`.
+  debug mode, keys, themes, `window.konfetti`. A mouse must hit a strip to
+  pick it up; on a touch screen `bitAt` also takes a strip when the touch
+  lands within `FINGER` (30 CSS px) of its long middle line: the nearest
+  one, and the top one in a pile.
 - `web/world.js`: the scenery, the cannon and the wind flag, all procedural.
   `buildWorld(scene, renderer, grassCount)` returns `{ muzzle, update(dt, t, wind) }`.
 - `web/debug.js`: the debugger's words (`EXPLAIN`, `describe`) and views
   (stacks as boxes, the trace, the floating labels). No three.js.
 - `web/sound.js`: every sound, synthesized with Web Audio. Exports `sound`.
 - `web/hand.js`: the cartoon glove that replaces the mouse pointer.
+- `web/learn.js`: learn mode: the lesson list and the lesson card. It fetches
+  `../lessons/`, so serve the repo root, as `make serve` does.
 - `web/ui.css`: the panel, hint, debugger dock and labels, and the three
   themes (`toybox`, `craft`, `arcade`).
 - `web/docs.html`: the guide for people, linked from the editor's panel. Static
-  HTML with inline CSS and SVG, no script, no requests.
-- `examples/*.kft`: `hello` and `cat` are also test fixtures.
+  HTML with inline CSS and SVG, no script, no requests. Its second half,
+  *Learn konfetti*, is 17 tutorials and a cheat sheet; see "Checking the docs".
+- `web/sw.js`, `web/pwa.js`, `web/pwa.css`, `web/manifest.webmanifest`,
+  `web/icons/`: konfetti as an installable app. The worker is network-first
+  (3 s, then the cache) for our own files and cache-first for three.js at its
+  pinned CDN version; it never caches the weather API. See "The site and the
+  app".
+- `index.html` and `.nojekyll` at the root: for GitHub Pages. The page only
+  forwards to `web/`.
+- `lessons/`: the twelve lessons of learn mode. See "Lessons".
+- `examples/*.kft`: `hello` and `cat` are also test fixtures. `dad`,
+  `countdown`, `compare` and `reverse` are the programs of tutorials 13 to 16.
+- `examples/mistakes/`: broken programs for tutorial 17, and their fixes.
+- `examples/exercises/`: answers to the tutorials' exercises.
 
 ## Rules of the codebase
 
@@ -65,7 +82,13 @@ stderr for I/O and load errors, 2 with the usage text for bad arguments.
   together.
 - The web side has no build step, no dependencies besides three.js from the
   CDN import map, and no asset files: textures are drawn and sounds are
-  synthesized in code.
+  synthesized in code. The one exception is the app icons, `web/icons/*.png`,
+  which `web/icons/icon.html` draws. To redraw them, open that page from a
+  local server and save as PNG the canvas `draw(size, 'blue4', shape, zoom)`
+  returns (`.toDataURL('image/png')`): `draw(192, 'blue4', 'any')` and
+  `draw(512, 'blue4', 'any')` for `icon-192.png` and `icon-512.png`,
+  `draw(512, 'blue4', 'full')` for `maskable-512.png`, and
+  `draw(180, 'blue4', 'full', 1.12)` for `apple-touch-icon.png`.
 - The editor maps language `(x, y)` to world `(origin.x + x, -, origin.z - y)`,
   1000 language units per world unit, where the origin is the first point of
   the crayon outline.
@@ -84,6 +107,8 @@ stderr for I/O and load errors, 2 with the usage text for bad arguments.
   `README.md`, `web/docs.html` and this file if the tour or the recipes change.
 - An editor or CLI change that a person would notice (a control, a key, a
   command, a message) goes into `web/docs.html` and `README.md` too.
+- Tutorials 1 to 12 in `web/docs.html` teach the same programs as the lessons.
+  Change a lesson, change its tutorial, and the other way round.
 
 ## Writing konfetti programs
 
@@ -136,8 +161,10 @@ of the pile first. Bit numbers in traces count bits from 0 in file order.
   check every corner: at a corner the cross-link may be the only candidate
   you did not intend.
 - **T-junctions tie.** Where a side trail meets a loop at a right angle, the
-  loop's next bit and the side trail are both 90° turns; the tie goes to the
-  nearer bit, then to the one listed first. Do not rely on it. Join from
+  walk has two 90° turns to choose between when it arrives from one side:
+  round the loop if the join is at a corner, from the side trail if it is on
+  a straight side. The tie goes to the nearer bit, then to the one listed
+  first. Do not rely on it. Join from
   behind: place the joining bit so that, arriving along the loop, the turn to
   it is more than 90°. `examples/count.kft` shows the layout, with the joining
   bit at offset `(-1450, 300)` from the ring bit it feeds.
@@ -152,12 +179,33 @@ of the pile first. Bit numbers in traces count bits from 0 in file order.
 
 | Want | Bits |
 |------|------|
-| 0 | red orange cyan |
+| 0 | red orange cyan (not right after a red) |
 | -n | 0, then n reds, then cyan (after a non-red) |
 | a == b ? | cyan, pink: zero means equal |
 | a > b ? | cyan, pink: positive means greater |
 | Read until end of input | black orange red green pink: zero means end (`cat.kft`) |
 | Keep a value for later | silver now, gold later |
+
+## Lessons
+
+`lessons/index.json` is a JSON array, in lesson order, ASCII only. Each lesson:
+`id` (lowercase letters, digits, hyphens; unique), `title`, `idea` (one to
+three sentences), `steps` (short paragraphs), `goal`, `tray` (color name to
+count: the spare strips laid outside the outline; `{}` for none), `checks`
+(`[{ "in", "out" }]`, ASCII, compared byte for byte; the first `in` also fills
+the Input box), `hints` (two or three, each more direct), and `run_only: true`
+for a lesson whose starter already passes. The programs are
+`lessons/<id>.start.kft` and `lessons/<id>.solution.kft`; the outline is drawn
+round both, so everything the student builds fits inside.
+
+`make test` runs `lessons_can_be_solved_and_are_not_solved_already` in
+`src/lib.rs`, which reads these files at test time. For every lesson: the
+solution passes every check within 1,000,000 steps, folded and unfolded alike;
+the starter passes only if `run_only`; the solution needs no more of any color
+than the starter and the tray hold; and every strip the solution adds still
+passes when dropped 250 off in any of eight directions. The test reads a small
+JSON subset: objects, arrays, strings with only the escapes `\"`, `\\` and
+`\n`, whole numbers, `true` and `false`.
 
 ## Checking editor changes
 
@@ -184,11 +232,32 @@ errors.
   `main` and `stash` are decimal strings, top last; `trace` is newest first,
   lines like `5  pink BRANCH  #4  popped 98, positive, turned left to #5 white`.
 
+- `learn`: learn mode. `open()` and `start(id)` return promises; `list()`
+  gives `[{ id, title, done }]`; `check()` gives `{ pass, results }`, or
+  `null` with no lesson open; `hint()`, `showSolution()`, `reset()`, `exit()`,
+  `toggle()`, `state()`. Wait about 300 ms after `start` or `showSolution`
+  before projecting world points to the screen: the camera has just moved.
+- `pwa`: the install card. `show(kind)` puts it up at once (`'prompt'` with
+  an Install button, `'ios'` with the steps), `hide()` takes it down,
+  `state()` says what is going on, including whether a worker controls the
+  page.
+
 Controls have these ids: `fire`, `crayon`, `wind`, `run`, `fast`, `stop`,
-`debug`, `mute`, `docs`, `input`, `output`, `stacks`, `kft`, `load`,
-`examples`, `sweep`, `clear`, `hint`, and in the debugger `dstep`, `dplay`,
-`drestart`, `dspeed`, `dstatus`, `trace`, `dstacks`. Keys: Space, C, W, M, D,
-and N, P, R in debug mode; they are ignored while a text field has focus.
+`debug`, `mute`, `docs`, `learn`, `input`, `output`, `stacks`, `kft`, `load`,
+`examples`, `sweep`, `clear`, `hint`, in the debugger `dstep`, `dplay`,
+`drestart`, `dspeed`, `dstatus`, `trace`, `dstacks`, and on the lesson card
+(`lesson`) `llist`, `lexit`, `ltitle`, `lcheck`, `lhint`, `lwatch`, `lreset`,
+`lresult`, `lnext`, and on a phone the quick buttons (`fabs`) `qcrayon`,
+`qfire`, `qrun`, `qcheck` and the sheet's handle `sheet` with `peekout`; the
+dock's close button is `dclose`. The panel's groups are `details.group` with
+`data-group` (`make`, `run`, `program`, `tidy`, `colors`, `how`); in the phone
+layout only `run` starts open, so open a group before using a control in it.
+Keys: Space, C, W, M, D, L, and N, P, R in debug mode; they are ignored while
+a text field has focus. Learn mode
+remembers passed lessons in `localStorage` under `konfetti.learn`; the sheet's
+stop is `konfetti.sheet`, which groups are folded `konfetti.groups.phone`
+and `konfetti.groups.wide`, and the install card's dismissal (until when not
+to offer again) `konfetti.install`.
 `?theme=toybox|craft|arcade` picks a theme.
 
 Headless Chrome's software renderer is too slow for the meadow; on a Mac,
@@ -199,10 +268,113 @@ Always launch a test browser with `--mute-audio`. The editor plays sound once
 a script clicks or presses a key, and headless Chrome plays it out loud on the
 machine's speakers.
 
-## Checking the CLI and the docs
+## The site and the app
+
+GitHub Pages publishes the `main` branch at
+<https://aventyret-hackaton.github.io/konfetti/>, and every push to `main`
+redeploys it. The root `index.html` only forwards to `web/`, and `.nojekyll`
+makes Pages serve the files as they are. Keep every path relative (no leading
+`/`), so the site also works under another path or a custom domain.
+
+The service worker only runs over HTTPS or on localhost. Cache versioning:
+changing the editor's files needs nothing. Bump `VERSION` in `web/sw.js`
+whenever you change what or how `sw.js` caches (the precache list, the
+strategy, the keys); the new worker then deletes the old cache. Keep `PAGES`
+in `sw.js` in step with the Examples menu in `index.html`. A new module or
+file the editor loads needs no entry: the page sends the worker what it
+loaded.
+
+## Checking the CLI
 
 `make test`, then build an example both ways and run the results:
 `konfetti build examples/cat.kft -o cat && echo hi | ./cat` prints `hi`, and
 `konfetti build examples/hello.kft --html -o hello.html` gives a page that
-prints `A` when opened from disk and run. After changing `web/docs.html`, look
-at it at phone width in both light and dark mode.
+prints `A` when opened from disk and run.
+
+## Checking the docs
+
+Everything the tutorials in `web/docs.html` say a program does is marked up so
+that a script can rerun it. Every program there is a file under `lessons/` or
+`examples/`, named in a `data-kft` attribute:
+
+- `<pre class="kft" data-kft="F">` is the text of `F`, exactly.
+- `<svg class="prog" data-kft="F">` draws `F`: one `rect` per strip, with
+  `data-bit` (its line number from 0), `data-xy` (its `x y`) and `fill` (its
+  palette color).
+- `<table class="walk" data-kft="F" data-in="I" data-from="N">` lists steps of
+  `konfetti --trace F` with input `I`, from step `N`: in each row, the strip
+  number after the swatch and the stacks in the cells `m` (main) and `s`
+  (stash) must match the trace. `<pre class="trace">` is trace lines verbatim.
+- Any element with `data-kft`, `data-in` and `data-out` claims that the
+  program writes exactly `data-out` and stops; `data-starts` claims that it
+  writes that and then goes on writing. Bytes that are not printable are
+  written `\xff`.
+
+After `make`, from the repo root, this checks all of it (Python 3, no Rust):
+
+```sh
+python3 - <<'CHECK'
+import codecs, html, re, shlex, subprocess, sys
+K, doc = './target/release/konfetti', open((sys.argv + ['web/docs.html'])[1]).read()
+HEX = dict(zip('red orange yellow green cyan blue purple pink white black brown silver gold'.split(), '#ff4b5c #ff9233 #ffe14d #2fd07a #29d3e6 '
+               '#3d7bff #9b5cff #ff6ec7 #fff8ec #2a2c3a #b06a3c #dfe6ee #f2b73a'.split()))
+data = lambda s: codecs.decode(html.unescape(s), 'unicode_escape').encode('latin1')  # \xff in an attribute is byte 255
+text = lambda s: html.unescape(re.sub('<[^>]+>', '', s))
+nums = lambda s: [int(v) for v in re.findall(r'-?\d+', text(s).replace('−', '-'))]
+
+def output(f, inp, cap):
+    """At most cap bytes of output; None after an error, or if the program neither stops nor writes that much in 5 s."""
+    try:
+        r = subprocess.run(f'{K} {shlex.quote(f)} | head -c {cap}', shell=True, input=inp, capture_output=True, timeout=5)
+        return None if r.stderr else r.stdout
+    except subprocess.TimeoutExpired:
+        return None
+
+def trace(f, inp, n):
+    """The first n lines of --trace; empty lines past the end."""
+    p = subprocess.Popen([K, '--trace', f], stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+    p.stdin.write(inp); p.stdin.close()
+    lines = [p.stderr.readline().decode().rstrip('\n') for _ in range(n)]
+    p.kill(); p.wait()
+    return lines
+
+bad = []
+for m in re.finditer(r'<(pre|svg|table|code|span)( [^>]*data-kft="[^"]*"[^>]*)>(.*?)</\1>', doc, re.S):
+    a, body = dict(re.findall(r'data-([\w-]+)="([^"]*)"', m[2])), m[3]
+    f, inp, cls = a['kft'], data(a.get('in', '')), (re.findall(r'class="([^"]*)"', m[2]) or [''])[0]
+    where = f'{f} with input {a.get("in", "")!r}'
+    if cls == 'kft' and text(body) != open(f).read().rstrip():
+        bad.append(f'{f}: the program text differs from the file')
+    if cls == 'prog':
+        drawn = sorted((int(i), c, xy) for xy, c, i in re.findall(r'data-xy="([^"]*)"[^>]*fill="([^"]*)"[^>]*data-bit="(\d+)"', body))
+        lines = [l.split('#')[0].split() for l in open(f) if l.split('#')[0].strip()]
+        if drawn != [(i, HEX[c], f'{x} {y}') for i, (c, x, y) in enumerate(lines)]:
+            bad.append(f'{f}: the diagram does not match the file')
+    if cls in ('walk', 'trace'):
+        rows = re.findall(r'<tr><td class="n">.*?</tr>', body, re.S) if cls == 'walk' else text(body).split('\n')
+        start = int(a.get('from', 1))
+        for row, line in zip(rows, trace(f, inp, start + len(rows) - 1)[start - 1:]):
+            t = re.match(r'bit (\d+) .*main \[(.*)\]  stash \[(.*)\]$', line)
+            stash = re.search(r'class="s">(.*?)</td>', row)
+            ok = row == line if cls == 'trace' else t and re.search(r'</span>#(\d+)', row)[1] == t[1] and \
+                nums(re.search(r'class="m">(.*?)</td>', row)[1]) == nums(t[2]) and (not stash or nums(stash[1]) == nums(t[3]))
+            if not ok:
+                bad.append(f'{where}: the steps differ from the trace at {line!r}')
+                break
+    if 'out' in a and output(f, inp, len(data(a['out'])) + 1) != data(a['out']):
+        bad.append(f'{where}: does not write {a["out"]!r} and stop')
+    if 'starts' in a:  # a program that never stops: it must write this, then a lot more
+        want = data(a['starts'])
+        got = output(f, inp, len(want) + 4096)
+        if not (got and len(got) == len(want) + 4096 and got.startswith(want)):
+            bad.append(f'{where}: does not keep writing after {a["starts"]!r}')
+print('\n'.join(bad) or 'web/docs.html agrees with the runtime')
+sys.exit(bool(bad))
+CHECK
+```
+
+It prints `web/docs.html agrees with the runtime`, or one line per claim that
+is wrong. When a tutorial changes, make what it shows from the files and the
+trace rather than typing numbers in, and keep the markup above on it. The
+diagrams use 0.05 px per language unit, strips 720 by 300 units, `y` up. Then
+look at the page at 1200 and 420 px wide, light and dark.

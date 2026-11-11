@@ -14,10 +14,21 @@ where to go next.
 - **Shareable**: `konfetti build` turns a program into a standalone executable
   or a single web page.
 
+**Try it** in the browser, with nothing to install:
+<https://aventyret-hackaton.github.io/konfetti/>. GitHub Pages publishes the
+`main` branch there; the root `index.html` only forwards to `web/`, and
+`.nojekyll` makes Pages serve the files as they are.
+
 **New here?** [web/docs.html](web/docs.html) is the friendly guide: your first
 program in five minutes, every color and control, pictures of how the walk
 works. Open it in a browser, or press **Docs** in the editor.
 [SPEC.md](SPEC.md) is the full definition. This page is the tour.
+
+**Learning?** In the editor, press **Learn konfetti** (or L) for twelve short
+lessons: each lays out a program on the ground and checks your work.
+The second half of [web/docs.html](web/docs.html#learn) teaches the same
+twelve as tutorials you can follow in the terminal, then four more that design
+programs from nothing, one on finding mistakes, and a cheat sheet.
 
 ## Quick start
 
@@ -109,6 +120,14 @@ red     2000 0
 | [examples/hello.kft](examples/hello.kft) | A straight line. Prints `A` |
 | [examples/cat.kft](examples/cat.kft) | A loop with a branch and an exit. Copies input to output |
 | [examples/count.kft](examples/count.kft) | An on-ramp into a ring. Counts down from 100,000,000; the benchmark |
+| [examples/dad.kft](examples/dad.kft) | A long trail folded into rows. Prints `dad` |
+| [examples/countdown.kft](examples/countdown.kft) | A counted loop with a constant in the stash. `5` prints `54321` |
+| [examples/compare.kft](examples/compare.kft) | A three-way branch. `ab` prints `<` |
+| [examples/reverse.kft](examples/reverse.kft) | Two rings in a row. `stressed` prints `desserts` |
+
+`examples/mistakes` holds the broken programs of the guide's last tutorial,
+with their fixes. `examples/exercises` holds the programs that answer
+exercises in the guide's tutorials.
 
 ## Layout patterns
 
@@ -127,15 +146,20 @@ red     2000 0
 - **Doing nothing.** There is no no-op color. Orange then brown (copy, discard)
   changes nothing and is safe on an empty stack.
 - **Joining a loop.** Do not join at a T: where a side trail meets a loop at a
-  right angle, the loop's own next bit and the side trail are both a 90° turn,
-  and the tie is settled by file order. Join from behind instead, so the loop's
-  next bit is the smaller turn for both arrivals. `count.kft` does this.
+  right angle, the walk, arriving from one of the two sides, has two 90° turns
+  to choose between, and the tie goes to the nearer bit, then by file order.
+  Join from behind instead, so the loop's next bit is the smaller turn for
+  both arrivals. `count.kft` does this.
 
 ## The editor
 
 `make serve`, then open <http://localhost:8137/web/>. The bubble at the top
 left always says what to do next.
 
+- **Learn konfetti** (or L) opens twelve lessons. Each lays out a program
+  with the spare strips it needs; **Check my program** runs it on the lesson's
+  inputs and says what is wrong, **Hint** helps, **Watch it run** opens the
+  debugger. Passed lessons are remembered in the browser.
 - **Fire** (or Space) shoots a burst of random bits from the cannon. They
   flutter down and lie where they land.
 - **Crayon** (or C), then drag on the stones to draw an outline. It closes
@@ -150,8 +174,9 @@ left always says what to do next.
   (R) and a speed slider, a trace of the last steps in plain words, and both
   stacks as boxes. Every bit gets a floating label with its number and
   instruction, and the bit that runs next is marked, with an arrow for the turn.
-- **Program (.kft)** shows the program as text. Paste text and press
-  **Load text** to lay it out with an outline around it, or pick an example.
+- **As text (.kft)**, under **Program**, shows the program as text. Paste
+  text and press **Load text** to lay it out with an outline around it, or
+  pick one of the seven examples.
 - **Sweep outside** removes the litter outside the outline.
 - **Wind** (or W) asks your browser for your location, rounds it to about
   10 km, and fetches the current wind from [Open-Meteo](https://open-meteo.com).
@@ -165,9 +190,24 @@ left always says what to do next.
 - **Themes**: toybox (the default), craft and arcade, from the switcher at the
   bottom of the panel or `?theme=craft` in the address.
 - Drag the ground to orbit, scroll to zoom, right-drag to pan.
+- On a phone the panel is a sheet at the bottom that opens half way or all
+  the way, with the end of the output on its edge, and **Crayon**, **Fire**,
+  **Run** (and **Check** in a lesson) float above it. One finger turns the
+  view, two pinch and slide; touch a bit in the debugger to have it
+  explained, and tap it twice to flick it.
 
 On a slow machine, add `?grass=20000` to the address for a thinner meadow.
-The editor loads three.js from a CDN, so it needs a network connection.
+The editor loads three.js from a CDN, so its first visit needs a network
+connection.
+
+The editor is installable as an app (a PWA): `web/manifest.webmanifest` and
+`web/icons/` describe it, `web/sw.js` makes it start offline after one visit,
+and `web/pwa.js` (styled by `web/pwa.css`) registers the worker and, a few
+seconds after the editor opens, offers to install it where the browser can:
+Chrome and Edge, or Safari on iPhone and iPad. After **Not now** it waits a
+month before offering again. It only works over HTTPS or on localhost; online,
+the worker always fetches the latest files first, so a change reaches people
+on their next load.
 
 ## Layout of this repo
 
@@ -176,8 +216,10 @@ The editor loads three.js from a CDN, so it needs a network connection.
 | `SPEC.md` | The language definition |
 | `src/lib.rs` | The whole runtime: parse, link, compile, run, tests, wasm exports |
 | `src/main.rs` | The CLI: run, trace, and `build` for executables and web pages |
-| `web/` | The editor: `index.html`, `main.js` (editing and running), `world.js` (scenery, cannon, flag), `debug.js` (the debugger's words and views), `sound.js`, `hand.js` (the glove), `ui.css` (panel and themes), the built `konfetti.wasm`, and `docs.html`, the guide |
-| `examples/` | Programs |
+| `web/` | The editor: `index.html`, `main.js` (editing and running), `world.js` (scenery, cannon, flag), `debug.js` (the debugger's words and views), `learn.js` (learn mode), `sound.js`, `hand.js` (the glove), `ui.css` (panel and themes), the built `konfetti.wasm`, `docs.html`, the guide and tutorials, and the installable app: `manifest.webmanifest`, `icons/`, `sw.js`, `pwa.js`, `pwa.css` |
+| `index.html`, `.nojekyll` | For GitHub Pages: the site's root forwards to `web/` |
+| `lessons/` | The lessons of learn mode: `index.json` and a starter and a solution program for each; `make test` checks that each can be solved |
+| `examples/` | Programs, including the tutorials' |
 | `AGENTS.md` | Notes for AI agents working here or writing konfetti |
 
 ## Not there yet

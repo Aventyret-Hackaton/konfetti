@@ -1,0 +1,7 @@
+# Reads a character, adds 3 to its number, writes the result.
+black    1200      0
+red      2400      0
+red      3600      0
+red      4800      0
+green    6000      0
+white    7200      0

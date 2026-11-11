@@ -508,6 +508,195 @@ mod tests {
         assert!(run("# nothing\n", b"").is_empty());
     }
 
+    /// As much JSON as lessons/index.json uses: objects, arrays, strings,
+    /// whole numbers, true and false.
+    #[derive(Debug)]
+    enum Json {
+        Obj(Vec<(String, Json)>),
+        Arr(Vec<Json>),
+        Str(String),
+        Num(i64),
+        Bool(bool),
+    }
+
+    impl Json {
+        fn get(&self, key: &str) -> Option<&Json> {
+            let Json::Obj(fields) = self else { panic!("not an object: {self:?}") };
+            fields.iter().find(|(k, _)| k == key).map(|(_, v)| v)
+        }
+        fn arr(&self) -> &[Json] {
+            let Json::Arr(items) = self else { panic!("not an array: {self:?}") };
+            items
+        }
+        fn str(&self) -> &str {
+            let Json::Str(s) = self else { panic!("not a string: {self:?}") };
+            s
+        }
+    }
+
+    fn json(src: &str) -> Json {
+        fn ws(s: &[u8], i: &mut usize) {
+            while s.get(*i).is_some_and(u8::is_ascii_whitespace) {
+                *i += 1;
+            }
+        }
+        fn string(s: &[u8], i: &mut usize) -> String {
+            assert_eq!(s[*i], b'"', "expected a string at byte {i}");
+            *i += 1;
+            let mut out = Vec::new();
+            while s[*i] != b'"' {
+                if s[*i] == b'\\' {
+                    *i += 1;
+                    out.push(match s[*i] {
+                        b'n' => b'\n',
+                        c @ (b'"' | b'\\') => c,
+                        c => panic!("escape \\{} is not supported", c as char),
+                    });
+                } else {
+                    out.push(s[*i]);
+                }
+                *i += 1;
+            }
+            *i += 1;
+            String::from_utf8(out).unwrap()
+        }
+        /// Items up to `close`, separated by commas.
+        fn list<T>(s: &[u8], i: &mut usize, close: u8, mut item: impl FnMut(&[u8], &mut usize) -> T) -> Vec<T> {
+            let mut items = Vec::new();
+            *i += 1;
+            loop {
+                ws(s, i);
+                if s[*i] == close {
+                    *i += 1;
+                    return items;
+                }
+                if !items.is_empty() {
+                    assert_eq!(s[*i], b',', "expected a comma at byte {i}");
+                    *i += 1;
+                    ws(s, i);
+                }
+                items.push(item(s, i));
+            }
+        }
+        fn value(s: &[u8], i: &mut usize) -> Json {
+            ws(s, i);
+            match s[*i] {
+                b'{' => Json::Obj(list(s, i, b'}', |s, i| {
+                    let key = string(s, i);
+                    ws(s, i);
+                    assert_eq!(s[*i], b':', "expected a colon at byte {i}");
+                    *i += 1;
+                    (key, value(s, i))
+                })),
+                b'[' => Json::Arr(list(s, i, b']', value)),
+                b'"' => Json::Str(string(s, i)),
+                _ => {
+                    let word: String =
+                        s[*i..].iter().take_while(|c| c.is_ascii_alphanumeric() || **c == b'-').map(|&c| c as char).collect();
+                    *i += word.len();
+                    match word.as_str() {
+                        "true" => Json::Bool(true),
+                        "false" => Json::Bool(false),
+                        n => Json::Num(n.parse().unwrap_or_else(|_| panic!("unexpected `{n}` at byte {i}"))),
+                    }
+                }
+            }
+        }
+        let (s, mut i) = (src.as_bytes(), 0);
+        let v = value(s, &mut i);
+        ws(s, &mut i);
+        assert_eq!(i, s.len(), "text after the end of the JSON");
+        v
+    }
+
+    /// The output, or None when the program is still going after a million
+    /// steps. The editor's "Check my program" gives up at the same point.
+    fn judge(bits: &[Bit], input: &[u8]) -> Option<Vec<u8>> {
+        let run = |fold| {
+            let mut vm = Vm::new(compile(bits, fold));
+            let (mut inp, mut out) = (input, Vec::new());
+            vm.run(1_000_000, &mut inp, &mut out).unwrap().then_some(out)
+        };
+        let out = run(true);
+        assert_eq!(out, run(false), "fold changed the result");
+        out
+    }
+
+    /// The editor's learn mode teaches from lessons/. Whatever a lesson asks
+    /// for must be possible, must not be done already, and must survive a
+    /// strip dropped a quarter of a length off its mark.
+    #[test]
+    fn lessons_can_be_solved_and_are_not_solved_already() {
+        let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/lessons/");
+        let read = |name: &str| std::fs::read_to_string(format!("{dir}{name}")).unwrap_or_else(|e| panic!("{name}: {e}"));
+        let index = json(&read("index.json"));
+        let lessons = index.arr();
+        assert!((10..=12).contains(&lessons.len()), "{} lessons", lessons.len());
+        let mut ids = Vec::new();
+        for lesson in lessons {
+            let id = lesson.get("id").unwrap().str();
+            assert!(!id.is_empty() && id.bytes().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == b'-'), "id `{id}`");
+            assert!(!ids.contains(&id), "{id}: id used twice");
+            ids.push(id);
+            for key in ["title", "idea", "goal"] {
+                assert!(!lesson.get(key).unwrap().str().trim().is_empty(), "{id}: empty {key}");
+            }
+            let texts = |key: &str| lesson.get(key).unwrap().arr().iter().map(Json::str).collect::<Vec<_>>();
+            assert!(!texts("steps").is_empty() && texts("steps").iter().all(|s| !s.trim().is_empty()), "{id}: steps");
+            assert!((2..=3).contains(&texts("hints").len()) && texts("hints").iter().all(|s| !s.trim().is_empty()), "{id}: hints");
+
+            let load = |kind: &str| {
+                let name = format!("{id}.{kind}.kft");
+                parse(&read(&name)).unwrap_or_else(|e| panic!("{name}: {e}"))
+            };
+            let (starter, solution) = (load("start"), load("solution"));
+
+            let checks: Vec<(&[u8], &[u8])> = lesson
+                .get("checks")
+                .unwrap()
+                .arr()
+                .iter()
+                .map(|c| (c.get("in").unwrap().str().as_bytes(), c.get("out").unwrap().str().as_bytes()))
+                .collect();
+            assert!(!checks.is_empty(), "{id}: no checks");
+            // The editor sends the text as UTF-8; plain ASCII is the same bytes everywhere.
+            assert!(checks.iter().all(|(i, o)| i.is_ascii() && o.is_ascii()), "{id}: checks must be ASCII");
+            let passes = |bits: &[Bit]| checks.iter().all(|&(input, want)| judge(bits, input).as_deref() == Some(want));
+
+            for &(input, want) in &checks {
+                let got = judge(&solution, input);
+                assert_eq!(got.as_deref(), Some(want), "{id}: solution on input {:?}", String::from_utf8_lossy(input));
+            }
+            let run_only = matches!(lesson.get("run_only"), Some(Json::Bool(true)));
+            assert_eq!(passes(&starter), run_only, "{id}: the starter must pass the checks only if the lesson is run_only");
+
+            // The solution is built from the starter's strips and the tray's, and from nothing else.
+            let Json::Obj(tray) = lesson.get("tray").unwrap() else { panic!("{id}: tray is not an object") };
+            for color in 0..COLORS.len() {
+                let count = |bits: &[Bit]| bits.iter().filter(|b| b.color as usize == color).count() as i64;
+                let spare = match tray.iter().find(|(name, _)| name == COLORS[color]) {
+                    Some((_, Json::Num(n))) => *n,
+                    Some(other) => panic!("{id}: tray count {other:?}"),
+                    None => 0,
+                };
+                assert!(spare >= 0 && count(&solution) <= count(&starter) + spare, "{id}: solution needs more {} than there is", COLORS[color]);
+            }
+            for (name, _) in tray {
+                assert!(COLORS.contains(&name.as_str()), "{id}: tray color `{name}`");
+            }
+
+            // A student drops strips by hand. Each strip the solution adds may
+            // land 250 off in any of eight directions and the lesson still passes.
+            for (n, placed) in solution.iter().enumerate().filter(|(_, b)| !starter.contains(b)) {
+                for (dx, dy) in [(250, 0), (177, 177), (0, 250), (-177, 177), (-250, 0), (-177, -177), (0, -250), (177, -177)] {
+                    let mut sloppy = solution.clone();
+                    sloppy[n] = Bit { x: placed.x + dx, y: placed.y + dy, ..*placed };
+                    assert!(passes(&sloppy), "{id}: fails with {} dropped {dx}, {dy} off", COLORS[placed.color as usize]);
+                }
+            }
+        }
+    }
+
     #[test]
     fn turns_are_ordered_by_signed_angle() {
         // (cross, dot) for -135°, -45°, 0°, 45°, 135°, 180°

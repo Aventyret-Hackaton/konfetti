@@ -1,0 +1,14 @@
+# 8, copied, multiplied: 64. Plus 1 is 65, the letter A.
+red      1200      0
+red      2400      0
+red      3600      0
+red      4800      0
+red      6000      0
+red      7200      0
+red      7200   1200
+red      7200   2400
+orange   6000   2400
+blue     4800   2400
+red      3600   2400
+green    2400   2400
+white    1200   2400

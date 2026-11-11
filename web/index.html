@@ -2,9 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>konfetti</title>
-<link rel="icon" href="data:,">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#2447d8">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <script>
   // Before the first paint, so the page never flashes in the wrong theme. main.js checks the name.
   (function () {
@@ -14,6 +17,7 @@
   })();
 </script>
 <link rel="stylesheet" href="ui.css">
+<link rel="stylesheet" href="pwa.css">
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
@@ -29,14 +33,18 @@
 <section id="dock" aria-label="Debugger" hidden>
   <div class="dockbar">
     <strong class="docktitle"><span aria-hidden="true">🐞</span> Debugger</strong>
-    <button id="dstep"><span aria-hidden="true">⏭</span> Step <kbd>N</kbd></button>
-    <button id="dplay" aria-pressed="false"><span aria-hidden="true">⏯</span> Play <kbd>P</kbd></button>
-    <button id="drestart"><span aria-hidden="true">↺</span> Restart <kbd>R</kbd></button>
+    <!-- On a phone these three float at the bottom, under the thumb, like the quick buttons. -->
+    <div class="dockbtns">
+      <button id="dstep" class="go"><span class="ico" aria-hidden="true">⏭</span> Step <kbd>N</kbd></button>
+      <button id="dplay" aria-pressed="false"><span class="ico" aria-hidden="true">⏯</span> Play <kbd>P</kbd></button>
+      <button id="drestart"><span class="ico" aria-hidden="true">↺</span> Restart <kbd>R</kbd></button>
+    </div>
     <label class="speed" for="dspeed">Speed
       <input id="dspeed" type="range" min="1" max="30" value="5">
       <output id="dspeedv" for="dspeed">5 a second</output>
     </label>
     <span id="dstatus" role="status"></span>
+    <button id="dclose" class="small" aria-label="Close the debugger" title="Close the debugger (D)"><span aria-hidden="true">✕</span></button>
   </div>
   <p id="dexplain">Point at a bit to see what it does.</p>
   <div class="dockcols">
@@ -51,7 +59,22 @@
   </div>
 </section>
 
+<!-- Phone only: the actions used most, over the world, riding on top of the sheet. -->
+<div id="fabs" role="group" aria-label="Quick actions">
+  <button id="qcrayon" aria-pressed="false"><span class="ico" aria-hidden="true">🖍️</span> Crayon</button>
+  <button id="qfire"><span class="ico" aria-hidden="true">🎉</span> Fire</button>
+  <button id="qrun" class="go"><span class="ico" aria-hidden="true">▶</span> <span class="lbl">Run</span></button>
+  <button id="qcheck" class="go" aria-label="Check my program"><span class="ico" aria-hidden="true">✓</span> Check</button>
+</div>
+
+<!-- On a wide screen, the panel on the right. On a phone, a sheet at the bottom: a peek, half open or full. -->
 <aside id="panel" aria-label="Controls">
+  <div id="sheetbar">
+    <button id="sheet" aria-expanded="false" aria-label="Show more controls">
+      <span class="grip" aria-hidden="true"></span>
+      <span class="peek" aria-hidden="true"><b>Output</b> <span id="peekout"></span></span>
+    </button>
+  </div>
   <header class="top">
     <h1><button id="logo" aria-label="konfetti: throw some confetti"></button></h1>
     <div id="burst" aria-hidden="true"></div>
@@ -61,34 +84,49 @@
     </div>
   </header>
 
-  <section class="group make" aria-labelledby="g-make">
-    <h2 id="g-make">Make</h2>
+  <button id="learn" class="go" aria-pressed="false"><span aria-hidden="true">🎓</span> Learn konfetti <kbd>L</kbd></button>
+
+  <!-- In the panel so that, on a phone, the lesson is read in the sheet; on a wide screen it is a card on the left. -->
+  <section id="lesson" aria-label="Learn" hidden>
+    <header class="lhead">
+      <strong id="lwhere">Learn</strong>
+      <button id="llist" class="small">Lessons</button>
+      <button id="lexit" class="small">Leave</button>
+    </header>
+    <div id="lbody"></div>
+  </section>
+
+  <!-- Every group folds; main.js remembers which are open, per layout. -->
+  <details class="group make" data-group="make" open>
+    <summary><h2 id="g-make">Make</h2></summary>
     <div class="row">
       <button id="fire"><span aria-hidden="true">🎉</span> Fire <kbd>Space</kbd></button>
       <button id="crayon" aria-pressed="false"><span aria-hidden="true">🖍️</span> Crayon <kbd>C</kbd></button>
       <button id="wind" aria-pressed="false"><span aria-hidden="true">💨</span> Wind <kbd>W</kbd></button>
     </div>
     <p id="windinfo" role="status"></p>
-  </section>
+  </details>
 
-  <section class="group run" aria-labelledby="g-run">
-    <h2 id="g-run">Run</h2>
+  <details class="group run" data-group="run" open>
+    <summary><h2 id="g-run">Run</h2></summary>
     <div class="row">
       <button id="run" class="go"><span aria-hidden="true">▶</span> Run</button>
       <button id="fast" class="go"><span aria-hidden="true">⏩</span> Run fast</button>
       <button id="stop"><span aria-hidden="true">⏹</span> Stop</button>
       <button id="debug" aria-pressed="false"><span aria-hidden="true">🐞</span> Debug <kbd>D</kbd></button>
     </div>
-    <label for="input">Input</label>
-    <input id="input" autocomplete="off" placeholder="what the program reads">
-    <h3 id="outh">Output</h3>
-    <pre id="output" aria-labelledby="outh" aria-live="polite"></pre>
-    <h3 id="stackh">Stacks</h3>
-    <div id="stacks" role="group" aria-labelledby="stackh"></div>
-  </section>
+    <div class="io">
+      <label for="input">Input</label>
+      <input id="input" autocomplete="off" placeholder="what the program reads">
+      <h3 id="outh">Output</h3>
+      <pre id="output" aria-labelledby="outh" aria-live="polite"></pre>
+      <h3 id="stackh">Stacks</h3>
+      <div id="stacks" role="group" aria-labelledby="stackh"></div>
+    </div>
+  </details>
 
-  <section class="group program" aria-labelledby="g-program">
-    <h2 id="g-program">Program</h2>
+  <details class="group program" data-group="program" open>
+    <summary><h2 id="g-program">Program</h2></summary>
     <label for="kft">As text (.kft)</label>
     <textarea id="kft" spellcheck="false"></textarea>
     <div class="row">
@@ -98,31 +136,36 @@
         <option>hello</option>
         <option>cat</option>
         <option>count</option>
+        <option>dad</option>
+        <option>countdown</option>
+        <option>compare</option>
+        <option>reverse</option>
       </select>
     </div>
-  </section>
+  </details>
 
-  <section class="group tidy" aria-labelledby="g-tidy">
-    <h2 id="g-tidy">Tidy</h2>
+  <details class="group tidy" data-group="tidy" open>
+    <summary><h2 id="g-tidy">Tidy</h2></summary>
     <div class="row">
       <button id="sweep"><span aria-hidden="true">🧹</span> Sweep outside</button>
       <button id="clear"><span aria-hidden="true">🗑️</span> Clear all</button>
     </div>
-  </section>
+  </details>
 
-  <details class="group colors" open>
-    <summary>Colors</summary>
+  <details class="group colors" data-group="colors">
+    <summary><h2>Colors</h2></summary>
     <ul id="legend"></ul>
   </details>
 
-  <details class="group">
-    <summary>How it works</summary>
+  <details class="group how" data-group="how">
+    <summary><h2>How it works</h2></summary>
     <p class="help">
       Fire the cannon. Pick the crayon and draw an outline on the stones: the confetti inside it is the
       program, and the dot where the crayon touched down is its origin. Drag bits in, out and into place;
       bits within 1.5 lengths link up, and a bit on top of another covers it. The ring marks the start
       (nearest the dot). Double-click a bit to flick it away. Drag the ground to orbit, scroll to zoom,
-      right-drag to pan.
+      right-drag to pan. On a touch screen: one finger turns, two fingers pinch to zoom and slide, and a
+      double tap flicks a bit away.
     </p>
   </details>
 

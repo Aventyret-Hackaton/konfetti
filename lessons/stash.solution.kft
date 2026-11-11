@@ -1,0 +1,7 @@
+# Puts the second character aside, writes the first, then fetches and writes the second.
+black    1200      0
+black    2400      0
+silver   3600      0
+white    4800      0
+gold     6000      0
+white    7200      0

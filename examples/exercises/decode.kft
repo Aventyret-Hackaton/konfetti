@@ -1,0 +1,10 @@
+# lessons/code.solution.kft with a cyan dropped on green: subtract instead
+# of add. IBM -> HAL.
+black       0   1100
+orange    550   2053
+pink        0   3006
+white   -1100   1100
+brown     850   3855
+red     -1100   3006
+green   -1650   2053
+cyan    -1650   2053

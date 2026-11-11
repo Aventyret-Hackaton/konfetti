@@ -1,0 +1,29 @@
+# compare: reads two characters a and b and writes <, = or >.
+# Make 61 (=) first, then branch on a-b: each arm only adjusts 61.
+# Zero goes straight on to =, positive turns left to > (62),
+# negative turns right to < (60).
+red      1200     0   # 1
+red      2400     0   # 2
+red      3600     0   # 3
+red      4800     0   # 4
+red      6000     0   # 5
+red      7200     0   # 6
+red      7200  1200   # 7
+red      7200  2400   # 8
+orange   6000  2400   # 8 8
+blue     4800  2400   # 64
+red      3600  2400   # 64 1
+red      2400  2400   # 64 2
+red      1200  2400   # 64 3
+cyan     1200  3600   # 61
+black    1200  4800   # 61 a
+black    1200  6000   # 61 a b
+cyan     1200  7200   # 61 a-b
+pink     1200  8400   # 61
+white    1200  9600   # zero, straight on:   writes =
+red         0  8400   # positive, left:      61 1
+green   -1200  8400   #                      62
+white   -2400  8400   #                      writes >
+red      2400  8400   # negative, right:     61 1
+cyan     3600  8400   #                      60
+white    4800  8400   #                      writes <

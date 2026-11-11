@@ -1,0 +1,21 @@
+# reverse: writes its input backwards. stressed -> desserts.
+# A 0 goes into the stash first, as a marker. The first ring moves
+# every character to the stash; the second fetches them back, last
+# one first, and writes them until it fetches the 0.
+# Each ring is joined at a corner from behind, like count.kft.
+red         0  1200   # 1
+orange      0  2400   # 1 1
+cyan        0  3600   # 0
+silver      0  4800   #               stash 0         joins ring 1
+black     300  6250   # c                             (-1 at the end)
+orange    300  7450   # c c
+red      -900  7450   # c c 1
+green   -2100  7450   # c c+1
+pink    -2100  6250   # c   positive: left; zero (end of input): straight on
+silver   -900  6250   #               stash 0 ... c   back to black
+brown   -2100  5050   # (the -1 dropped)              joins ring 2
+gold    -3550  5350   # x             (the last character first)
+orange  -4750  5350   # x x
+pink    -4750  4150   # x   positive: left; zero (the marker): straight on
+white   -3550  4150   #               writes x, back to gold
+brown   -4750  2950   # (the 0 dropped) dead end, halt

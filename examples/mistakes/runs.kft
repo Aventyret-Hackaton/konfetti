@@ -1,0 +1,11 @@
+# Broken on purpose. Meant: read a, push 3, push 2, multiply to 6,
+# add: a -> g. But the two runs of red touch, so they push one 5.
+black    1200     0
+red      2400     0
+red      3600     0
+red      4800     0
+red      6000     0
+red      6000  1200
+blue     6000  2400
+green    4800  2400
+white    3600  2400

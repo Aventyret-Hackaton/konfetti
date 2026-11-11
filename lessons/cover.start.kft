@@ -1,0 +1,5 @@
+# Writes the character one number higher than the one it reads.
+black    1200      0
+red      2400      0
+green    3400      0
+white    4400      0

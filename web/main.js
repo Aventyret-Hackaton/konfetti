@@ -8,6 +8,8 @@ import { buildWorld } from './world.js';
 import { sound } from './sound.js';
 import { createHand } from './hand.js';
 import { EXPLAIN, describe, turn, TURN_WORDS, TURN_ARROW, drawStacks, drawTrace, makeLabels } from './debug.js';
+import { createLearn } from './learn.js';
+import { initPwa } from './pwa.js';
 
 const PALETTE = [
   ['red', '#ff4b5c', 'PUSH'], ['orange', '#ff9233', 'DUP'], ['yellow', '#ffe14d', 'SWAP'],
@@ -23,6 +25,12 @@ const FOOTPRINT = 1.05;         // bits with centres closer than this may touch,
 const CRAYON = '#2447d8';
 const $ = id => document.getElementById(id);
 const params = new URLSearchParams(location.search);
+// The phone layout (the panel is a sheet at the bottom): the same query is in ui.css.
+const compact = matchMedia('(max-width: 700px), (max-height: 500px)');
+const noHover = matchMedia('(hover: none)');
+const calm = matchMedia('(prefers-reduced-motion: reduce)');
+/** Key hints like "(Space)" mean nothing on a touch screen. */
+const keyless = text => (noHover.matches ? text.replace(/ \((?:Space|[A-Z])\)/g, '') : text);
 
 // ---- runtime (web/konfetti.wasm, built from src/lib.rs) ----
 const kf = (await WebAssembly.instantiateStreaming(fetch('konfetti.wasm'))).instance.exports;
@@ -140,6 +148,8 @@ function setCrayonMode(on) {
   crayonMode = on;
   crayon.visible = false;
   $('crayon').setAttribute('aria-pressed', String(on));
+  $('qcrayon').setAttribute('aria-pressed', String(on));
+  if (on && compact.matches) setSheet('peek'); // drawing needs the ground in sight
   coach();
 }
 
@@ -169,6 +179,7 @@ function removeBits(keep) {
   bits.filter(b => !keep(b)).forEach(b => scene.remove(b.mesh));
   bits = bits.filter(keep);
   dirty = true;
+  explain(null); // the bit being explained may be gone
 }
 
 const touching = (a, b) => (a.mesh.position.x - b.mesh.position.x) ** 2 + (a.mesh.position.z - b.mesh.position.z) ** 2 < FOOTPRINT * FOOTPRINT;
@@ -210,7 +221,7 @@ function fire() {
   // ponytail: one mesh per bit. Past this many, drop the oldest litter; use an InstancedMesh if more are wanted.
   const extra = bits.length - 1200;
   if (extra > 0) {
-    const old = new Set(bits.filter(b => b.state === 'land' && !inArea(b.mesh.position.x, b.mesh.position.z)).slice(0, extra));
+    const old = new Set(bits.filter(b => b.state === 'land' && !b.tray && !inArea(b.mesh.position.x, b.mesh.position.z)).slice(0, extra));
     removeBits(b => !old.has(b));
   }
 }
@@ -353,17 +364,17 @@ let saidUntil = 0;
 function coach() {
   if (performance.now() < saidUntil) return;
   const n = view.list.length;
-  $('hint').textContent =
-    crayonMode ? 'Draw a loop on the stones. The spot where the crayon touches down is the program’s origin.'
+  $('hint').textContent = keyless(
+    crayonMode ? 'Draw an outline on the stones. The spot where the crayon touches down is the program’s origin.'
     : !bits.length ? 'Start here: fire the cannon! (Space)'
-    : !area ? 'Next: pick the crayon (C) and draw a loop around some confetti. What is inside becomes the program.'
-    : !n ? 'Nothing inside the loop yet. Drag confetti in, or fire again.'
+    : !area ? 'Next: pick the crayon (C) and draw an outline around some confetti. What is inside becomes the program.'
+    : !n ? 'Nothing inside the outline yet. Drag confetti in, or fire again.'
     : debugOn ? `${n} bits in the program. Step (N) runs one bit; Play (P) runs them one after another.`
-    : `${n} bit${n > 1 ? 's' : ''} in the program. Press Run, or turn on Debug (D) to step through it.`;
+    : `${n} bit${n > 1 ? 's' : ''} in the program. Press Run, or turn on Debug (D) to step through it.`);
 }
 /** Shows `text` in the hint for a few seconds, then the hint goes back to coaching. */
 function say(text) {
-  $('hint').textContent = text;
+  $('hint').textContent = keyless(text);
   saidUntil = performance.now() + 3500;
   setTimeout(coach, 3600);
 }
@@ -380,17 +391,42 @@ scene.add(hand.group);
 let handAt = null; // the ground point under the pointer, or null when it is off the canvas
 canvas.addEventListener('pointerleave', () => { handAt = null; });
 let crayonAt = null; // { x, z, time } of the last crayon move, for the speed of the scratch
+// A finger hides what it holds, so a bit held by touch rides this many pixels above the finger. It
+// rises over the first 40 px of the drag, so a tap does not make it jump.
+const LIFT = 56;
+let grab = null; // { x, y, touch, from }: where the pointer took hold of the bit, and where the bit lay
 
-function groundAt(e) {
+/** The ground point under the pointer, or `up` pixels above it. */
+function groundAt(e, up = 0) {
   const r = canvas.getBoundingClientRect();
-  mouse.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+  mouse.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - up - r.top) / r.height) * 2 + 1);
   ray.setFromCamera(mouse, camera);
   return ray.ray.intersectPlane(floor, new THREE.Vector3());
 }
+const FINGER = 30; // CSS pixels: how far from a strip a fingertip may land and still take it
+const end = new THREE.Vector3();
 function bitAt(e) {
   groundAt(e);
-  const hit = ray.intersectObjects(bits.filter(b => b.state === 'land').map(b => b.mesh))[0];
-  return hit && hit.object.userData.bit;
+  const land = bits.filter(b => b.state === 'land');
+  const hit = ray.intersectObjects(land.map(b => b.mesh))[0];
+  if (hit) return hit.object.userData.bit;
+  if (e.pointerType !== 'touch') return undefined;
+  // A strip is thinner than a fingertip, so a near miss takes the strip nearest on screen,
+  // measured to the strip's long middle line and not just to its centre.
+  const r = canvas.getBoundingClientRect();
+  const px = v => (v.project(camera), { x: (v.x + 1) / 2 * r.width + r.left, y: (1 - v.y) / 2 * r.height + r.top, behind: v.z > 1 });
+  let best, near = FINGER;
+  for (const b of land) {
+    const p = b.mesh.position, yaw = b.mesh.rotation.y, hx = Math.cos(yaw) / 2, hz = -Math.sin(yaw) / 2;
+    const a = px(end.set(p.x - hx, p.y, p.z - hz)), c = px(end.set(p.x + hx, p.y, p.z + hz));
+    if (a.behind || c.behind) continue;
+    const dx = c.x - a.x, dy = c.y - a.y;
+    const t = Math.max(0, Math.min(1, ((e.clientX - a.x) * dx + (e.clientY - a.y) * dy) / (dx * dx + dy * dy || 1)));
+    const d = Math.hypot(e.clientX - a.x - t * dx, e.clientY - a.y - t * dy);
+    // In a pile, a tie goes to the strip on top.
+    if (d < near - 0.5 || (d < near + 0.5 && best && p.y > best.mesh.position.y)) { best = b; near = d; }
+  }
+  return best;
 }
 
 // Capture phase: this must run before OrbitControls sees the event, so a grab or a stroke doesn't also orbit.
@@ -406,7 +442,9 @@ canvas.addEventListener('pointerdown', e => {
     held = bitAt(e);
     if (!held) return;
     held.state = 'held';
+    grab = { x: e.clientX, y: e.clientY, touch: e.pointerType === 'touch', from: held.mesh.position.clone() };
     held.mesh.position.y += 0.35;
+    if (debugOn) explain(held); // a finger has no hover: touching a bit is how it asks
     sound.pickUp();
     dirty = true;
   }
@@ -419,7 +457,8 @@ canvas.addEventListener('pointermove', e => {
   handAt = e.pointerType === 'touch' ? null : groundAt(e);
   if (debugOn && !crayonMode && !held && !e.buttons) explain(bitAt(e));
   if (owner !== null && e.pointerId !== owner) return;
-  const p = (crayonMode || held) && groundAt(e);
+  const up = held && grab.touch ? LIFT * Math.min(1, Math.hypot(e.clientX - grab.x, e.clientY - grab.y) / 40) : 0;
+  const p = (crayonMode || held) && groundAt(e, up);
   if (!p) return;
   if (crayonMode) {
     crayon.visible = true;
@@ -455,21 +494,35 @@ function release(e) {
     setCrayonMode(false);
   }
   if (held) {
+    const b = held, tap = grab.touch && Math.hypot(e.clientX - grab.x, e.clientY - grab.y) < 10;
     held.state = 'land';
-    settle(held); // on top of whatever is there, covering it
+    // A tap only asks what the bit is: it stays where it lay, in its place in the pile.
+    if (tap) held.mesh.position.copy(grab.from);
+    else settle(held); // on top of whatever is there, covering it
     held = null;
     sound.drop();
     dirty = true;
+    // Not every browser gives fingers a dblclick: two quick taps on one bit flick it away, as a double-click does.
+    const twice = tap && lastTap && lastTap.bit === b && e.timeStamp - lastTap.time < 400;
+    if (twice) {
+      flick(b);
+      tapFlicked = e.timeStamp;
+    }
+    lastTap = tap && !twice ? { bit: b, time: e.timeStamp } : null;
   }
 }
+let lastTap = null, tapFlicked = -Infinity;
 canvas.addEventListener('pointerup', release);
 canvas.addEventListener('pointercancel', release);
 
-canvas.addEventListener('dblclick', e => {
-  const b = !crayonMode && bitAt(e);
-  if (!b) return;
+function flick(b) {
   launch(b, Math.random() * 6 - 3, 7, Math.random() * 6 - 3);
   sound.flick();
+}
+canvas.addEventListener('dblclick', e => {
+  if (e.timeStamp - tapFlicked < 500) return; // the two taps that made this have flicked their bit already
+  const b = !crayonMode && bitAt(e);
+  if (b) flick(b);
 });
 
 const controls = new OrbitControls(camera, canvas);
@@ -513,7 +566,7 @@ function start(fast, playing = true, quiet = false) {
     if (!quiet) {
       $('output').textContent = 'Nothing to run: draw an outline with the crayon first.';
       sound.error();
-      say('Nothing to run yet: draw a loop with the crayon first.');
+      say('Nothing to run yet: draw an outline with the crayon first.');
     }
     return showMachine();
   }
@@ -525,6 +578,7 @@ function start(fast, playing = true, quiet = false) {
     return showMachine();
   }
   trace = [];
+  if (!quiet) $('output').closest('details').open = true; // a run asked for is a run to watch: output and stacks in sight
   run = { fast, list, src, playing, budget: 0, n: 0, prev: -1, halted: false, shown: machine(), pending: null,
           pts: list.map(b => ({ x: kx(b), y: ky(b) })) };
   if (!fast) {
@@ -569,13 +623,14 @@ function finish(quiet) {
   pointer.visible = false;
   if (quiet) return;
   sound.halt();
-  say(run.fast ? 'The program halted.' : run.n ? `The program halted after ${run.n} step${run.n > 1 ? 's' : ''}.` : 'There is nothing in the loop to run.');
+  say(run.fast ? 'The program halted.' : run.n ? `The program halted after ${run.n} step${run.n > 1 ? 's' : ''}.` : 'There is nothing in the outline to run.');
 }
 
 function showMachine() {
   const m = onScreen();
   // Only the last 64 KB, far more than the box shows: a program that prints without end must not slow every frame.
   if (run) $('output').textContent = (m.out.length > 1 << 16 ? '…' : '') + dec.decode(m.out.subarray(-(1 << 16)));
+  $('peekout').classList.toggle('ended', !!run && run.halted); // once the program has stopped, an empty peek says so, not "nothing yet"
   drawStacks($('stacks'), m.main, m.stash);
   if (debugOn) drawDebug();
 }
@@ -613,6 +668,7 @@ function setDebug(on) {
   document.body.classList.toggle('debugging', on);
   if (on) {
     if (!run || run.halted) start(false, false, true); // paused on the first bit, ready to step
+    if (compact.matches) setSheet('peek'); // the dock takes the top, its buttons the bottom: the program goes between
   } else {
     if (run && !run.playing) stop();
     nextRing.visible = arrow.visible = false;
@@ -620,7 +676,7 @@ function setDebug(on) {
   }
   coach();
   drawDebug();
-  resize();
+  fitView();
 }
 
 /** The dock: buttons, status, trace and stacks. Called whenever the machine or the program changes. */
@@ -629,7 +685,7 @@ function drawDebug() {
   const slow = run && !run.fast, m = onScreen();
   drawStacks($('dstacks'), m.main, m.stash);
   drawTrace($('trace'), slow ? trace : [], run && run.fast ? 'Run fast does not keep a trace. Use Step or Play.'
-    : !area ? 'Draw a loop with the crayon: the confetti inside it is the program.'
+    : !area ? 'Draw an outline with the crayon: the confetti inside it is the program.'
     : 'No steps yet. Press Step to run the first bit.');
   $('dplay').setAttribute('aria-pressed', String(!!(run && run.playing)));
   const p = slow && run.pending;
@@ -647,21 +703,23 @@ function drawDebug() {
 }
 
 function explain(bit) {
-  if (!bit) return void ($('dexplain').textContent = 'Point at a bit to see what it does.');
+  $('dexplain').classList.toggle('idle', !bit); // only the invitation: a phone on its side has no room for it
+  if (!bit) return void ($('dexplain').textContent = noHover.matches ? 'Touch a bit to see what it does.' : 'Point at a bit to see what it does.');
   const [name, , op] = PALETTE[bit.color], i = view.list.indexOf(bit);
-  $('dexplain').textContent = `${name} ${op}${i < 0 ? ' (outside the loop, not in the program)' : ` #${i}${view.live[i] ? '' : ' (covered, so ignored)'}`}: ${EXPLAIN[bit.color]}`;
+  $('dexplain').textContent = `${name} ${op}${i < 0 ? ' (outside the outline, not in the program)' : ` #${i}${view.live[i] ? '' : ' (covered, so ignored)'}`}: ${EXPLAIN[bit.color]}`;
 }
 
 /** Floating names over the program's bits. Called every frame: the camera moves. */
 const corner = new THREE.Vector3();
 function drawLabels() {
   const items = [], zoom = innerHeight / 2 / Math.tan(camera.fov * Math.PI / 360);
+  const room = compact.matches ? 12 / 10.5 : 1; // a phone's labels are 12px, not 10.5px (ui.css), so they need more room
   const put = (pos, html, cls, always) => {
     corner.copy(pos).project(camera);
     if (corner.z > 1 || Math.abs(corner.x) > 1.05 || Math.abs(corner.y) > 1.05) return;
     // Screen pixels per bit length here. Names need room: far away they shrink to numbers, then go.
     const size = zoom / camera.position.distanceTo(pos);
-    const full = always || size > 46, alpha = always ? 1 : Math.min(1, (size - 14) / 8);
+    const full = always || size > 46 * room, alpha = always ? 1 : Math.min(1, (size - 14 * room) / 8);
     if (alpha <= 0) return;
     items.push({ x: (corner.x + 1) / 2 * innerWidth, y: (1 - corner.y) / 2 * innerHeight, html: html(full), cls: `${cls}${full ? '' : ' tiny'}`, alpha });
   };
@@ -681,7 +739,15 @@ function drawLabels() {
 }
 
 // ---- loading text ----
-function loadText(text) {
+const rowsOf = text => text.split('\n').map(line => line.split('#')[0].trim().split(/\s+/)).filter(r => r[0])
+  .map(([name, x, y]) => ({ color: PALETTE.findIndex(p => p[0] === name), x: x / UNIT, z: -y / UNIT }));
+
+/**
+ * Lays `text` out as the program and draws an outline around it. A lesson also passes `fit`, program
+ * text whose bits must find room inside the outline too, and `tray`, the colors of spare bits to lay in
+ * a row outside it. Returns the patch of ground it used, { x0, x1, z0, z1 }, or nothing if the text is bad.
+ */
+function loadText(text, { fit = '', tray = [] } = {}) {
   stop(); // checking the text replaces the program in the runtime, so no run can go on
   if (!kfLoad(text, '', true)) {
     $('output').textContent = 'error: ' + kfOutput();
@@ -689,13 +755,12 @@ function loadText(text) {
     say('That text is not a program. The output box says why.');
     return showMachine();
   }
-  const rows = text.split('\n').map(line => line.split('#')[0].trim().split(/\s+/)).filter(r => r[0])
-    .map(([name, x, y]) => ({ color: PALETTE.findIndex(p => p[0] === name), x: x / UNIT, z: -y / UNIT }));
+  const rows = rowsOf(text);
   stop();
   removeBits(() => false);
   // Lay the program out in front of the cannon, clear of where its bursts come down.
   const box = { x0: 0, x1: 0, z0: 0, z1: 0 }; // around the bits and the origin, origin-relative
-  for (const r of rows) {
+  for (const r of [...rows, ...rowsOf(fit)]) {
     box.x0 = Math.min(box.x0, r.x); box.x1 = Math.max(box.x1, r.x);
     box.z0 = Math.min(box.z0, r.z); box.z1 = Math.max(box.z1, r.z);
   }
@@ -729,7 +794,175 @@ function loadText(text) {
   const d = Math.max(x1 - x0, z1 - z0) * 0.62 + 6;
   controls.target.set((x0 + x1) / 2, 0, (z0 + z1) / 2);
   camera.position.set((x0 + x1) / 2, d, (z0 + z1) / 2 + d);
+  if (compact.matches) frame({ x0, x1, z0, z1 }); // a narrow screen cuts the ends off a long row otherwise
   say(`Loaded ${rows.length} bits. Press Run!`);
+  // The tray: a row on the near side of the outline, clear of it.
+  const pitch = 1.5, reach = (tray.length - 1) / 2 * pitch + 0.6;
+  tray.forEach((color, i) => {
+    const b = addBit(color, (x0 + x1) / 2 + (i - (tray.length - 1) / 2) * pitch, 0, z1 + 1.5, 'land');
+    b.tray = true; // the lesson needs these: they are not litter, whatever lies outside the outline
+    b.mesh.rotation.y = 0;
+    settle(b);
+  });
+  return tray.length ? { x0: Math.min(x0, (x0 + x1) / 2 - reach), x1: Math.max(x1, (x0 + x1) / 2 + reach), z0, z1: z1 + 2.2 } : { x0, x1, z0, z1 };
+}
+
+// ---- what covers the world: the panel or sheet, the lesson card, the dock, the quick buttons ----
+/**
+ * The part of the window, in pixels { l, t, r, b }, that nothing covers. On a phone it is worked out
+ * from where the sheet is going, not where it is mid-slide.
+ */
+function freeRect() {
+  const W = innerWidth, H = innerHeight;
+  const box = el => (el.getClientRects().length ? el.getBoundingClientRect() : null);
+  const dock = box($('dock'));
+  if (!compact.matches) {
+    // The lesson card stands on the left on a wide screen; on a narrower one it is inside the panel.
+    const card = getComputedStyle($('lesson')).position === 'fixed' && box($('lesson'));
+    return { l: card ? card.right : 0, t: 0, r: box($('panel')).left, b: dock ? dock.top : H };
+  }
+  const gap = 10, fabs = box($('fabs')), sizes = sheetSizes();
+  if (W > H) { // on its side: the dock on the left; the sheet and the quick buttons on the right
+    const right = sheet === 'peek' ? W : W - $('panel').offsetWidth;
+    return { l: dock ? dock.right : 0, t: 0, r: right - gap - (fabs ? fabs.width + gap : 0), b: H };
+  }
+  const btns = debugOn ? box(document.querySelector('.dockbtns')) : null;
+  const row = Math.max(fabs ? fabs.height : 0, btns ? btns.height : 0);
+  // Past half open the sheet covers the world anyway; the view keeps the half-open framing.
+  return { l: 0, t: dock ? dock.bottom : 0, r: W, b: H - Math.min(sizes[sheet], sizes.half) - (row ? row + gap : 0) };
+}
+
+/** The view's shift, so that the middle of the scene is the middle of what can be seen. It glides to `liftTo`. */
+let lift = { x: 0, y: 0 }, liftTo = { x: 0, y: 0 };
+function fitView(now = false) {
+  const f = freeRect(), W = innerWidth, H = innerHeight;
+  const cap = (v, m) => Math.max(-m, Math.min(m, v)); // a sliver of free room must not throw the scene off screen
+  liftTo = { x: cap(W / 2 - (f.l + f.r) / 2, W / 3), y: cap(H / 2 - (f.t + f.b) / 2, H / 3) };
+  if (now || calm.matches) lift = { ...liftTo };
+  applyLift();
+}
+function applyLift() {
+  if (Math.abs(lift.x) > 0.5 || Math.abs(lift.y) > 0.5) camera.setViewOffset(innerWidth, innerHeight, lift.x, lift.y, innerWidth, innerHeight);
+  else camera.clearViewOffset();
+  camera.updateProjectionMatrix();
+}
+
+// ---- the sheet: the panel on a phone. It rests as a peek (handle and output), half open or full. ----
+const STOPS = ['peek', 'half', 'full'];
+let sheet = 'peek';
+try { if (STOPS.includes(localStorage.getItem('konfetti.sheet'))) sheet = localStorage.getItem('konfetti.sheet'); } catch {}
+document.documentElement.dataset.sheet = sheet;
+
+/** The sheet's height at each stop, in pixels. Half open shows the Run group down to the stacks, or a good part of a lesson. */
+function sheetSizes() {
+  const H = innerHeight, panel = $('panel'), side = innerWidth > H;
+  // The handle, the sheet's top border, and the home indicator's inset (the bottom padding is 12px plus it).
+  const peek = $('sheetbar').offsetHeight + panel.clientTop + parseFloat(getComputedStyle(panel).paddingBottom) - 12;
+  const runs = panel.querySelector('.run').getBoundingClientRect();
+  const need = runs.bottom - panel.getBoundingClientRect().top + panel.scrollTop + 14;
+  const learning = document.body.classList.contains('learning');
+  const half = learning ? H * (side ? 0.62 : 0.52) : Math.min(H * (side ? 0.9 : 0.6), Math.max(H * 0.36, need));
+  return { peek, half: Math.round(Math.max(half, peek)), full: side ? H : H - 52 };
+}
+
+function setSheet(to) {
+  if (sheet === 'peek' && to !== 'peek') $('panel').scrollTop = 0; // opening shows the top: Run, or the lesson
+  sheet = to;
+  document.documentElement.dataset.sheet = to;
+  try { localStorage.setItem('konfetti.sheet', to); } catch {}
+  placeSheet();
+}
+function placeSheet() {
+  if (!compact.matches) return;
+  document.documentElement.style.setProperty('--sheet', `${sheetSizes()[sheet]}px`);
+  $('sheet').setAttribute('aria-expanded', String(sheet !== 'peek'));
+  $('sheet').setAttribute('aria-label', { peek: 'Show more controls', half: 'Show all controls', full: 'Hide the controls' }[sheet]);
+  fitView();
+}
+
+// The handle: a tap goes peek, half, full and back to peek; a drag follows the finger and settles on
+// the nearest stop, or on the next stop the way it was flicked.
+let sheetDrag = null, sheetDragged = false;
+$('sheet').addEventListener('pointerdown', e => {
+  if (e.button || sheetDrag) return; // one finger moves the sheet; a second one is ignored until it lifts
+  sheetDragged = false;
+  sheetDrag = { id: e.pointerId, y: e.clientY, h: sheetSizes()[sheet], at: e.clientY, t: e.timeStamp, v: 0, now: 0 };
+  $('sheet').setPointerCapture(e.pointerId);
+});
+$('sheet').addEventListener('pointermove', e => {
+  if (!sheetDrag || e.pointerId !== sheetDrag.id || (!sheetDragged && Math.abs(e.clientY - sheetDrag.y) < 6)) return;
+  if (!sheetDragged) {
+    sheetDragged = true;
+    if (sheet === 'peek') $('panel').scrollTop = 0;
+    document.documentElement.classList.add('sheetdrag');
+    document.documentElement.dataset.sheet = 'drag'; // everything in the sheet shows while it moves
+  }
+  const sizes = sheetSizes();
+  sheetDrag.now = Math.min(sizes.full, Math.max(sizes.peek, sheetDrag.h + sheetDrag.y - e.clientY));
+  sheetDrag.v = (sheetDrag.at - e.clientY) / Math.max(1, e.timeStamp - sheetDrag.t); // px/ms, up is positive
+  sheetDrag.at = e.clientY;
+  sheetDrag.t = e.timeStamp;
+  document.documentElement.style.setProperty('--sheet', `${sheetDrag.now}px`);
+});
+function endSheetDrag(e) {
+  const d = sheetDrag;
+  if (!d || e.pointerId !== d.id) return;
+  sheetDrag = null;
+  if (!sheetDragged) return;
+  document.documentElement.classList.remove('sheetdrag');
+  const sizes = sheetSizes(), h = d.now;
+  const v = e.timeStamp - d.t < 100 ? d.v : 0; // a finger that stopped before lifting did not flick
+  let to = STOPS.reduce((a, b) => (Math.abs(sizes[b] - h) < Math.abs(sizes[a] - h) ? b : a));
+  if (v > 0.4) to = STOPS.find(s => sizes[s] > h + 1) || 'full';
+  if (v < -0.4) to = [...STOPS].reverse().find(s => sizes[s] < h - 1) || 'peek';
+  setSheet(to);
+}
+$('sheet').addEventListener('pointerup', endSheetDrag);
+$('sheet').addEventListener('pointercancel', endSheetDrag);
+$('sheet').onclick = () => {
+  if (sheetDrag) return; // a second finger's tap while the first one drags
+  if (sheetDragged) return void (sheetDragged = false);
+  setSheet(STOPS[(STOPS.indexOf(sheet) + 1) % STOPS.length]);
+};
+
+// The peek shows the end of the output, the part a running program just wrote.
+new MutationObserver(() => {
+  const out = $('output').textContent.replace(/\n/g, '⏎');
+  $('peekout').textContent = out.length > 40 ? `…${out.slice(-39)}` : out;
+}).observe($('output'), { childList: true, characterData: true, subtree: true });
+
+// ---- learn mode (the lessons and the card are in learn.js) ----
+/** Looks down on a patch of ground, steeply, so that it fits in the part of the window nothing covers. */
+function frame({ x0, x1, z0, z1 }) {
+  const f = freeRect();
+  const free = Math.max(0.2, Math.min(0.9, (f.r - f.l) / innerWidth));
+  const clear = Math.max(0.15, Math.min(0.6, (f.b - f.t) / innerHeight - 0.05));
+  const t = Math.tan(camera.fov * Math.PI / 360), tilt = 1.05; // radians up from the ground: bits seen from above are easy to grab
+  const dist = Math.max((x1 - x0 + 1.5) / (2 * t * camera.aspect * free), (z1 - z0 + 1.5) * Math.sin(tilt) / (2 * t * clear));
+  controls.target.set((x0 + x1) / 2, 0, (z0 + z1) / 2);
+  camera.position.set((x0 + x1) / 2, dist * Math.sin(tilt), (z0 + z1) / 2 + dist * Math.cos(tilt));
+}
+
+/**
+ * Runs the program in the outline once for each input, off screen, for at most `cap` steps each.
+ * Gives [{ halted, out }], or null when there is no outline.
+ */
+function judge(inputs, cap) {
+  if (!area) return null;
+  // A slow run that has halted shows its own copy of the machine and its trace, so it can stay on screen.
+  const ended = run && !run.fast && run.halted ? run : null;
+  stop();
+  const src = toKft(program());
+  const runs = inputs.map(input => {
+    kfLoad(src, input, true);
+    return { halted: kf.kf_run(cap) === 1, out: kfBytes().slice() };
+  });
+  // Leave the runtime as a fresh load does, so the panels do not show the stacks of the last check.
+  kfLoad(src, '', true);
+  run = ended;
+  if (debugOn && !ended) start(false, false, true);
+  else showMachine();
+  return runs;
 }
 
 // ---- panel ----
@@ -771,7 +1004,7 @@ $('mute').onclick = () => setMuted(!sound.muted);
 $('debug').onclick = () => setDebug(!debugOn);
 $('sweep').onclick = () => {
   const before = bits.length;
-  removeBits(b => b.state !== 'land' || inArea(b.mesh.position.x, b.mesh.position.z));
+  removeBits(b => b.state !== 'land' || b.tray || inArea(b.mesh.position.x, b.mesh.position.z));
   say(before > bits.length ? `Swept away ${before - bits.length} bits of litter.` : 'Nothing to sweep.');
 };
 $('clear').onclick = () => { stop(); removeBits(() => false); setArea(null); $('output').textContent = ''; say('All clear. Fire the cannon! (Space)'); };
@@ -779,11 +1012,49 @@ $('run').onclick = () => start(false);
 $('fast').onclick = () => start(true);
 $('stop').onclick = stop;
 $('load').onclick = () => loadText($('kft').value);
+// A pick made with the pointer hands the keys back to the editor, or every shortcut would go to the
+// list; a pick made with the keyboard leaves focus where the user put it.
+let pickedByPointer = false;
+$('examples').onpointerdown = () => { pickedByPointer = true; };
+$('examples').onblur = () => { pickedByPointer = false; };
 $('examples').onchange = async e => {
   const name = e.target.value;
   e.target.value = '';
+  if (pickedByPointer) e.target.blur();
   if (name) loadText(await (await fetch(`../examples/${name}.kft`)).text());
 };
+
+// The quick buttons (phone layout). Run turns into Stop while a program runs.
+$('qcrayon').onclick = () => setCrayonMode(!crayonMode);
+$('qfire').onclick = fire;
+$('qrun').onclick = () => (run && !run.halted ? stop() : start(false));
+$('qcheck').onclick = () => learn.check();
+let shownBusy = false;
+function showBusy() {
+  const busy = !!run && !run.halted;
+  if (busy === shownBusy) return;
+  shownBusy = busy;
+  $('qrun').classList.toggle('busy', busy);
+  $('qrun').querySelector('.ico').textContent = busy ? '⏹' : '▶';
+  $('qrun').querySelector('.lbl').textContent = busy ? 'Stop' : 'Run';
+}
+
+// Groups fold; which are open is remembered, separately for the phone layout and the wide one.
+// Defaults: on a phone only Run is open (the quick buttons stand in for Make); wide, all but Colors and How it works.
+const groups = [...document.querySelectorAll('details.group')];
+const foldKey = `konfetti.groups.${compact.matches ? 'phone' : 'wide'}`;
+let folds = {};
+try { const f = JSON.parse(localStorage.getItem(foldKey)); if (f && typeof f === 'object') folds = f; } catch {}
+for (const g of groups) {
+  const name = g.dataset.group;
+  g.open = name in folds ? !!folds[name] : compact.matches ? name === 'run' : !['colors', 'how'].includes(name);
+  // Only a person's choice is kept, not Run opening for a run.
+  g.querySelector('summary').addEventListener('click', () => {
+    folds[name] = !g.open;
+    try { localStorage.setItem(foldKey, JSON.stringify(folds)); } catch {}
+  });
+  g.addEventListener('toggle', () => { if (sheet === 'half') placeSheet(); }); // half open is sized to the Run group
+}
 
 const step = () => { if (!run || run.fast || run.halted) start(false, false); else { run.playing = false; stepOnce(); } showMachine(); };
 const playPause = () => { if (!run || run.fast || run.halted) start(false, true); else run.playing = !run.playing; showMachine(); };
@@ -791,46 +1062,44 @@ const restart = () => start(false, false);
 $('dstep').onclick = step;
 $('dplay').onclick = playPause;
 $('drestart').onclick = restart;
+$('dclose').onclick = () => setDebug(false);
 $('dspeed').oninput = () => { $('dspeedv').textContent = `${$('dspeed').value} a second`; };
 
 // Browsers only let a page make sound after the user has touched it; any touch or key will do.
 addEventListener('pointerdown', () => sound.unlock(), { capture: true });
 addEventListener('keydown', () => sound.unlock(), { capture: true });
 document.addEventListener('click', e => {
-  if (e.target.closest('button:not(#fire)')) sound.ui();
+  if (e.target.closest('button:not(#fire, #qfire)')) sound.ui();
   // A mouse click leaves focus on the control, and Space would press it again instead of firing.
   // A press from the keyboard (detail 0) keeps focus where the user put it.
   if (e.detail) e.target.closest('button, summary')?.blur();
 });
 
 addEventListener('keydown', e => {
-  const tag = document.activeElement.tagName;
-  // Typing in a field is typing, not a shortcut. The speed slider takes no letters, so it does not count.
-  if (e.ctrlKey || e.metaKey || e.altKey || document.activeElement.matches('input:not([type=range]), textarea, select')) return;
-  if (e.code === 'Space') {
-    if (tag === 'BUTTON' || tag === 'SUMMARY' || tag === 'A') return; // space presses the focused control
-    e.preventDefault();
-    fire();
-  }
-  const keys = { KeyC: () => setCrayonMode(!crayonMode), KeyW: toggleWind, KeyM: () => setMuted(!sound.muted), KeyD: () => setDebug(!debugOn) };
+  const keys = { Space: fire, KeyC: () => setCrayonMode(!crayonMode), KeyW: toggleWind, KeyM: () => setMuted(!sound.muted), KeyD: () => setDebug(!debugOn), KeyL: learn.toggle };
   const debugKeys = { KeyN: step, KeyP: playPause, KeyR: restart };
   const act = keys[e.code] || (debugOn && debugKeys[e.code]);
-  if (act) act();
+  if (!act || e.ctrlKey || e.metaKey || e.altKey) return;
+  // A list the pointer opened keeps focus after it shuts, even without a pick, but nobody is typing in it.
+  if (pickedByPointer && document.activeElement === $('examples')) $('examples').blur();
+  const tag = document.activeElement.tagName;
+  // Typing in a field is typing, not a shortcut. The speed slider takes no letters, so it does not count.
+  if (document.activeElement.matches('input:not([type=range]), textarea, select')) return;
+  if (e.code === 'Space' && (tag === 'BUTTON' || tag === 'SUMMARY' || tag === 'A')) return; // space presses the focused control
+  e.preventDefault(); // a letter must not also pick from a list or start a find
+  act();
 });
+// The words are in the title for a mouse to hover, and written out where there is no hover.
 $('legend').innerHTML = PALETTE.map(([name, hex, op], i) =>
-  `<li title="${name} ${op} ${EXPLAIN[i]}"><i style="background:${hex}"></i><span>${name}</span><b>${op}</b></li>`).join('');
+  `<li title="${name} ${op} ${EXPLAIN[i]}"><i style="background:${hex}"></i><span>${name}</span><b>${op}</b><small>${EXPLAIN[i]}</small></li>`).join('');
+explain(null);
 
 // ---- main loop ----
 function resize() {
   renderer.setSize(innerWidth, innerHeight, false);
   camera.aspect = innerWidth / innerHeight;
-  // Shift the view past what covers it, so the scene's middle stays in sight: on a wide screen the debugger's
-  // dock at the bottom; on a phone the panel at the bottom and, while debugging, the dock at the top.
-  const h = id => $(id).offsetHeight;
-  const lift = innerWidth > 700 ? (debugOn ? h('dock') / 2 : 0) : (h('panel') - (debugOn ? h('dock') : 0)) / 2;
-  if (lift) camera.setViewOffset(innerWidth, innerHeight, 0, lift, innerWidth, innerHeight);
-  else camera.clearViewOffset();
-  camera.updateProjectionMatrix();
+  placeSheet();
+  fitView(true);
 }
 addEventListener('resize', resize);
 resize();
@@ -841,19 +1110,29 @@ renderer.setAnimationLoop(() => {
   const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
   physics(dt, t);
   runFrame(dt, t);
+  showBusy();
   if (dirty) refresh();
+  if (lift.x !== liftTo.x || lift.y !== liftTo.y) {
+    const k = Math.min(1, dt * 12);
+    lift = { x: lift.x + (liftTo.x - lift.x) * k, y: lift.y + (liftTo.y - lift.y) * k };
+    if (Math.abs(lift.x - liftTo.x) + Math.abs(lift.y - liftTo.y) < 0.5) lift = { ...liftTo };
+    applyLift();
+  }
   const air = windAt(t), strength = Math.hypot(air.x, air.z);
   world.update(dt, t, air);
   // The wind sound follows the gusts; only told when it has changed enough to hear.
   if (Math.abs(strength - windHeard) > 0.25 || (!strength && windHeard)) sound.setWind(windHeard = strength);
   controls.update();
-  hand.group.visible = !!handAt && !crayonMode;
+  // A finger gets the glove only while it holds a bit, pinching it above the finger.
+  hand.group.visible = (!!handAt || !!held) && !crayonMode;
   // The glove is the pointer over the ground and the crayon draws with a crosshair; over the sky there
   // is no glove, so the system pointer comes back.
-  canvas.style.cursor = crayonMode ? 'crosshair' : hand.group.visible ? 'none' : '';
+  canvas.style.cursor = crayonMode ? 'crosshair' : handAt ? 'none' : '';
   if (hand.group.visible) {
-    // Hover just above the ground; while holding, the pinch sits on the bit it carries.
+    // Hover just above the ground; while holding, the pinch sits on the bit it carries. Over a finger the
+    // glove is smaller, to keep the bits around the one it carries in sight.
     const at = held ? held.mesh.position : handAt;
+    hand.group.scale.setScalar(held && grab.touch ? 0.6 : 0.85);
     hand.group.position.set(at.x, held ? at.y + 0.02 : 0.22, at.z);
     hand.group.rotation.y = Math.atan2(camera.position.x - at.x, camera.position.z - at.z); // back of the hand to the viewer
     hand.setGrab(!!held);
@@ -863,8 +1142,37 @@ renderer.setAnimationLoop(() => {
   renderer.render(scene, camera);
 });
 
+const learn = createLearn({
+  sound, judge, celebrate: fire,
+  lay(text, fit, tray) {
+    // A lesson starts on still ground: no run, no wind, no crayon in the hand, no debugger in the way.
+    stop();
+    if (wind || $('wind').getAttribute('aria-pressed') === 'true') toggleWind();
+    setCrayonMode(false);
+    if (debugOn) setDebug(false);
+    // On a phone the lesson is read in the sheet: half open upright, so the program shows above it;
+    // all the way on its side, where the sheet stands beside the program.
+    if (compact.matches) setSheet(innerWidth > innerHeight ? 'full' : 'half');
+    const box = loadText(text, { fit, tray: tray.map(name => PALETTE.findIndex(p => p[0] === name)).sort((a, b) => a - b) });
+    if (box) frame(box);
+  },
+  setInput(text) { $('input').value = text; },
+  resize: () => { placeSheet(); fitView(); },
+  /** Brings `el` (in the lesson card) into sight: on a phone the sheet opens first, and the scroll waits for it. */
+  reveal(el, block = 'nearest') {
+    if (!compact.matches) return el.scrollIntoView({ block });
+    const opening = sheet === 'peek';
+    if (opening) setSheet(innerWidth > innerHeight ? 'full' : 'half');
+    setTimeout(() => el.scrollIntoView({ block }), opening && !calm.matches ? 300 : 0);
+  },
+  watch() { setDebug(true); restart(); },
+});
+
+const pwa = initPwa(); // the service worker, and the offer to install konfetti as an app
+
 // For tests and the curious: poke at the editor from the console.
 window.konfetti = {
+  learn, pwa,
   camera, controls, bits: () => bits, area: () => area, program, physics, sound,
   wind: () => wind, theme: () => document.documentElement.dataset.theme, setTheme, setDebug,
   /** What the debugger shows: stacks top last, trace newest first as plain lines, labels as their texts. */

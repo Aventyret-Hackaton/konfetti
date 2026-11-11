@@ -1,0 +1,8 @@
+# The copying ring with red and green before white: every character goes up by 1.
+black       0   1100
+orange    550   2053
+pink        0   3006
+white   -1100   1100
+brown     850   3855
+red     -1100   3006
+green   -1650   2053

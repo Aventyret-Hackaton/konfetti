@@ -1,0 +1,5 @@
+# Reads two characters and writes each one straight back.
+black    1200      0
+white    2400      0
+black    3600      0
+white    4800      0

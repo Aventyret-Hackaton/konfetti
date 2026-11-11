@@ -1,0 +1,6 @@
+# The trail turns left at green, but a brown strip lies straight ahead of it.
+black    1200      0
+red      2400      0
+green    3600      0
+white    3600   1200
+brown    4800      0

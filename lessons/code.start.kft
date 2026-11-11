@@ -1,0 +1,6 @@
+# A six-sided ring with two strips missing between pink and white.
+black       0   1100
+orange    550   2053
+pink        0   3006
+white   -1100   1100
+brown     850   3855

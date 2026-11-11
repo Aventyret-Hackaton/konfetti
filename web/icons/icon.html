@@ -1,0 +1,121 @@
+<!doctype html>
+<meta charset="utf-8">
+<body style="margin:0">
+<script>
+// The konfetti icon, drawn in a coordinate system where the maskable safe circle has radius 1.
+const C = { red: '#ff4b5c', orange: '#ff9233', yellow: '#ffe14d', green: '#2fd07a', cyan: '#29d3e6', blue: '#3d7bff',
+            purple: '#9b5cff', pink: '#ff6ec7', white: '#fff8ec', ink: '#20222c', cream: '#fffaf0', crayon: '#2447d8' };
+
+const VARIANTS = {
+  // A crayon loop round a few strips: the program.
+  loop: {
+    bg: ['#fffaf0', '#fff1d6'],
+    loop: true,
+    strips: [
+      ['red', -0.40, -0.30, -24], ['yellow', 0.22, -0.38, 18], ['green', -0.30, 0.22, 12],
+      ['pink', 0.36, 0.14, -30], ['cyan', 0.02, -0.02, 70],
+    ],
+  },
+  loop4: {
+    bg: ['#fffaf0', '#ffefcf'], loop: true, L: 0.56, W: 0.24,
+    strips: [['red', -0.30, -0.30, -18], ['yellow', 0.30, -0.28, 22], ['green', -0.28, 0.30, 24], ['pink', 0.30, 0.30, -16]],
+  },
+  loop3: {
+    bg: ['#fffaf0', '#ffefcf'], loop: true, L: 0.66, W: 0.27,
+    strips: [['red', -0.18, -0.34, -14], ['yellow', 0.26, 0.04, 58], ['cyan', -0.22, 0.30, 10]],
+  },
+  loop5: {
+    bg: ['#fffaf0', '#ffefcf'], loop: true, L: 0.5, W: 0.22,
+    strips: [['red', -0.34, -0.34, -14], ['yellow', 0.26, -0.40, 18], ['cyan', 0.04, 0.0, 74], ['green', -0.34, 0.32, 10], ['pink', 0.36, 0.30, -28]],
+  },
+  blue3: {
+    bg: ['#3d6bff', '#2447d8'], loop: '#fffaf0', L: 0.66, W: 0.27,
+    strips: [['red', -0.18, -0.34, -14], ['yellow', 0.26, 0.04, 58], ['green', -0.22, 0.30, 10]],
+  },
+  blue5: {
+    bg: ['#3d6bff', '#2447d8'], loop: '#fffaf0', L: 0.5, W: 0.22,
+    strips: [['red', -0.34, -0.34, -14], ['yellow', 0.26, -0.40, 18], ['white', 0.04, 0.0, 74], ['green', -0.34, 0.32, 10], ['pink', 0.36, 0.30, -28]],
+  },
+  blue4: {
+    bg: ['#3d6bff', '#2447d8'], loop: '#fffaf0', L: 0.56, W: 0.24,
+    strips: [['red', -0.26, -0.27, -26], ['yellow', 0.27, -0.22, 38], ['green', -0.27, 0.27, 14], ['pink', 0.25, 0.30, -22]],
+  },
+  blue4b: {
+    bg: ['#3d6bff', '#2447d8'], loop: '#fffaf0', L: 0.62, W: 0.26,
+    strips: [['yellow', 0.28, -0.26, 30], ['red', -0.26, -0.28, -10], ['pink', 0.26, 0.30, -40], ['green', -0.24, 0.30, 20]],
+  },
+  sky3: {
+    bg: ['#8fc6ef', '#2c7bd6'], loop: '#fffaf0', L: 0.66, W: 0.27,
+    strips: [['red', -0.18, -0.34, -14], ['yellow', 0.26, 0.04, 58], ['green', -0.22, 0.30, 10]],
+  },
+  // A burst of strips tumbling on the toybox blue.
+  burst: {
+    bg: ['#3d6bff', '#2447d8'],
+    strips: [
+      ['yellow', -0.36, -0.42, -28], ['red', 0.30, -0.46, 22], ['white', -0.02, -0.04, 64],
+      ['green', -0.52, 0.18, 14], ['pink', 0.48, 0.10, -36], ['orange', -0.12, 0.50, -10], ['cyan', 0.30, 0.52, 40],
+    ],
+  },
+  // The same burst on a sky.
+  sky: {
+    bg: ['#8fc6ef', '#2c7bd6'],
+    strips: [
+      ['yellow', -0.36, -0.42, -28], ['red', 0.30, -0.46, 22], ['white', -0.02, -0.04, 64],
+      ['green', -0.52, 0.18, 14], ['pink', 0.48, 0.10, -36], ['orange', -0.12, 0.50, -10], ['purple', 0.30, 0.52, 40],
+    ],
+  },
+};
+
+function strip(ctx, u, color, x, y, deg, L, W) {
+  ctx.save();
+  ctx.translate(x * u, y * u);
+  ctx.rotate(deg * Math.PI / 180);
+  const w = L * u, h = W * u, r = h * 0.18, line = Math.max(1, 0.055 * u);
+  const rr = (dx, dy) => { ctx.beginPath(); ctx.roundRect(-w / 2 + dx, -h / 2 + dy, w, h, r); };
+  ctx.fillStyle = C.ink; rr(0.07 * u, 0.09 * u); ctx.fill();           // a hard shadow, like the toybox buttons
+  ctx.fillStyle = C[color]; rr(0, 0); ctx.fill();
+  ctx.lineWidth = line; ctx.strokeStyle = C.ink; ctx.lineJoin = 'round'; ctx.stroke();
+  ctx.restore();
+}
+
+function crayonLoop(ctx, u, loopColor) {
+  // A wobbly closed loop, drawn twice slightly apart so it reads as crayon.
+  ctx.save();
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = typeof loopColor === 'string' ? loopColor : C.crayon;
+  for (const [k, w, a] of [[0, 0.11, 1], [0.03, 0.05, 0.6]]) {
+    ctx.globalAlpha = a; ctx.lineWidth = w * u; ctx.beginPath();
+    for (let i = 0; i <= 64; i++) {
+      const t = i / 64 * Math.PI * 2 + 0.3;
+      const r = (0.80 + 0.05 * Math.sin(3 * t + 1) + 0.03 * Math.sin(5 * t) + k) * u;
+      const px = Math.cos(t) * r * 1.02, py = Math.sin(t) * r * 0.94;
+      i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// shape: 'any' = rounded square with transparent corners, 'full' = full bleed (maskable, apple-touch).
+function draw(size, name, shape, zoom) {
+  const v = VARIANTS[name];
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = size;
+  const ctx = cv.getContext('2d');
+  const inset = shape === 'any' ? size * 0.04 : 0;
+  const g = ctx.createLinearGradient(0, 0, 0, size);
+  g.addColorStop(0, v.bg[0]); g.addColorStop(1, v.bg[1]);
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  if (shape === 'any') ctx.roundRect(inset, inset, size - 2 * inset, size - 2 * inset, size * 0.22);
+  else ctx.rect(0, 0, size, size);
+  ctx.fill();
+  ctx.save();
+  ctx.translate(size / 2, size / 2);
+  const u = size * 0.4 * (zoom || 1);
+  if (v.loop) crayonLoop(ctx, u, v.loop);
+  for (const [c, x, y, d] of v.strips) strip(ctx, u, c, x, y, d, v.L || 0.62, v.W || 0.26);
+  ctx.restore();
+  return cv;
+}
+window.draw = draw;
+</script>

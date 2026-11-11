@@ -1,0 +1,6 @@
+# Positive turns left to white. Negative (no input) turns right to brown.
+black    1200      0
+orange   2400      0
+pink     3600      0
+brown    4200  -1040
+white    4200   1040

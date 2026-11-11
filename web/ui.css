@@ -5,25 +5,29 @@
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --ink: #20222c; --soft: #555a6e;
   --panel: #fffaf0; --panel-line: 3px solid var(--ink); --panel-radius: 26px; --panel-shadow: 7px 7px 0 rgba(32, 34, 44, .85);
+  --sheet-shadow: 0 -4px 0 rgba(32, 34, 44, .18);
   --card: #fff; --card-line: 2px solid var(--ink); --card-radius: 18px;
   --field: #fff; --field-line: 2px solid #20222c;
   --btn: #fff; --btn-ink: var(--ink); --btn-line: 2.5px solid var(--ink); --btn-radius: 14px; --btn-shadow: 0 4px 0 var(--ink); --btn-drop: 4px;
   --go: #2447d8; --go-ink: #fff; --on: #20222c; --on-ink: #fff; --focus: #2447d8;
-  --make: #ff9233; --run: #3d7bff; --program: #2fd07a; --tidy: #ff6ec7; --title-ink: #20222c;
+  --make: #ff9233; --run: #5a8dff; --program: #2fd07a; --tidy: #ff6ec7; --title-ink: #20222c; --fold: #dfe6ee;
   --box: #fff; --box-top: #ffe14d; --box-top-ink: #20222c;
+  /* Layout: the panel's width on a wide screen; on a phone the sheet's height, which main.js sets. */
+  --panel-w: 340px; --sheet: 0px; --half: 0px;
 }
 /* The switcher's buttons carry data-theme too and preview their theme, so --btn-ink is set again
    in each block: it must follow that theme's --ink, or the preview is ink on ink. */
 [data-theme="craft"] {
   --btn-ink: var(--ink);
   --font: "Chalkboard SE", "Comic Neue", "Comic Sans MS", "Marker Felt", cursive, sans-serif;
-  --ink: #3b2f2a; --soft: #6b5a4e;
+  --ink: #3b2f2a; --soft: #55463c;
   --panel: #efe3c8; --panel-line: 0 solid transparent; --panel-radius: 6px; --panel-shadow: 0 14px 34px rgba(60, 40, 20, .38);
+  --sheet-shadow: 0 -8px 26px rgba(60, 40, 20, .35);
   --card: #fffdf4; --card-line: 0 solid transparent; --card-radius: 3px;
   --field: #fffef8; --field-line: 2px dashed #9b8672;
   --btn: #fffdf4; --btn-line: 2px solid #3b2f2a; --btn-radius: 255px 18px 225px 18px / 18px 225px 18px 255px; --btn-shadow: 2px 3px 0 rgba(59, 47, 42, .35); --btn-drop: 2px;
   --go: #c2362b; --go-ink: #fff; --on: #2b5ea7; --on-ink: #fff; --focus: #2b5ea7;
-  --make: #f6b04a; --run: #8fc0ea; --program: #a8d68a; --tidy: #f3a6c4;
+  --make: #f6b04a; --run: #8fc0ea; --program: #a8d68a; --tidy: #f3a6c4; --fold: #e8dcc0;
   --box: #fffdf4; --box-top: #f6d24a;
 }
 [data-theme="arcade"] {
@@ -31,6 +35,7 @@
   --font: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --ink: #f4f1ff; --soft: #b9b4dc;
   --panel: #15122e; --panel-line: 2px solid #29d3e6; --panel-radius: 8px; --panel-shadow: 0 0 0 4px #15122e, 0 0 28px 4px rgba(41, 211, 230, .55);
+  --sheet-shadow: 0 0 26px 2px rgba(41, 211, 230, .5);
   --card: #1e1a40; --card-line: 1px solid #3c3780; --card-radius: 6px;
   --field: #0c0a1e; --field-line: 1px solid #5b55b0;
   --btn: #0c0a1e; --btn-line: 2px solid #ff6ec7; --btn-radius: 4px; --btn-shadow: 0 0 10px rgba(255, 110, 199, .5); --btn-drop: 0px;
@@ -39,16 +44,19 @@
   --box: #0c0a1e; --box-top: #ffe14d; --box-top-ink: #15122e;
 }
 
-html, body { margin: 0; height: 100%; overflow: hidden; font: 14px/1.4 var(--font); color: var(--ink); background: #cfe6f5; }
+/* The page never scrolls or zooms under a finger: the world takes every gesture, the panels scroll inside. */
+html, body { margin: 0; height: 100%; overflow: hidden; overscroll-behavior: none; touch-action: manipulation; -webkit-tap-highlight-color: transparent; font: 14px/1.4 var(--font); color: var(--ink); background: #cfe6f5; }
 #world { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
 [hidden] { display: none !important; }
 
 /* ---- panel ---- */
-#panel { position: fixed; top: 14px; right: 16px; bottom: 16px; width: 328px; box-sizing: border-box; padding: 14px; overflow-y: auto; z-index: 3;
+/* No transform, filter or contain on the panel: the lesson card inside it is position: fixed to the window. */
+#panel { position: fixed; top: 14px; right: 16px; max-height: calc(100% - 30px); width: var(--panel-w); box-sizing: border-box; padding: 12px; overflow-y: auto; overscroll-behavior: contain; z-index: 3;
          background: var(--panel); border: var(--panel-line); border-radius: var(--panel-radius); box-shadow: var(--panel-shadow); }
-.top { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+header.top { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
 h1 { margin: 0; font-size: 26px; line-height: 1; }
 #logo { all: unset; cursor: pointer; font-weight: 900; letter-spacing: -.01em; border-radius: 8px; }
+#logo:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 #logo span { display: inline-block; color: var(--c); -webkit-text-stroke: 1.2px var(--ink); paint-order: stroke fill;
              animation: hop .5s calc(var(--i) * 45ms) both; }
 #logo:hover span { animation: hop .5s calc(var(--i) * 30ms) both reverse; }
@@ -61,16 +69,28 @@ h1 { margin: 0; font-size: 26px; line-height: 1; }
 /* The dock shows the stacks while debugging; one copy is enough. */
 .debugging :is(#stacks, #stackh) { display: none; }
 
-.group { margin: 0 0 12px; padding: 20px 10px 10px; position: relative; background: var(--card); border: var(--card-line); border-radius: var(--card-radius); }
-.group > h2, .group > summary { position: absolute; top: -9px; left: 12px; margin: 0; padding: 1px 10px; font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
-            color: var(--title-ink); background: var(--soft-title, #ffe14d); border: var(--btn-line); border-width: 2px; border-radius: 999px; }
-.group > summary { cursor: pointer; list-style-position: inside; background: #dfe6ee; }
-.make > h2 { background: var(--make); } .run > h2 { background: var(--run); } .program > h2 { background: var(--program); } .tidy > h2 { background: var(--tidy); }
-details.group:not([open]) { padding-bottom: 0; }
+/* Groups fold. The title is a tab on the card's top edge; the whole tab is the switch. */
+.group { margin: 0 0 12px; padding: 18px 10px 10px; position: relative; background: var(--card); border: var(--card-line); border-radius: var(--card-radius); --sec: var(--fold); }
+.make { --sec: var(--make); } .run { --sec: var(--run); } .program { --sec: var(--program); } .tidy { --sec: var(--tidy); }
+.group > summary { position: absolute; top: -9px; left: 12px; list-style: none; cursor: pointer; border-radius: 999px; }
+.group > summary::-webkit-details-marker { display: none; }
+.group h2 { display: inline-flex; align-items: center; gap: 6px; margin: 0; padding: 1px 9px 1px 10px; font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+            color: var(--title-ink); background: var(--sec); border: var(--btn-line); border-width: 2px; border-radius: 999px; }
+.group h2::after { content: ""; width: 0; height: 0; border: 4px solid transparent; border-top: 5px solid currentColor; border-bottom: 0; transition: transform .15s; }
+details.group:not([open]) h2::after { transform: rotate(-90deg); }
+.group > summary:hover h2 { filter: brightness(1.06); }
+/* A folded group is only its tab, and folded tabs line up side by side. */
+details.group:not([open]) { display: inline-block; vertical-align: top; margin: 0 4px 10px 0; padding: 0; background: none; border: 0; box-shadow: none; transform: none; }
+details.group:not([open]) > summary { position: static; translate: none; }
 .row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; align-items: center; }
 .row:last-child { margin-bottom: 0; }
+/* Make and Run buttons sit on a grid, their keys as tags on the corner, so the rows stay short. */
+.make .row { display: grid; grid-template-columns: repeat(3, 1fr); }
+.run .row { display: grid; grid-template-columns: 1fr 1fr; }
+:is(.make, .run) .row button { position: relative; padding-inline: 6px; }
+:is(.make, .run) .row kbd { position: absolute; top: -8px; right: -6px; margin: 0; padding: 0 4px; line-height: 14px; color: var(--btn-ink); background: var(--btn); border: 1.5px solid var(--btn-ink); opacity: 1; }
 
-button, select, a.small { font: inherit; font-weight: 700; padding: 6px 11px; color: var(--btn-ink); background: var(--btn); border: var(--btn-line); border-radius: var(--btn-radius);
+button, select, a.small { font: inherit; font-weight: 700; padding: 6px 10px; color: var(--btn-ink); background: var(--btn); border: var(--btn-line); border-radius: var(--btn-radius);
          box-shadow: var(--btn-shadow); cursor: pointer; text-decoration: none; transition: transform .08s, box-shadow .08s; }
 button:hover, select:hover, a.small:hover { transform: translateY(-1px); }
 button:active, a.small:active { transform: translateY(var(--btn-drop)) scale(.96); box-shadow: none; }
@@ -85,22 +105,33 @@ input:not([type=range]), textarea, pre { display: block; width: 100%; box-sizing
        font: 12px/1.4 var(--mono); border: var(--field-line); border-radius: 10px; background: var(--field); }
 ::placeholder { color: var(--soft); opacity: 1; }
 pre { min-height: 2.3em; max-height: 9em; overflow: auto; white-space: pre-wrap; word-break: break-all; }
-textarea { height: 7em; resize: vertical; white-space: pre; margin-bottom: 8px; }
+textarea { height: 6.2em; resize: vertical; white-space: pre; margin-bottom: 8px; }
+.program label { margin-top: 0; }
 #windinfo { margin: 6px 0 0; font-size: 12px; color: var(--soft); }
 #windinfo:empty { display: none; }
 .help { font-size: 12.5px; color: var(--soft); margin: 4px 0 0; }
+/* Input, output and stacks: names on the left, so each takes one line. */
+.io { display: grid; grid-template-columns: 4.6em minmax(0, 1fr); gap: 6px 8px; align-items: center; }
+.io > :is(label, h3) { margin: 0; }
+#stackh { align-self: start; padding-top: 7px; }
+.io { margin-top: 10px; }
+#stacks { display: flex; flex-wrap: wrap; column-gap: 12px; }
+#stacks .stack { margin-bottom: 0; }
+#stacks .sname { width: auto; padding-right: 2px; }
 
 #legend { list-style: none; margin: 4px 0 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 5px 10px; font-size: 12px; }
 #legend li { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
 #legend i { flex: none; width: 30px; height: 11px; border-radius: 2px; box-shadow: 0 0 0 1.5px rgba(0, 0, 0, .45), 1px 2px 0 rgba(0, 0, 0, .2); transform: rotate(-6deg); }
 #legend li:nth-child(even) i { transform: rotate(5deg); }
 #legend b { margin-left: auto; font: 700 10.5px var(--mono); color: var(--soft); }
+#legend small { display: none; }
 footer { display: flex; justify-content: center; }
 #themes { display: flex; gap: 6px; align-items: center; }
 #themes::before { content: "Theme"; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--soft); }
 
 /* ---- stacks as boxes ---- */
 .stack { display: flex; align-items: flex-start; gap: 4px; min-height: 30px; margin-bottom: 4px; flex-wrap: wrap; }
+.stack:last-child { margin-bottom: 0; }
 .sname { flex: none; width: 40px; padding-top: 5px; font: 700 11px var(--mono); color: var(--soft); }
 .box, .more, .stack .empty { display: inline-flex; flex-direction: column; align-items: center; min-width: 26px; box-sizing: border-box; padding: 3px 6px; font: 700 12px/1.3 var(--mono);
        color: var(--ink); background: var(--box); border: 2px solid var(--ink); border-radius: 7px; }
@@ -111,24 +142,27 @@ footer { display: flex; justify-content: center; }
 .more, .stack .empty { border-style: dashed; font-weight: 400; color: var(--soft); border-color: var(--soft); }
 
 /* ---- hint ---- */
-#hint { position: fixed; top: 14px; left: 16px; z-index: 2; max-width: min(520px, calc(100vw - 392px)); margin: 0; padding: 8px 14px; box-sizing: border-box; font-weight: 700;
+#hint { position: fixed; top: 14px; left: 16px; z-index: 2; max-width: min(520px, calc(100vw - var(--panel-w) - 64px)); margin: 0; padding: 8px 14px; box-sizing: border-box; font-weight: 700;
         background: var(--panel); border: var(--btn-line); border-radius: 999px 999px 999px 6px; box-shadow: var(--btn-shadow); }
 #hint:empty { display: none; }
 
 /* ---- debugger dock ---- */
-#dock { position: fixed; left: 16px; bottom: 16px; right: 364px; z-index: 2; height: min(292px, 42vh); display: flex; flex-direction: column; box-sizing: border-box; padding: 10px 12px;
+#dock { position: fixed; left: 16px; bottom: 16px; right: calc(var(--panel-w) + 36px); z-index: 2; height: min(292px, 42vh); display: flex; flex-direction: column; box-sizing: border-box; padding: 10px 12px;
         background: var(--panel); border: var(--panel-line); border-radius: var(--panel-radius); box-shadow: var(--panel-shadow); }
 .dockbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.dockbtns { display: contents; }
 .docktitle { font-size: 15px; margin-right: 4px; }
 .speed { display: inline-flex; align-items: center; gap: 6px; margin: 0; }
 .speed input { width: 110px; accent-color: var(--go); }
 .speed output { min-width: 78px; text-transform: none; letter-spacing: 0; font-weight: 400; }
 #dstatus { font-size: 12.5px; color: var(--soft); flex: 1 1 200px; }
+#dclose { position: absolute; top: 9px; right: 10px; min-width: 30px; } /* always in the corner, however the bar wraps */
+.dockbar { padding-right: 40px; }
 #dexplain { margin: 8px 0 0; padding: 4px 10px; font-size: 12.5px; background: var(--card); border: var(--card-line); border-width: 1.5px; border-radius: 8px; }
 .dockcols { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 14px; min-height: 0; flex: 1; }
 .tracecol { display: flex; flex-direction: column; min-height: 0; }
 h3 small { text-transform: none; letter-spacing: 0; font-weight: 400; }
-#trace { list-style: none; margin: 0; padding: 4px 6px; flex: 1; min-height: 60px; overflow-y: auto; font-size: 12.5px; line-height: 1.5;
+#trace { list-style: none; margin: 0; padding: 4px 6px; flex: 1; min-height: 60px; overflow-y: auto; overscroll-behavior: contain; font-size: 12.5px; line-height: 1.5;
          background: var(--field); border: var(--field-line); border-radius: 10px; }
 #trace li { display: flex; gap: 6px; align-items: baseline; padding: 1px 2px; border-radius: 5px; }
 #trace li:first-child:not(.empty) { background: var(--box-top); color: var(--box-top-ink); font-weight: 700; }
@@ -153,13 +187,56 @@ h3 small { text-transform: none; letter-spacing: 0; font-weight: 400; }
 #labels .now { z-index: 4; background: #ffd21f; font-size: 12px; box-shadow: 0 2px 0 #20222c; }
 #labels .origin { background: #2447d8; color: #fff; border-color: #fff; }
 
+/* ---- learn mode: the Learn button, the lesson list and the lesson card. All of learn mode's styles
+   are in this block, down to the next heading. ---- */
+#learn { display: block; width: 100%; margin: 0 0 14px; padding: 7px 11px; font-size: 15px; }
+/* The card stands where the hint does, and says what to do next itself. */
+.learning #hint { display: none; }
+#lesson { position: fixed; top: 14px; left: 16px; z-index: 2; width: 340px; max-height: calc(100% - 30px); box-sizing: border-box; padding: 12px 14px; overflow-y: auto; overscroll-behavior: contain;
+          background: var(--panel); border: var(--panel-line); border-radius: var(--panel-radius); box-shadow: var(--panel-shadow); }
+/* While debugging, the dock has the bottom of the window. */
+.learning.debugging #lesson { max-height: calc(100% - 46px - min(292px, 42vh)); }
+.lhead { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+#lwhere { flex: 1; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--soft); }
+#lesson h2 { margin: 0 0 6px; font-size: 20px; line-height: 1.2; outline: none; }
+.lidea { margin: 0 0 10px; font-size: 15px; font-weight: 700; }
+.lsteps, #lhints { margin: 0 0 10px; padding-left: 22px; }
+.lsteps li, #lhints li { margin-bottom: 5px; }
+#lgoal { margin: 0 0 10px; padding: 7px 10px; color: var(--box-top-ink); background: var(--box-top); border: 2px solid var(--ink); border-radius: 10px; }
+#lresult { margin: 8px 0; padding: 7px 10px; background: var(--card); border: 2px solid var(--ink); border-radius: 10px; }
+#lresult:empty, #lhints:empty { display: none; }
+.lact:has(> .pass) { scroll-margin-bottom: 64px; } /* scrolled into sight with the Next lesson button under it */
+#lresult p { margin: 0 0 4px; }
+#lresult p:last-child { margin-bottom: 0; }
+#lresult code { padding: 0 4px; font: 700 13px var(--mono); border: 1px solid var(--soft); border-radius: 4px; }
+#lhints { margin-top: 8px; }
+p.lbytes { display: flex; flex-wrap: wrap; gap: 3px; margin: 3px 0 6px; }
+.lbyte { min-width: 1.1em; padding: 1px 5px; text-align: center; font: 700 13px/1.5 var(--mono); color: var(--ink); background: var(--box); border: 2px solid var(--ink); border-radius: 6px; }
+.lbyte.word { font: 11px/1.8 var(--font); color: var(--soft); border-style: dashed; border-color: var(--soft); }
+.lbyte.diff { color: var(--box-top-ink); background: var(--box-top); border: 3px solid var(--ink); }
+#lessons { list-style: none; margin: 0 0 8px; padding: 0 4px 4px 0; display: grid; gap: 7px; }
+.lpick { display: flex; flex-wrap: wrap; align-items: baseline; align-content: center; gap: 8px; width: 100%; text-align: left; }
+.lpick .lnum { flex: none; min-width: 1.5em; font: 700 12px var(--mono); }
+.lpick .lname { flex: 1; }
+.lpick .lmark { flex: none; font-size: 11px; }
+.lpick.next { background: var(--go); color: var(--go-ink); }
+.lfoot { margin: 0; font-weight: 700; }
+.lfoot:empty { display: none; }
+/* Too narrow for card, world and panel side by side: the card goes into the panel, under Learn. */
+@media (min-width: 701px) and (max-width: 1100px) and (min-height: 501px) {
+  #lesson, .learning.debugging #lesson { position: static; z-index: auto; width: auto; max-height: none; overflow: visible; margin: 0 0 12px; padding: 10px 12px;
+            background: var(--card); border: var(--card-line); border-radius: var(--card-radius); box-shadow: none; }
+}
+
+/* ---- the phone's quick buttons and the sheet's handle: hidden on a wide screen ---- */
+#fabs, #sheetbar { display: none; }
+
 /* ---- craft: paper notes held on with tape ---- */
 [data-theme="craft"] #panel, [data-theme="craft"] #dock { background: #d9b98a repeating-linear-gradient(48deg, rgba(255, 255, 255, .09) 0 3px, transparent 3px 9px); }
 [data-theme="craft"] .group { box-shadow: 1px 3px 6px rgba(60, 40, 20, .3); transform: rotate(-.5deg); }
 [data-theme="craft"] .group:nth-of-type(even) { transform: rotate(.6deg); }
-[data-theme="craft"] .group > h2, [data-theme="craft"] .group > summary { top: -11px; left: 50%; translate: -50% 0; border: 0; border-radius: 1px; padding: 2px 16px; opacity: .92; transform: rotate(-2deg);
-                                 box-shadow: 0 1px 2px rgba(60, 40, 20, .35); }
-[data-theme="craft"] .group > summary { background: #e8dcc0; }
+[data-theme="craft"] .group > summary { top: -11px; left: 50%; translate: -50% 0; }
+[data-theme="craft"] .group h2 { border: 0; border-radius: 1px; padding: 2px 14px 2px 16px; opacity: .92; transform: rotate(-2deg); box-shadow: 0 1px 2px rgba(60, 40, 20, .35); }
 [data-theme="craft"] #logo span { -webkit-text-stroke: 0; text-shadow: 1.5px 1.5px 0 #3b2f2a; }
 [data-theme="craft"] #hint { border-radius: 3px; transform: rotate(-.7deg); background: #fff7a8; border: 0; box-shadow: 2px 4px 8px rgba(60, 40, 20, .35); }
 [data-theme="craft"] #dexplain { background: #fff7a8; }
@@ -167,12 +244,9 @@ h3 small { text-transform: none; letter-spacing: 0; font-weight: 400; }
 
 /* ---- arcade: a cabinet at night ---- */
 [data-theme="arcade"] #panel, [data-theme="arcade"] #dock { background: #15122e repeating-linear-gradient(0deg, rgba(255, 255, 255, .035) 0 1px, transparent 1px 3px); }
-[data-theme="arcade"] :is(button, select, a.small, .group > h2, .group > summary, label, h3) { text-transform: uppercase; letter-spacing: .05em; }
+[data-theme="arcade"] :is(button, select, a.small, .group h2, label, h3) { text-transform: uppercase; letter-spacing: .05em; }
 [data-theme="arcade"] :is(button, select, a.small) { font-size: 12px; }
-[data-theme="arcade"] .group > h2, [data-theme="arcade"] .group > summary { border-radius: 2px; border: 0; box-shadow: 0 0 10px currentColor; }
-[data-theme="arcade"] .make > h2 { box-shadow: 0 0 10px var(--make); } [data-theme="arcade"] .run > h2 { box-shadow: 0 0 10px var(--run); }
-[data-theme="arcade"] .program > h2 { box-shadow: 0 0 10px var(--program); } [data-theme="arcade"] .tidy > h2 { box-shadow: 0 0 10px var(--tidy); }
-[data-theme="arcade"] .group > summary { color: #15122e; }
+[data-theme="arcade"] .group h2 { border-radius: 2px; border: 0; box-shadow: 0 0 10px var(--sec); }
 [data-theme="arcade"] .make button { border-color: var(--make); box-shadow: 0 0 10px rgba(255, 146, 51, .5); }
 [data-theme="arcade"] .program :is(button, select) { border-color: var(--program); box-shadow: 0 0 10px rgba(47, 208, 122, .5); }
 [data-theme="arcade"] :is(.run, #dock) button { border-color: var(--run); box-shadow: 0 0 10px rgba(255, 225, 77, .45); }
@@ -185,21 +259,141 @@ h3 small { text-transform: none; letter-spacing: 0; font-weight: 400; }
 [data-theme="arcade"] #trace i { box-shadow: 0 0 0 1px rgba(255, 255, 255, .6); }
 [data-theme="arcade"] select { color-scheme: dark; }
 
-/* ---- phone width: the panel is a sheet at the bottom, the dock sits under the hint ---- */
-@media (max-width: 700px) {
-  #panel { top: auto; left: 8px; right: 8px; bottom: 8px; width: auto; max-height: 44%; }
-  #hint { left: 8px; right: 8px; top: 8px; max-width: none; font-size: 13px; border-radius: 14px; }
+/* ---- phone: the world fills the screen. The panel is a sheet at the bottom that rests as a peek
+   showing the output, half open or full; the quick buttons ride on top of it. While debugging, the
+   dock's trace and stacks sit at the top and its buttons join the quick ones. The lesson is read in
+   the sheet. main.js uses the same media query. ---- */
+@media (max-width: 700px), (max-height: 500px) {
   kbd { display: none; } /* no keyboard to press them on */
-  /* While debugging, the dock takes the top and the panel shrinks, so the confetti keeps the middle. */
+  #hint { left: calc(8px + env(safe-area-inset-left)); right: calc(8px + env(safe-area-inset-right)); top: calc(8px + env(safe-area-inset-top)); max-width: none; font-size: 13px; border-radius: 14px; }
   .debugging #hint { display: none; }
-  .debugging #panel { max-height: 22%; }
-  #dock { display: block; left: 8px; right: 8px; top: 8px; bottom: auto; height: auto; max-height: 38%; overflow-y: auto; padding: 8px 10px; }
-  .dockcols, .tracecol { display: block; }
-  #trace { max-height: 92px; }
+
+  #panel { top: auto; left: 0; right: 0; bottom: 0; width: auto; height: var(--sheet); max-height: none; padding: 0 12px calc(12px + env(safe-area-inset-bottom));
+           display: flex; flex-flow: row wrap; align-content: flex-start; align-items: center; gap: 10px 8px;
+           border-bottom: 0; border-radius: var(--panel-radius) var(--panel-radius) 0 0; box-shadow: var(--sheet-shadow); transition: height .28s cubic-bezier(.2, .8, .2, 1);
+           scroll-padding-top: 64px; /* what is scrolled to is not left under the handle */ }
+  #panel > * { flex: 0 0 100%; min-width: 0; margin: 0; box-sizing: border-box; }
+  /* At rest, the sheet shows only its handle and the output; what is under it can't be tabbed to. */
+  [data-sheet="peek"] #panel { overflow: hidden; }
+  [data-sheet="peek"] #panel > :not(#sheetbar) { visibility: hidden; }
+  .sheetdrag #panel, .sheetdrag :is(#fabs, .dockbtns) { transition: none; }
+
+  #panel > #sheetbar { flex-basis: calc(100% + 24px); }
+  #sheetbar { display: block; order: -3; position: sticky; top: 0; z-index: 3; margin: 0 -12px; background: inherit; border-radius: inherit; touch-action: none;
+              box-shadow: 0 7px 6px -7px rgba(0, 0, 0, .3); } /* an edge for what scrolls under it */
+  #sheet { all: unset; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 7px; width: 100%; padding: 8px 18px 11px; cursor: grab; border-radius: inherit; }
+  #sheet:focus-visible { outline: 3px solid var(--focus); outline-offset: -5px; }
+  .grip { width: 46px; height: 5px; border-radius: 3px; background: var(--soft); opacity: .55; }
+  /* A fixed height: the sheet's peek is measured from it, and the text in it changes font when empty. */
+  .peek { display: flex; gap: 10px; align-items: baseline; width: 100%; min-width: 0; height: 20px; overflow: hidden; font: 700 14px/20px var(--mono); }
+  .peek b { flex: none; font: 800 11px var(--font); text-transform: uppercase; letter-spacing: .06em; color: var(--soft); }
+  #peekout { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  #peekout:empty::before { content: "nothing yet"; font: 400 13px/20px var(--font); color: var(--soft); }
+  #peekout.ended:empty::before { content: "the program stopped and wrote nothing"; }
+
+  /* Order in the sheet: the lesson, Run, then the name, Learn, sound and docs on one line, then the
+     other groups (folded ones as a row of tabs) and the themes. */
+  #lesson { order: -2; }
+  .run { order: -1; }
+  header.top { display: contents; }
+  #panel h1 { flex: none; font-size: 22px; }
+  #learn { flex: 1 1 0; order: 0; padding: 8px 10px; font-size: 14px; }
+  .topbtns { flex: none; order: 1; }
+  /* Sound and docs as icons: their names are still there for screen readers. */
+  .topbtns > .small { justify-content: center; min-width: 44px; padding-inline: 8px; box-sizing: border-box; font-size: 0; }
+  .topbtns span[aria-hidden] { font-size: 18px; }
+  #panel::after { content: ""; order: 2; flex: 0 0 100%; margin: -5px 0; } /* a line break after them */
+  .make, .program, .tidy, .colors, .how { order: 3; }
+  footer { order: 4; }
+  #burst { left: 40px; top: 70px; }
+
+  #panel .group { padding: 0 12px 12px; }
+  #panel .group > summary { position: static; translate: none; display: flex; align-items: center; min-height: 46px; margin: 0 -12px; padding: 0 12px; }
+  #panel details.group:not([open]) { flex: none; margin: 0; padding: 0; }
+  #panel details.group:not([open]) > summary { margin: 0; padding: 0 2px; min-height: 44px; }
+  .group h2 { padding-block: 4px; }
+  .help { font-size: 13.5px; }
+
+  /* The quick buttons, and the debugger's own while debugging. They hide when the sheet is full. */
+  #fabs, .dockbtns { position: fixed; z-index: 2; bottom: calc(var(--sheet) + 10px); display: flex; gap: 8px; transition: bottom .28s cubic-bezier(.2, .8, .2, 1); }
+  #fabs { left: 50%; translate: -50% 0; }
+  :is(#fabs, .dockbtns) button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: 64px; height: 60px; box-sizing: border-box;
+                                 padding: 4px 10px; font-size: 12.5px; line-height: 1.1; border-radius: 18px; }
+  [data-theme="craft"] :is(#fabs, .dockbtns) button { border-radius: 255px 22px 225px 22px / 22px 225px 22px 255px; }
+  .ico { font-size: 22px; line-height: 1; }
+  #fabs #qcheck { display: none; }
+  .learning:not(.debugging):has(#lcheck) #fabs #qcheck { display: flex; }
+  #qrun.busy .ico { animation: busy 1s ease-in-out infinite; }
+  @keyframes busy { 50% { transform: scale(.8); } }
+  .debugging :is(#qrun, #qcheck) { display: none; }
+  .debugging #fabs { left: calc(8px + env(safe-area-inset-left)); translate: none; }
+  .debugging :is(#fabs, .dockbtns) button { min-width: 56px; padding-inline: 6px; font-size: 12px; } /* five in a row */
+  .dockbtns { right: calc(8px + env(safe-area-inset-right)); flex-direction: row-reverse; }
+  [data-sheet="full"] :is(#fabs, .dockbtns) { visibility: hidden; }
+
+  #dock { left: calc(8px + env(safe-area-inset-left)); right: calc(8px + env(safe-area-inset-right)); top: calc(8px + env(safe-area-inset-top)); bottom: auto; height: auto; max-height: 40%;
+          display: block; overflow-y: auto; padding: 8px 10px 10px; }
+  .dockbar { gap: 4px 8px; }
+  .docktitle { flex: 1; font-size: 14px; white-space: nowrap; }
+  .speed { order: 1; font-size: 0; } /* "Speed" stays the slider's name; "5 a second" says it on screen */
+  .speed output { min-width: 0; font-size: 12.5px; }
+  .speed input { width: 76px; }
+  #dclose { position: static; order: 2; }
+  .dockbar { padding-right: 0; }
+  #dstatus { order: 4; flex-basis: 100%; }
+  #dexplain { margin-top: 6px; }
+  .dockcols { display: block; }
+  .tracecol h3 { margin-top: 6px; }
+  .stackcol h3 { position: absolute; clip-path: inset(50%); } /* the rows say main and stash */
+  #dstacks { display: flex; flex-wrap: wrap; column-gap: 12px; margin-top: 6px; }
+  #trace { max-height: 72px; }
   #trace b { min-width: 0; }
-  .speed input { width: 80px; }
+
+  #lesson, .learning.debugging #lesson { position: static; z-index: auto; width: auto; max-height: none; overflow: visible; padding: 2px 2px 4px; background: none; border: 0; border-radius: 0; box-shadow: none; }
+  .lhead { margin-bottom: 4px; }
+
+  /* Nothing a person reads on a phone is under 12px: the dock, the stack boxes and the labels grow to fit
+     (main.js shows the labels' names only where there is room for them at this size). */
+  label, h3, h3 small, .sname, .box :is(small, em), #trace :is(b, .at), .peek b, .lpick .lmark, .lbyte.word, #legend :is(b, small), #themes::before,
+  #labels span, #labels .tiny { font-size: 12px; }
+  #labels small { font-size: 100%; }
 }
-@media (hover: none) { #dexplain { display: none; } }
+/* A phone on its side: the sheet stands at the right, the dock at the left, the quick buttons in a column. */
+@media (max-height: 500px) and (min-aspect-ratio: 1/1) {
+  #panel { left: auto; width: min(380px, 46vw); border-radius: var(--panel-radius) 0 0 0; padding-right: calc(12px + env(safe-area-inset-right)); }
+  #hint { right: auto; max-width: calc(100% - min(380px, 46vw) - 120px); }
+  #fabs { left: auto; translate: none; right: calc(8px + env(safe-area-inset-right)); flex-direction: column; }
+  html:not([data-sheet="peek"]) #fabs { right: calc(min(380px, 46vw) + 10px); bottom: calc(8px + env(safe-area-inset-bottom)); }
+  [data-sheet="full"] #fabs { visibility: visible; }
+  .debugging #fabs { left: auto; }
+  /* The dock: its name and ✕, the speed, the status; then the stacks, then the trace taking what is left; its buttons at the foot. */
+  #dock { right: auto; bottom: calc(8px + env(safe-area-inset-bottom)); width: min(310px, 38vw); max-height: none; display: flex; flex-direction: column; overflow: hidden; padding-bottom: 66px; }
+  .speed { order: 3; flex-basis: 100%; }
+  .speed input { flex: 1; }
+  .dockbtns { position: absolute; left: 8px; right: 8px; bottom: 8px; justify-content: space-between; flex-direction: row; transition: none; }
+  .dockbtns button { flex: 1; min-width: 0; height: 50px; }
+  [data-sheet="full"] .dockbtns { visibility: visible; }
+  /* Too little height for both to stand still: the stacks and the trace scroll together, stacks first. */
+  .dockcols { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+  .dockcols > * { flex: none; }
+  .stackcol { order: -1; }
+  #trace { max-height: none; min-height: 0; overflow: visible; }
+  :is(.tracecol, .stackcol) h3 { margin: 4px 0 2px; }
+  #dexplain.idle { display: none; }
+}
+/* Fingers: targets big enough to hit, and fields at 16px so that phones do not zoom in on them. */
+@media (pointer: coarse) {
+  button, select, a.small { min-height: 44px; }
+  a.small { display: inline-flex; align-items: center; box-sizing: border-box; }
+  input:not([type=range]), textarea, select { font-size: 16px; }
+}
+@media (hover: none) {
+  kbd { display: none; }
+  /* No pointer to hover with: the legend says what each color does in words. */
+  #legend { grid-template-columns: 1fr; }
+  #legend li { flex-wrap: wrap; white-space: normal; }
+  #legend small { display: block; flex-basis: 100%; padding-left: 36px; color: var(--soft); }
+}
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
   button:hover, button:active, select:hover, a.small:hover, a.small:active, #logo:active { transform: none; }

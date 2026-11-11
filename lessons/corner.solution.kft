@@ -1,0 +1,5 @@
+# With nothing straight ahead of green, the walk turns left to white.
+black    1200      0
+red      2400      0
+green    3600      0
+white    3600   1200

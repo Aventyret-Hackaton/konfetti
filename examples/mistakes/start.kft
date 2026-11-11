@@ -1,0 +1,7 @@
+# Broken on purpose. The trail of lessons/add.solution.kft, black red
+# green white, laid with white nearest the origin: the walk starts at the
+# wrong end and writes nothing.
+white    1200     0
+green    2400     0
+red      3600     0
+black    4800     0

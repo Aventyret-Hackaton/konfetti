@@ -1,0 +1,244 @@
+[
+  {
+    "id": "walk",
+    "title": "Follow the trail",
+    "idea": "A konfetti program is a trail of paper strips on the ground. Running it means walking along the trail. Each strip the walk lands on does one small thing.",
+    "steps": [
+      "The strips inside the blue crayon outline are the program. The editor also calls a strip a bit.",
+      "The walk starts on the strip nearest the blue dot. A dark ring marks that strip. From there the walk goes from strip to strip along the thin lines. It stops when the trail ends.",
+      "This program has two colors. A black strip reads the next character from the Input box. Here, each white strip writes the character that the black strip before it has just read. It appears in the Output box.",
+      "Each letter from a to z or A to Z, each digit from 0 to 9, and signs such as ! and ? are one character. Other letters, such as letters with an accent, count as several, and so do emoji and some signs, such as the euro sign. Black reads them one part at a time.",
+      "The Input box holds the word Hi. Press Watch it run. The debugger opens, stopped before the first strip. Press Step four times, and read what each step did.",
+      "Then press Check my program."
+    ],
+    "goal": "Watch the program write Hi. Then press Check my program.",
+    "run_only": true,
+    "tray": {},
+    "checks": [{ "in": "Hi", "out": "Hi" }],
+    "hints": [
+      "There is nothing to build in this lesson. Press Check my program.",
+      "If the strips have been moved, press Start over. Then press Check my program."
+    ]
+  },
+  {
+    "id": "trail",
+    "title": "Make the trail longer",
+    "idea": "The walk only moves between strips that are linked. Two strips are linked when their middles are at most one and a half strip lengths apart.",
+    "steps": [
+      "This program reads two characters and writes them. The Input box holds Hey, so the y is never read.",
+      "The two spare strips lying just outside the outline are for you: one black and one white. A strip outside the outline is not part of the program.",
+      "Drag the black strip into the outline. Drop it at the end of the trail, after the last white strip, with the same small gap as between the other strips.",
+      "A thin line joins two strips when they are linked. If there is no line to your strip, it is too far away. Pick it up again and drop it closer.",
+      "Then put the white strip after your black strip in the same way.",
+      "Do not drop a strip on top of another strip yet. That does something else, which lesson 8 explains."
+    ],
+    "goal": "Make the program write all three characters: Hey.",
+    "tray": { "black": 1, "white": 1 },
+    "checks": [{ "in": "Hey", "out": "Hey" }, { "in": "abc", "out": "abc" }],
+    "hints": [
+      "The trail must go black, white, black, white, black, white: one black and one white for each character.",
+      "Look at the thin lines. Each new strip needs a line to the strip before it. If it also has a line to a strip further back, it is too close to that one. Move it further along.",
+      "Drop the black strip in line with the trail, just past the last white strip, on the side away from the blue dot. Drop the white strip just past the black one."
+    ]
+  },
+  {
+    "id": "stack",
+    "title": "The stack",
+    "idea": "The program keeps its numbers on a stack: a pile where only the top can be reached. Putting a number on top is called a push. Taking the top number off is called a pop.",
+    "steps": [
+      "To a computer, text is numbers. The letter a is 97, b is 98 and A is 65.",
+      "So this is what the two colors really do. A black strip reads one character and pushes its number. A white strip pops a number and writes it to the output, where 97 shows up as a.",
+      "This program reads two characters and never writes them. Add the two white strips to the end of the trail.",
+      "Press Watch it run and step through it. The Stacks boxes show the pile after each step. The top is on the right.",
+      "The character that was read last is on top, so it is written first. The word comes out backwards."
+    ],
+    "goal": "Make the program turn no into on.",
+    "tray": { "white": 2 },
+    "checks": [{ "in": "no", "out": "on" }, { "in": "ab", "out": "ba" }],
+    "hints": [
+      "Two blacks to read, then two whites to write, all in one trail.",
+      "The trail must go black, black, white, white. Each strip needs a thin line to the one before it.",
+      "Drop one white strip just past the second black strip, in line with the trail. Drop the other white strip just past that one."
+    ]
+  },
+  {
+    "id": "add",
+    "title": "Adding",
+    "idea": "Red pushes the number 1, unless it runs right after another red: lesson 5 is about that. Green pops the top two numbers and pushes their sum.",
+    "steps": [
+      "After the black strip has run, the stack holds the number of the character it read. For a, that is 97.",
+      "Red pushes 1 on top of it. Now the stack holds 97 and 1.",
+      "Green pops both, adds them, and pushes the answer: 98.",
+      "White pops 98 and writes it. 98 is the letter b.",
+      "Build that trail. After the black strip put red, then green, then white."
+    ],
+    "goal": "Make the program turn a into b.",
+    "tray": { "red": 1, "green": 1, "white": 1 },
+    "checks": [{ "in": "a", "out": "b" }, { "in": "H", "out": "I" }],
+    "hints": [
+      "The order along the trail is black, red, green, white.",
+      "Press Watch it run and look at the stack after each step. With a in the Input box, the stack must hold just 98 when the walk reaches white.",
+      "Drop red just past black, green just past red, and white just past green. Each one needs a thin line to the one before it."
+    ]
+  },
+  {
+    "id": "count",
+    "title": "Counting with red",
+    "idea": "Reds in a row count up. A red that runs right after another red does not push a new 1. It adds 1 to the number on top instead.",
+    "steps": [
+      "So one red pushes 1, two reds in a row push 2, and three reds in a row push 3.",
+      "The program has a black strip and one red strip so far. Make it add 3 to the number of the character it reads, and write the result.",
+      "You have two more reds, a green and a white.",
+      "Press Watch it run to see the reds count. The debugger says pushed 1, then counted up to 2 (run of 2), then counted up to 3 (run of 3)."
+    ],
+    "goal": "Make the program turn a into d.",
+    "tray": { "red": 2, "green": 1, "white": 1 },
+    "checks": [{ "in": "a", "out": "d" }, { "in": "H", "out": "K" }],
+    "hints": [
+      "Three reds in a row push 3. Then add, then write.",
+      "The order along the trail is black, red, red, red, green, white.",
+      "The three reds must follow each other directly. A strip of another color between them would make the next red start a new number."
+    ]
+  },
+  {
+    "id": "corner",
+    "title": "Turning corners",
+    "idea": "A trail does not have to be straight. From each strip the walk goes on to a linked strip. If there are several, it takes the one that needs the smallest turn. It never goes straight back to the strip it just came from.",
+    "steps": [
+      "This program should turn a into b, like the one in lesson 4. Its trail turns a corner at the green strip: the white strip lies to one side of green, not straight ahead.",
+      "But the program writes nothing. Press Watch it run and step through it to see where the walk goes after green.",
+      "Straight ahead of green lies a brown strip. Going straight ahead needs no turn at all, so the walk goes there and never reaches white. Brown pops a number and throws it away.",
+      "A strip outside the outline is not part of the program. Drag the brown strip across the blue outline and drop it outside.",
+      "Now white is the only way on from green, so the walk turns the corner."
+    ],
+    "goal": "Make the program turn a into b.",
+    "tray": {},
+    "checks": [{ "in": "a", "out": "b" }, { "in": "H", "out": "I" }],
+    "hints": [
+      "After green, the walk must have no straighter way than the turn to white.",
+      "Take the brown strip out of the program. Drag it across the blue outline and drop it outside."
+    ]
+  },
+  {
+    "id": "multiply",
+    "title": "Big numbers",
+    "idea": "Orange copies the top number. Blue pops the top two numbers and pushes their product. Together they make big numbers out of few strips.",
+    "steps": [
+      "To write the letter A without reading it, a program has to make the number 65 itself. Sixty-five reds in a row would do it. There is a shorter way: 65 is 8 times 8, plus 1.",
+      "Eight reds are already there. They go around a corner, which changes nothing. They still run one after another, so they push 8.",
+      "Orange copies the top number: the stack holds 8 and 8. Blue multiplies them: 64.",
+      "A red that runs after a strip of another color starts a new number. So one more red pushes 1, and green adds it to the 64. That makes 65.",
+      "White writes it.",
+      "Continue the trail from the last red, in a new row that runs back toward the side of the blue dot. Keep your strips away from the first row. Strips whose middles are within one and a half lengths of each other link up."
+    ],
+    "goal": "Make the program write A. It reads no input.",
+    "tray": { "orange": 1, "blue": 1, "red": 1, "green": 1, "white": 1 },
+    "checks": [{ "in": "", "out": "A" }],
+    "hints": [
+      "After the eight reds: copy, multiply, push 1, add, write.",
+      "The order after the eight reds is orange, blue, red, green, white.",
+      "Press Watch it run. When the walk reaches white, the stack must hold just 65."
+    ]
+  },
+  {
+    "id": "cover",
+    "title": "Covering a strip",
+    "idea": "A strip that lies on top of another strip covers it. A covered strip is not part of the program. That is how you replace a strip.",
+    "steps": [
+      "Exactly: a strip is covered when a strip above it has its middle less than half a strip length from its own middle.",
+      "This program turns a into b. Change it to go the other way, and turn b into a.",
+      "Cyan subtracts. It pops the top two numbers and pushes the lower one minus the top one. With 98 and 1 on the stack, that is 97.",
+      "Drop the cyan strip right on top of the green strip. Green is covered, and cyan takes its place in the trail.",
+      "In Watch it run, the label of a covered strip is crossed out and says covered."
+    ],
+    "goal": "Make the program turn b into a.",
+    "tray": { "cyan": 1 },
+    "checks": [{ "in": "b", "out": "a" }, { "in": "I", "out": "H" }],
+    "hints": [
+      "Green must stop being part of the program, and cyan must be where green was.",
+      "Drop the cyan strip so that its middle is on the middle of the green strip.",
+      "Cyan needs a thin line to red and a thin line to white. If one is missing, or green still has lines, pick cyan up and drop it again, closer to the middle of green."
+    ]
+  },
+  {
+    "id": "branch",
+    "title": "Choosing a way",
+    "idea": "Pink pops a number and chooses where the walk goes next. A positive number takes the way that turns furthest left. A negative number takes the way that turns furthest right. Zero takes the straightest way, as every other color does.",
+    "steps": [
+      "Left and right are as the walk sees them, like a person walking along the trail.",
+      "When the input has run out, a black strip pushes -1. That is how a program can tell that there is nothing left to read.",
+      "In this program black reads. Orange copies the number, because pink will use one copy up. Then pink chooses.",
+      "After pink the trail forks. On the right arm, brown throws the number away. The left arm is empty.",
+      "Put the white strip on the left arm: across the trail from the brown strip, about one strip length from pink, so that the two arms spread out like the letter Y.",
+      "Try both ways with Watch it run: once with a in the Input box, and once with the Input box empty."
+    ],
+    "goal": "Make the program write the character it reads, and write nothing when the Input box is empty.",
+    "tray": { "white": 1 },
+    "checks": [{ "in": "a", "out": "a" }, { "in": "", "out": "" }, { "in": "Z", "out": "Z" }],
+    "hints": [
+      "The numbers of the characters you can type are positive, so pink takes the way that turns furthest left. Put white on the left arm.",
+      "The walk comes from the blue dot. Seen along the trail, brown is on its right. Left is the other side.",
+      "Drop white across the trail from brown, about one strip length from pink. It needs a thin line to pink and to no other strip."
+    ]
+  },
+  {
+    "id": "loop",
+    "title": "A loop",
+    "idea": "To do something again and again, bend the trail into a ring. The walk goes round and round it. A pink strip on the ring decides when to leave.",
+    "steps": [
+      "These are the strips of lesson 9. Black, orange and pink lie on three corners of a square, and brown lies beyond pink. The walk starts on black and goes round counter-clockwise, the opposite way to the hands of a clock: black, orange, pink.",
+      "The fourth corner is empty. Drop the white strip there, so that it links to pink and to black.",
+      "Now the number of a character sends the walk left at pink, to white. White writes the character and leads back to black, which reads the next one.",
+      "When the input has run out, black pushes -1. Pink sends the walk right, to brown. There the trail ends and the program stops.",
+      "A ring that the walk can never leave is a program that never stops."
+    ],
+    "goal": "Make the program copy its whole input to the output: abc in, abc out.",
+    "tray": { "white": 1 },
+    "checks": [{ "in": "abc", "out": "abc" }, { "in": "Hi!", "out": "Hi!" }, { "in": "", "out": "" }],
+    "hints": [
+      "White belongs in the empty corner of the square, next to pink and next to black.",
+      "White should have two thin lines: one to pink and one to black.",
+      "If the program writes only the first character, check the line from white to black. If it writes nothing, check the line from pink to white."
+    ]
+  },
+  {
+    "id": "stash",
+    "title": "The stash",
+    "idea": "There is a second stack, called the stash, for putting a number aside. Silver pops the top number of the main stack and pushes it onto the stash. Gold pops the top number of the stash and pushes it back onto the main stack.",
+    "steps": [
+      "In lesson 3, two blacks and two whites wrote the word backwards, because the character read last was on top.",
+      "This time, write the two characters in the order they were read. Leave the two black strips where they are.",
+      "After the two blacks, the second character is on top. Silver moves it to the stash. Now the first character is on top, and white writes it.",
+      "Gold brings the second character back, and another white writes it.",
+      "Press Watch it run. The debugger shows both stacks, main and stash."
+    ],
+    "goal": "Make the program read no and write no.",
+    "tray": { "silver": 1, "gold": 1, "white": 2 },
+    "checks": [{ "in": "no", "out": "no" }, { "in": "ab", "out": "ab" }],
+    "hints": [
+      "Put the top number aside, write, bring it back, write.",
+      "The order after the two blacks is silver, white, gold, white.",
+      "Each strip needs a thin line to the one before it, and no strip may lie on top of another."
+    ]
+  },
+  {
+    "id": "code",
+    "title": "Challenge: a secret code",
+    "idea": "Put the loop and the adding together. This program should read a whole message and write every character one number higher, so that HAL becomes IBM.",
+    "steps": [
+      "This is the copying loop of lesson 10, stretched into a ring with six places. The walk goes round counter-clockwise: black, orange, pink, two empty places, white.",
+      "Between pink and white, the number of the character is on the stack. Add 1 to it there, as in lesson 4.",
+      "You have a red, a green and a cyan. You do not need all three.",
+      "Before you choose the places, think about which way the walk goes round.",
+      "When you have passed, try this: cover green with cyan. The program then subtracts 1 and turns IBM back into HAL. Check my program will say no to that, because it still asks for the first code."
+    ],
+    "goal": "Make the program turn HAL into IBM.",
+    "tray": { "red": 1, "green": 1, "cyan": 1 },
+    "checks": [{ "in": "HAL", "out": "IBM" }, { "in": "abc", "out": "bcd" }, { "in": "", "out": "" }],
+    "hints": [
+      "The walk reaches the empty places from pink. The first place it reaches must push 1. The second must add.",
+      "Red goes in the empty place next to pink. Green goes in the empty place next to white.",
+      "Red and green should each have two thin lines, one to each neighbour on the ring."
+    ]
+  }
+]

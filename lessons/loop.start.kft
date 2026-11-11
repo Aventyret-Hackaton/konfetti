@@ -1,0 +1,5 @@
+# Three sides of a ring. After pink there is only the way out, to brown.
+black       0   1200
+orange      0   2400
+pink    -1200   2400
+brown   -1200   3700

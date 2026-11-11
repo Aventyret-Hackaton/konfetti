@@ -1,0 +1,9 @@
+# Eight reds in a row, around a corner: they push 8.
+red      1200      0
+red      2400      0
+red      3600      0
+red      4800      0
+red      6000      0
+red      7200      0
+red      7200   1200
+red      7200   2400

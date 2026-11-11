@@ -1,0 +1,7 @@
+# Broken on purpose. Meant: black red green white, a -> b. But green was
+# dropped less than half a length from red. Green is listed later, so it
+# lies on top: red is covered and out of the program. a -> a.
+black    1200     0
+red      2400     0
+green    2200   350
+white    3600     0

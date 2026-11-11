@@ -1,0 +1,8 @@
+# lessons/corner.start.kft with a white dropped on the brown: brown is
+# covered, and the walk goes straight on to the new white. a -> b.
+black    1200      0
+red      2400      0
+green    3600      0
+white    3600   1200
+brown    4800      0
+white    4800      0

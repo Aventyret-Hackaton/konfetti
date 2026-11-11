@@ -1,0 +1,24 @@
+# dad: writes the word "dad". d is 100 = 10*10, a is 97 = 100-3.
+# Keep a copy of 100 under everything; the last white writes it.
+# Three rows, two lengths apart, joined by one strip at each bend.
+red      1200     0   # 1
+red      2400     0   # 2
+red      3600     0   # 3
+red      4800     0   # 4
+red      6000     0   # 5
+red      7200     0   # 6
+red      8400     0   # 7
+red      8400  1200   # 8      (the run goes on round the bend)
+red      8400  2400   # 9
+red      7200  2400   # 10
+orange   6000  2400   # 10 10
+blue     4800  2400   # 100
+orange   3600  2400   # 100 100
+white    2400  2400   # 100          writes d
+orange   1200  2400   # 100 100
+red      1200  3600   # 100 100 1
+red      1200  4800   # 100 100 2
+red      2400  4800   # 100 100 3
+cyan     3600  4800   # 100 97
+white    4800  4800   # 100          writes a
+white    6000  4800   #              writes d

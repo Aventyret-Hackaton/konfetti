@@ -1,0 +1,8 @@
+# Broken on purpose. The ring of lessons/loop.solution.kft without its
+# brown exit. At the end of the input pink takes the rightmost way, but
+# the only way on is white, a left turn back round the ring: it writes
+# byte 255 forever.
+black       0  1200
+orange      0  2400
+pink    -1200  2400
+white   -1200  1200
