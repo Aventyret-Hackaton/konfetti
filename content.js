@@ -36,9 +36,6 @@
   const MAX_FLYING = 4000;      // airborne pieces at once (keeps frames smooth)
   const GRAVITY = 1200;         // px / s^2
   const BUCKET = 6;             // px width of one pile column
-<<<<<<< Updated upstream
-  const PILE_GROWTH = 0.5;      // px a column grows per piece landing on it
-=======
   const PILE_GROWTH = 0.4;      // px a column grows per piece landing on it
   const SHAKE_PX = 1.5;         // how far the prompt box moves per keystroke
   const SHAKE_MS = 110;         // how long one shake lasts
@@ -46,7 +43,6 @@
                                 // vibration motor; 0 = off)
   const KEY_SOUND = false;      // true = soft "tick" per keystroke, a stand-in
                                 // for haptics on machines that cannot vibrate
->>>>>>> Stashed changes
   const PILE_SLOPE = 2;         // px step between columns before pieces slide
 
   // ---------------------------------------------------------------- canvas
