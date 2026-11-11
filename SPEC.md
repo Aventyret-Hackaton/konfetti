@@ -83,7 +83,8 @@ straightest). Sloppy confetti should misbehave, not crash.
 
 One bit per line: `color x y`, bottom of the pile first. `#` starts a comment.
 Blank lines ignored.
-This is what the editor saves, what the CLI runs, and what goes in git.
+This is what the editor shows and loads, what the CLI runs, and what goes in
+git.
 
 ```
 # prints "A" (8*8+1 = 65)
@@ -116,10 +117,10 @@ CLI and to WebAssembly for the editor.
 
 Wind is not part of the language; it is part of the world the editor puts the
 program in. With wind on, the editor reads the local wind from weather data and
-blows airborne bits off course. Gusts slide landed bits along the ground and
-lift some back into the air, into and out of the outline. A moved bit has new
-coordinates, so wind rewrites programs. A run works on a snapshot taken when it
-starts.
+blows airborne bits off course. Gusts slowly slide landed bits along the
+ground, into and out of the outline; a landed bit never takes off again. A
+moved bit has new coordinates, so wind rewrites programs. A run works on a
+snapshot taken when it starts.
 
 ## 8. Not in v0
 

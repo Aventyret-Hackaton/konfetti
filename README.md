@@ -9,8 +9,14 @@ where to go next.
 - **Fast**: about 800 million steps a second natively, and 400 million steps
   in 0.7 s as WebAssembly in Chrome (Apple Silicon laptop, `examples/count.kft`).
 - **3D editor**: a meadow, a confetti cannon and a crayon. Fire, draw an
-  outline, arrange what landed inside it, run it. Then turn on the wind.
+  outline, arrange what landed inside it, run it, step through it. Then turn on
+  the wind.
+- **Shareable**: `konfetti build` turns a program into a standalone executable
+  or a single web page.
 
+**New here?** [web/docs.html](web/docs.html) is the friendly guide: your first
+program in five minutes, every color and control, pictures of how the walk
+works. Open it in a browser, or press **Docs** in the editor.
 [SPEC.md](SPEC.md) is the full definition. This page is the tour.
 
 ## Quick start
@@ -27,6 +33,29 @@ make serve                                    # then open http://localhost:8137/
 ```
 
 `konfetti --trace program.kft` prints every step and both stacks to stderr.
+
+## Share a program
+
+```sh
+./target/release/konfetti build examples/cat.kft -o cat              # an executable
+echo hi | ./cat
+./target/release/konfetti build examples/cat.kft --html -o cat.html  # a web page
+```
+
+- **An executable** is the konfetti binary with your program inside, about
+  half a megabyte. It runs on the platform konfetti was built for, without
+  konfetti installed, and ignores its arguments. On a Mac, a copy downloaded
+  from the internet is blocked like any unsigned app, and it cannot be signed
+  or notarised: `codesign` rejects a binary with data after its end. Removing
+  the quarantine flag, `xattr -d com.apple.quarantine ./cat`, is the only way
+  to run it.
+- **A web page** is one HTML file of about 70 KB with the WebAssembly runtime
+  inside. It opens straight from disk, with no server and no network, and has
+  an input box, Run and Stop buttons and the output.
+- A program that does not load fails the build, not later on someone else's
+  machine.
+- A `.kft` file may start with `#!/usr/bin/env konfetti`; with `chmod +x` and
+  konfetti on `PATH`, `./prog.kft` runs it.
 
 ## The language in two minutes
 
@@ -104,26 +133,37 @@ red     2000 0
 
 ## The editor
 
-`make serve`, then open <http://localhost:8137/web/>.
+`make serve`, then open <http://localhost:8137/web/>. The bubble at the top
+left always says what to do next.
 
-- **Fire** (or space) shoots a burst of random bits from the cannon. They
+- **Fire** (or Space) shoots a burst of random bits from the cannon. They
   flutter down and lie where they land.
 - **Crayon** (or C), then drag on the stones to draw an outline. It closes
   itself when you let go. The confetti inside is the program; the dot where the
   crayon touched down is the origin. Drawing again replaces the outline.
-- **Drag** bits in, out and into place. Thin lines show the links; the ring
-  marks the start. A bit dropped on another covers it.
-- **Double-click** a bit to flick it into the air.
+- **Drag** bits in, out and into place with the glove that stands in for the
+  mouse pointer. Thin lines show the links; the ring marks the start. A bit
+  dropped on another covers it. **Double-click** a bit to flick it into the air.
 - **Run** walks the trail at five bits a second with a pointer over the current
   bit, showing output and stacks. **Run fast** runs flat out.
+- **Debug** (or D) opens a debugger: **Step** (N), **Play** (P), **Restart**
+  (R) and a speed slider, a trace of the last steps in plain words, and both
+  stacks as boxes. Every bit gets a floating label with its number and
+  instruction, and the bit that runs next is marked, with an arrow for the turn.
 - **Program (.kft)** shows the program as text. Paste text and press
   **Load text** to lay it out with an outline around it, or pick an example.
 - **Sweep outside** removes the litter outside the outline.
-- **Wind** asks your browser for your location, rounds it to about 10 km, and
-  fetches the current wind from [Open-Meteo](https://open-meteo.com). Flying
-  bits are carried off, and gusts slide landed bits and lift them back into the
-  air, so wind rewrites your program, usually into nothing. Even a calm day
-  gets a stiff breeze. Without a location it invents a wind and says so.
+- **Wind** (or W) asks your browser for your location, rounds it to about
+  10 km, and fetches the current wind from [Open-Meteo](https://open-meteo.com).
+  Flying bits drift with it. Landed bits only creep in gusts, about two or
+  three bit lengths a minute in a 6 m/s wind, and never take off again, so a
+  program keeps its shape for a while but slowly walks out of its outline.
+  The flag on the stones hangs limp with the wind off and streams downwind as
+  the wind picks up. Without a location the editor invents a wind and says so.
+- **Sound** is all synthesized: the cannon, landings, the crayon, a note per
+  step. **Mute** (or M) silences it and is remembered.
+- **Themes**: toybox (the default), craft and arcade, from the switcher at the
+  bottom of the panel or `?theme=craft` in the address.
 - Drag the ground to orbit, scroll to zoom, right-drag to pan.
 
 On a slow machine, add `?grass=20000` to the address for a thinner meadow.
@@ -135,8 +175,8 @@ The editor loads three.js from a CDN, so it needs a network connection.
 |------|------|
 | `SPEC.md` | The language definition |
 | `src/lib.rs` | The whole runtime: parse, link, compile, run, tests, wasm exports |
-| `src/main.rs` | The CLI |
-| `web/` | The editor: `index.html`, `main.js` (editing and running), `world.js` (scenery), and the built `konfetti.wasm` |
+| `src/main.rs` | The CLI: run, trace, and `build` for executables and web pages |
+| `web/` | The editor: `index.html`, `main.js` (editing and running), `world.js` (scenery, cannon, flag), `debug.js` (the debugger's words and views), `sound.js`, `hand.js` (the glove), `ui.css` (panel and themes), the built `konfetti.wasm`, and `docs.html`, the guide |
 | `examples/` | Programs |
 | `AGENTS.md` | Notes for AI agents working here or writing konfetti |
 

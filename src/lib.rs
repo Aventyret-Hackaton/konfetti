@@ -370,6 +370,13 @@ mod wasm {
         let mut inp = &s.input[s.inpos..];
         let halted = vm.run(steps as u64, &mut inp, &mut s.out).unwrap_or(true);
         s.inpos = s.input.len() - inp.len();
+        // The pages show only the end of the output, so a program that prints
+        // without end keeps its last megabyte or two, not all of it until the
+        // memory runs out.
+        const KEEP: usize = 1 << 20;
+        if s.out.len() > 2 * KEEP {
+            s.out.drain(..s.out.len() - KEEP);
+        }
         halted as i32
     }
 

@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>konfetti guide</title>
+<meta name="description" content="How to make, run and share konfetti programs: confetti strips on the ground, walked one by one.">
+<link rel="icon" href="data:,">
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #fffaf0; --ink: #20222c; --soft: #50556a; --card: #ffffff; --line: #20222c; --rule: #e6ddc9;
+    --code: #f4eedf; --link: #1f3fc7; --crayon: #2447d8; --edge: rgba(32, 34, 44, .6); --shadow: 4px 4px 0 #20222c; --mark: #ffe14d;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --round: ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16171e; --ink: #f1efe8; --soft: #b6b9c9; --card: #20222c; --line: #6a6e84; --rule: #30334a;
+      --code: #262838; --link: #a9b9ff; --crayon: #7d97ff; --edge: rgba(255, 255, 255, .6); --shadow: 4px 4px 0 #000;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; scroll-padding-top: 1rem; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 1.0625rem/1.6 var(--sans); }
+  a { color: var(--link); text-underline-offset: 2px; }
+  a:focus-visible, summary:focus-visible { outline: 3px solid var(--crayon); outline-offset: 2px; border-radius: 3px; }
+  code, kbd, pre { font-family: var(--mono); font-size: .88em; }
+  code { background: var(--code); padding: .08em .35em; border-radius: 5px; overflow-wrap: anywhere; }
+  kbd { display: inline-block; min-width: 1.6em; padding: 0 .4em; text-align: center; border: 1.5px solid var(--ink); border-radius: 6px; box-shadow: 0 2px 0 var(--ink); font-weight: 700; line-height: 1.5; }
+  pre { margin: .8rem 0 1.2rem; padding: .8rem 1rem; background: var(--code); border-radius: 12px; overflow-x: auto; line-height: 1.5; }
+  pre code { background: none; padding: 0; font-size: 1em; overflow-wrap: normal; }
+  /* On a narrow screen a long command wraps rather than hiding its end off to the side. */
+  @media (max-width: 640px) { pre { font-size: .8em; white-space: pre-wrap; } pre code { overflow-wrap: anywhere; } }
+  .band { height: 12px; background: linear-gradient(90deg, #ff4b5c 0% 7.7%, #ff9233 7.7% 15.4%, #ffe14d 15.4% 23.1%, #2fd07a 23.1% 30.8%, #29d3e6 30.8% 38.5%, #3d7bff 38.5% 46.2%, #9b5cff 46.2% 53.8%, #ff6ec7 53.8% 61.5%, #fff8ec 61.5% 69.2%, #2a2c3a 69.2% 76.9%, #b06a3c 76.9% 84.6%, #dfe6ee 84.6% 92.3%, #f2b73a 92.3% 100%); border-bottom: 2px solid var(--line); }
+
+  /* ---- header ---- */
+  header.hero { max-width: 64rem; margin: 0 auto; padding: 2.2rem 16px 1rem; }
+  .logo { margin: 0; font: 900 clamp(2.8rem, 9vw, 4.2rem)/1 var(--round); letter-spacing: -.02em; }
+  .logo span { display: inline-block; color: var(--c); -webkit-text-stroke: 2px #20222c; paint-order: stroke fill; }
+  .logo span:nth-child(odd) { transform: rotate(-4deg); } .logo span:nth-child(3n) { transform: translateY(-.05em) rotate(5deg); }
+  .logo small { display: block; margin-top: .6rem; font: 700 1.05rem var(--round); letter-spacing: .02em; color: var(--soft); -webkit-text-stroke: 0; }
+  .lede { max-width: 40rem; margin: 1.2rem 0 0; font-size: 1.2rem; line-height: 1.55; }
+
+  /* ---- layout: contents on the left on wide screens, on top otherwise ---- */
+  .layout { max-width: 64rem; margin: 0 auto; padding: 0 16px 4rem; display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.5rem; }
+  @media (min-width: 1000px) {
+    .layout { grid-template-columns: 13rem minmax(0, 1fr); gap: 3rem; }
+    nav.toc { position: sticky; top: 1rem; align-self: start; max-height: calc(100vh - 2rem); overflow-y: auto; }
+  }
+  nav.toc { padding: .9rem 1.1rem; background: var(--card); border: 2px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); font-size: .95rem; }
+  nav.toc h2 { margin: 0 0 .4rem; font: 800 .8rem var(--round); text-transform: uppercase; letter-spacing: .08em; color: var(--soft); }
+  nav.toc ol { margin: 0; padding-left: 1.5rem; }
+  nav.toc li { margin: .15rem 0; }
+  nav.toc a { color: var(--ink); text-decoration: none; }
+  nav.toc a:hover { text-decoration: underline; }
+  @media (min-width: 560px) and (max-width: 999px) { nav.toc ol { columns: 2; column-gap: 2.5rem; } }
+  main { min-width: 0; max-width: 46rem; }
+
+  /* ---- headings and text ---- */
+  h2 { display: flex; align-items: center; gap: .7rem; margin: 3rem 0 .8rem; font: 800 1.65rem/1.2 var(--round); letter-spacing: -.01em; }
+  main > h2:first-child { margin-top: .5rem; }
+  h3 { margin: 1.8rem 0 .4rem; font: 800 1.15rem/1.3 var(--round); }
+  p, ul, ol { margin: .6rem 0; }
+  li { margin: .3rem 0; }
+  .soft { color: var(--soft); }
+  .note { margin: 1rem 0; padding: .7rem 1rem; background: var(--card); border: 2px dashed var(--line); border-radius: 12px; }
+
+  /* A confetti strip: the palette color with a thin edge so white and black show on any background. */
+  .strip { display: inline-block; flex: none; width: 2.3em; height: .8em; border-radius: 2px; background: var(--c); box-shadow: 0 0 0 1.5px var(--edge); transform: rotate(var(--r, -6deg)); vertical-align: -.05em; }
+  h2 .strip { width: 1.5em; height: .55em; }
+  .strip.mini { width: 1.6em; height: .55em; margin: 0 .15em; }
+
+  /* ---- step cards ---- */
+  ol.steps { list-style: none; padding: 0; counter-reset: step; }
+  ol.steps > li { position: relative; margin: 1rem 0; padding: .9rem 1.1rem .9rem 3.6rem; background: var(--card); border: 2px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); counter-increment: step; }
+  ol.steps > li::before { content: counter(step); position: absolute; left: .9rem; top: .85rem; width: 1.9rem; height: 1.9rem; display: grid; place-items: center;
+    font: 900 1.05rem var(--round); color: #20222c; background: var(--mark); border: 2px solid #20222c; border-radius: 50%; }
+  ol.steps h3 { margin: 0 0 .2rem; }
+  ol.steps p { margin: .3rem 0; }
+
+  /* ---- tables ---- */
+  .tablewrap { overflow-x: auto; margin: 1rem 0; }
+  table { width: 100%; border-collapse: collapse; font-size: .97rem; }
+  th, td { padding: .5rem .6rem; text-align: left; vertical-align: top; border-bottom: 1.5px solid var(--rule); }
+  th { font: 800 .8rem var(--round); text-transform: uppercase; letter-spacing: .06em; color: var(--soft); border-bottom: 2px solid var(--line); }
+  td:first-child { white-space: nowrap; }
+  .colors td:first-child .strip { margin-right: .6rem; }
+  .colors .cname { font-weight: 700; }
+  .colors .eff { display: inline-block; margin-top: .2rem; }
+  .colors td:nth-child(2) code, .colors .eff { white-space: nowrap; overflow-wrap: normal; }
+  @media (max-width: 520px) { .colors .strip { width: 1.6em; } .colors td:first-child .strip { margin-right: .4rem; } th, td { padding: .45rem .35rem; } }
+
+  /* ---- diagrams ---- */
+  figure { margin: 1.2rem 0 1.6rem; }
+  figure svg { display: block; width: 100%; height: auto; margin: 0 auto; overflow: visible; }
+  figcaption { margin-top: .5rem; font-size: .93rem; color: var(--soft); text-align: center; }
+  .pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 1rem 1.5rem; }
+  .pair figure { margin: .6rem 0; }
+  svg text { font-family: var(--sans); }
+  .t { fill: var(--ink); font-size: 13px; }
+  .ts { fill: var(--soft); font-size: 12px; }
+  .tc { fill: var(--crayon); font-size: 12px; font-weight: 700; }
+  .tb { font-weight: 700; }
+  .small { font-size: 10.5px; }
+  .st { stroke: var(--edge); stroke-width: 1.5; }
+  .ghost { opacity: .45; stroke-dasharray: 3 2; }
+  .ln { stroke: var(--ink); stroke-width: 1.5; opacity: .7; }
+  .dim { fill: none; stroke: var(--soft); stroke-width: 1.2; stroke-dasharray: 3 3; }
+  .reach { fill: none; stroke: var(--soft); stroke-width: 1.5; stroke-dasharray: 5 4; }
+  .ring { fill: none; stroke: var(--ink); stroke-width: 2.5; }
+  .org { fill: var(--crayon); }
+  .cray { fill: none; stroke: var(--crayon); stroke-width: 4; stroke-linejoin: round; }
+  .ar { stroke: var(--ink); stroke-width: 2; marker-end: url(#ah); }
+  .ar.strong { stroke-width: 3.2; }
+  .ar.soft { stroke: var(--soft); stroke-dasharray: 5 4; marker-end: url(#ahs); }
+  .ahp { fill: var(--ink); } .ahs { fill: var(--soft); }
+
+  /* ---- definition lists for controls and troubles ---- */
+  dl.controls { margin: .8rem 0; }
+  dl.controls dt { margin-top: .9rem; font-weight: 700; }
+  dl.controls dd { margin: .2rem 0 0 1.2rem; }
+  footer { max-width: 64rem; margin: 0 auto; padding: 1.5rem 16px 3rem; color: var(--soft); font-size: .9rem; border-top: 1.5px solid var(--rule); }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" orient="auto"><path class="ahp" d="M0,0.5 L10,5 L0,9.5 z"/></marker>
+    <marker id="ahs" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" orient="auto"><path class="ahs" d="M0,0.5 L10,5 L0,9.5 z"/></marker>
+  </defs>
+</svg>
+<div class="band" aria-hidden="true"></div>
+<header class="hero">
+  <h1 class="logo" aria-label="konfetti: a guide"><span style="--c:#ff4b5c">k</span><span style="--c:#ff9233">o</span><span style="--c:#2fd07a">n</span><span style="--c:#3d7bff">f</span><span style="--c:#9b5cff">e</span><span style="--c:#ff6ec7">t</span><span style="--c:#29d3e6">t</span><span style="--c:#f2b73a">i</span><small>a guide for people</small></h1>
+  <p class="lede">konfetti is a programming language made of confetti. A program is a scatter of colored paper strips on the ground, inside a loop drawn with a crayon, and running it means walking from strip to strip: the color says what to do, the position says where to go next.</p>
+</header>
+
+<div class="layout">
+<nav class="toc" aria-label="Contents">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#first">Your first program</a></li>
+    <li><a href="#colors">The thirteen colors</a></li>
+    <li><a href="#walk">How the walk works</a></li>
+    <li><a href="#text">Programs as text</a></li>
+    <li><a href="#examples">The three examples</a></li>
+    <li><a href="#patterns">Layout patterns</a></li>
+    <li><a href="#editor">The editor</a></li>
+    <li><a href="#debug">Debug mode</a></li>
+    <li><a href="#themes">Themes</a></li>
+    <li><a href="#sound">Sound</a></li>
+    <li><a href="#wind">Wind and the flag</a></li>
+    <li><a href="#terminal">In the terminal</a></li>
+    <li><a href="#trouble">When something goes wrong</a></li>
+  </ol>
+</nav>
+
+<main>
+<h2 id="first"><span class="strip" style="--c:#ff4b5c"></span>Your first program</h2>
+<p>Five minutes, in the editor. You will make a program of four strips that reads a letter and writes it twice.</p>
+<ol class="steps">
+  <li><h3>Open the editor</h3>
+    <p>In the konfetti folder, run <code>make serve</code> and open <a href="http://localhost:8137/web/">localhost:8137/web/</a>. You see a stone circle in a meadow, a cannon in the middle, and a panel of buttons on the right. The cannon fires once as the page opens.</p></li>
+  <li><h3>Fire</h3>
+    <p>Press <b>Fire</b> or <kbd>Space</kbd> two or three more times. Paper strips fly out, flutter down and lie where they land. Each strip is one <em>bit</em> of a program.</p></li>
+  <li><h3>Pick four strips</h3>
+    <p>Find a black <span class="strip mini" style="--c:#2a2c3a" title="black"></span>, an orange <span class="strip mini" style="--c:#ff9233" title="orange"></span> and two white <span class="strip mini" style="--c:#fff8ec" title="white"></span> strips. Your pointer is a white glove: press on a strip and drag it to some empty stones, between the cannon and you. Lay them in a row: black, orange, white, white. Put their middles about one strip length apart. Which way a strip points does not matter.</p></li>
+  <li><h3>Draw the loop</h3>
+    <p>Press <b>Crayon</b> or <kbd>C</kbd>. Put the crayon down just past the black strip, at the end of the row away from the others, and drag a loop around all four. Let go: the loop closes itself.</p>
+    <p>Whatever lies inside the loop is the program. The blue dot where the crayon touched down is the <em>origin</em>. Thin lines now join neighbouring strips, and a dark ring sits on the black one: the walk starts there, because it is the strip nearest the origin. If other strips ended up inside the loop, drag them out.</p></li>
+  <li><h3>Run it</h3>
+    <p>Type <code>hi</code> in the <b>Input</b> box and press <b>Run</b>. A yellow pointer hops from strip to strip. Black reads the <code>h</code>, orange copies it, and each white writes one copy. <b>Output</b> shows <code>hh</code>.</p></li>
+  <li><h3>Look inside</h3>
+    <p>Press <b>Debug</b> or <kbd>D</kbd>, then <b>Step</b> or <kbd>N</kbd> to run one strip at a time. Each step says what it did in plain words, and the stacks show the numbers the program holds. Then load the <b>cat</b> example from <b>Examples…</b> to see a program that loops.</p></li>
+</ol>
+
+<h2 id="colors"><span class="strip" style="--c:#ff9233"></span>The thirteen colors</h2>
+<p>Each color is one instruction. The program works on a <em>stack</em>: a pile of whole numbers where you can only reach the top. Most colors take numbers off the top and put the answer back.</p>
+<div class="tablewrap">
+<table class="colors">
+  <thead><tr><th scope="col">Color</th><th scope="col">Op</th><th scope="col">What it does</th></tr></thead>
+  <tbody>
+<tr><td><span class="strip" style="--c:#ff4b5c"></span><span class="cname">red</span></td><td><code>PUSH</code></td><td>Pushes 1. A run of reds in a row counts up instead, so <i>n</i> reds push <i>n</i>. <code class="eff">-- n</code></td></tr>
+<tr><td><span class="strip" style="--c:#ff9233;--r:5deg"></span><span class="cname">orange</span></td><td><code>DUP</code></td><td>Copies the top number. <code class="eff">a -- a a</code></td></tr>
+<tr><td><span class="strip" style="--c:#ffe14d"></span><span class="cname">yellow</span></td><td><code>SWAP</code></td><td>Swaps the top two numbers. <code class="eff">a b -- b a</code></td></tr>
+<tr><td><span class="strip" style="--c:#2fd07a;--r:5deg"></span><span class="cname">green</span></td><td><code>ADD</code></td><td>Adds the top two numbers. <code class="eff">a b -- a+b</code></td></tr>
+<tr><td><span class="strip" style="--c:#29d3e6"></span><span class="cname">cyan</span></td><td><code>SUB</code></td><td>Subtracts the top number from the one below it. <code class="eff">a b -- a-b</code></td></tr>
+<tr><td><span class="strip" style="--c:#3d7bff;--r:5deg"></span><span class="cname">blue</span></td><td><code>MUL</code></td><td>Multiplies the top two numbers. <code class="eff">a b -- a*b</code></td></tr>
+<tr><td><span class="strip" style="--c:#9b5cff"></span><span class="cname">purple</span></td><td><code>DIVMOD</code></td><td>Divides the number below the top by the top. Leaves the whole-number answer, then the remainder on top. Rounds down, so −7 ÷ 2 is −4 remainder 1. Dividing by 0 does nothing. <code class="eff">a b -- a/b a%b</code></td></tr>
+<tr><td><span class="strip" style="--c:#ff6ec7;--r:5deg"></span><span class="cname">pink</span></td><td><code>BRANCH</code></td><td>Pops a number and picks the way on: zero goes straightest, positive turns furthest left, negative furthest right. <code class="eff">a --</code></td></tr>
+<tr><td><span class="strip" style="--c:#fff8ec"></span><span class="cname">white</span></td><td><code>OUT</code></td><td>Pops a number and writes it as one byte of output. 65 is the letter A. <code class="eff">a --</code></td></tr>
+<tr><td><span class="strip" style="--c:#2a2c3a;--r:5deg"></span><span class="cname">black</span></td><td><code>IN</code></td><td>Reads one byte of input and pushes it, or pushes −1 when the input has run out. <code class="eff">-- c</code></td></tr>
+<tr><td><span class="strip" style="--c:#b06a3c"></span><span class="cname">brown</span></td><td><code>DROP</code></td><td>Throws the top number away. <code class="eff">a --</code></td></tr>
+<tr><td><span class="strip" style="--c:#dfe6ee;--r:5deg"></span><span class="cname">silver</span></td><td><code>STASH</code></td><td>Moves the top number from the main stack to the stash. <code class="eff">a --</code></td></tr>
+<tr><td><span class="strip" style="--c:#f2b73a"></span><span class="cname">gold</span></td><td><code>FETCH</code></td><td>Moves the top number of the stash back to the main stack. <code class="eff">-- a</code></td></tr>
+  </tbody>
+</table>
+</div>
+<p>How to read <code>a b -- a+b</code>: before the strip runs, the top two numbers are <code>a</code> and <code>b</code>, with <code>b</code> on top; afterwards <code>a+b</code> is there instead.</p>
+<p>There is a second stack, the <em>stash</em>, for keeping a number out of the way: silver puts it there, gold brings it back. Input and output are <em>bytes</em>, numbers from 0 to 255; text is bytes, one per letter. A strip that needs more numbers than the stack holds does nothing. A konfetti program never crashes; sloppy confetti just misbehaves.</p>
+
+<h2 id="walk"><span class="strip" style="--c:#ffe14d"></span>How the walk works</h2>
+<p>The walk goes from strip to strip. Each strip it lands on runs, then the walk picks the next one. Only three things matter: where each strip's middle is, its color, and which strip lies on top of which. Distances are in strip lengths.</p>
+
+<h3>Strips link to near neighbours</h3>
+<figure><svg viewBox="58 18 232 197" role="img" aria-label="An orange strip with a dashed circle of one and a half lengths around it. A green, a cyan and a purple strip inside the circle are joined to it by lines. A red strip outside the circle has no line." style="max-width:313px"><circle class="reach" cx="150" cy="110" r="84"/><line class="dim" x1="150" y1="110" x2="204" y2="45.6"/><text class="ts" x="210" y="38" text-anchor="start">1.5 lengths</text><line class="ln" x1="150" y1="110" x2="208.8" y2="110"/><line class="ln" x1="150" y1="110" x2="120.4" y2="46.6"/><line class="ln" x1="150" y1="110" x2="104.5" y2="155.5"/><rect class="st" x="130" y="102.5" width="40" height="15" rx="2" fill="#ff9233"/><rect class="st" x="188.8" y="102.5" width="40" height="15" rx="2" fill="#2fd07a"/><rect class="st" x="100.4" y="39.1" width="40" height="15" rx="2" fill="#29d3e6" transform="rotate(-20 120.4 46.6)"/><rect class="st" x="84.5" y="148" width="40" height="15" rx="2" fill="#9b5cff" transform="rotate(15 104.5 155.5)"/><rect class="st" x="221.7" y="166.7" width="40" height="15" rx="2" fill="#ff4b5c" transform="rotate(-8 241.7 174.2)"/><text class="ts" x="241.7" y="205" text-anchor="middle">too far: no link</text></svg><figcaption>Strips whose middles are at most one and a half lengths apart are linked. The walk only moves along links.</figcaption></figure>
+
+<h3>The start is the strip nearest the origin</h3>
+<figure><svg viewBox="10 14 328 184" role="img" aria-label="A blue crayon loop. The origin dot sits on the loop where the crayon touched down. The strip nearest the dot has a ring: it is the start. A dashed arrow from the dot through the start shows the first heading, and arrows lead on along a trail of three more strips." style="max-width:443px"><path class="cray" d="M24,150 L24,40 Q24,22 42,22 L312,22 Q330,22 330,40 L330,172 Q330,190 312,190 L42,190 Q24,190 24,172 Z"/><text class="tc" x="322" y="42" text-anchor="end">the crayon loop</text><line class="ar soft" x1="31.4" y1="147" x2="59.7" y2="135.7"/><line class="ar" x1="106.5" y1="117" x2="120.9" y2="111.2"/><line class="ar" x1="165.9" y1="93.3" x2="180.3" y2="87.5"/><line class="ar" x1="226.8" y1="78.5" x2="242.8" y2="78.5"/><rect class="st" x="64" y="118.5" width="40" height="15" rx="2" fill="#2a2c3a" transform="rotate(-22 84 126)"/><rect class="st" x="123.4" y="94.8" width="40" height="15" rx="2" fill="#ff9233" transform="rotate(-22 143.4 102.3)"/><rect class="st" x="182.8" y="71" width="40" height="15" rx="2" fill="#fff8ec" transform="rotate(-22 202.8 78.5)"/><rect class="st" x="246.8" y="71" width="40" height="15" rx="2" fill="#fff8ec"/><circle class="ring" cx="84" cy="126" r="27"/><circle class="org" cx="24" cy="150" r="6"/><text class="t tb" x="36" y="176" text-anchor="start">origin (0, 0)</text><text class="ts" x="118" y="156" text-anchor="start">start: the strip nearest the origin</text></svg><figcaption>The origin is where the crayon first touched the ground. The walk starts on the nearest strip, heading away from the origin.</figcaption></figure>
+
+<h3>Go straightest</h3>
+<figure><svg viewBox="-12 50 325 182" role="img" aria-label="A strip arrives from the left. Ahead of it, three strips are linked: one 25 degrees to the left, one 90 degrees to the right, one 110 degrees to the left. The arrow takes the 25 degree one. The strip it came from is not a choice." style="max-width:439px"><line class="dim" x1="140" y1="140" x2="236" y2="140"/><line class="ar" x1="74" y1="140" x2="116" y2="140"/><line class="ar strong" x1="159.7" y1="130.8" x2="178.3" y2="122.2"/><line class="ar soft" x1="140" y1="151.5" x2="140" y2="192.5"/><line class="ar soft" x1="135.9" y1="128.7" x2="122.2" y2="91.2"/><rect class="st" x="30" y="132.5" width="40" height="15" rx="2" fill="#dfe6ee"/><rect class="st" x="120" y="132.5" width="40" height="15" rx="2" fill="#2fd07a"/><rect class="st" x="178" y="105.5" width="40" height="15" rx="2" fill="#3d7bff" transform="rotate(-25 198 113)"/><rect class="st" x="120" y="196.5" width="40" height="15" rx="2" fill="#ffe14d" transform="rotate(90 140 204)"/><rect class="st" x="98.1" y="72.4" width="40" height="15" rx="2" fill="#ff4b5c" transform="rotate(70 118.1 79.9)"/><text class="t tb" x="222" y="104" text-anchor="start">25°: taken</text><text class="ts" x="156" y="212" text-anchor="start">90°</text><text class="ts" x="100" y="70" text-anchor="end">110°</text><text class="ts" x="50" y="166" text-anchor="middle">came from here:</text><text class="ts" x="50" y="182" text-anchor="middle">never straight back</text><text class="ts" x="244" y="144" text-anchor="start">straight on</text></svg><figcaption>From each strip the walk takes the linked strip that needs the smallest turn, left or right. It never goes straight back to the strip it just came from.</figcaption></figure>
+<p>When two choices need the same turn, the nearer one wins, and after that the one listed first in the program text.</p>
+
+<h3>Pink picks one of three ways</h3>
+<figure><svg viewBox="50 41 240 197" role="img" aria-label="A pink strip reached from below has three ways on. Straight up is taken when the popped number is zero, the way to the left when it is positive, the way to the right when it is negative." style="max-width:324px"><line class="ar" x1="170" y1="203.5" x2="170" y2="161.5"/><line class="ar" x1="170" y1="138.5" x2="170" y2="94.5"/><line class="ar" x1="146" y1="150" x2="112" y2="150"/><line class="ar" x1="194" y1="150" x2="228" y2="150"/><rect class="st" x="150" y="207.5" width="40" height="15" rx="2" fill="#2a2c3a"/><rect class="st" x="150" y="142.5" width="40" height="15" rx="2" fill="#ff6ec7"/><rect class="st" x="150" y="75.5" width="40" height="15" rx="2" fill="#fff8ec"/><rect class="st" x="68" y="142.5" width="40" height="15" rx="2" fill="#2fd07a"/><rect class="st" x="232" y="142.5" width="40" height="15" rx="2" fill="#b06a3c"/><text class="t tb" x="170" y="62" text-anchor="middle">zero: straight on</text><text class="t tb" x="88" y="180" text-anchor="middle">positive:</text><text class="t" x="88" y="196" text-anchor="middle">leftmost</text><text class="t tb" x="252" y="180" text-anchor="middle">negative:</text><text class="t" x="252" y="196" text-anchor="middle">rightmost</text><text class="ts" x="196" y="228" text-anchor="start">arriving</text></svg><figcaption>Pink takes a number off the stack. Zero goes straightest, as usual. A positive number takes the way that turns furthest left; a negative number, furthest right.</figcaption></figure>
+<p>With only one way on, all three choices are the same way. To compare two numbers, subtract them and then branch: zero means they were equal.</p>
+
+<h3>A strip on top covers the one below</h3>
+<figure><svg viewBox="26 30 266 118" role="img" aria-label="Left: a red strip on its own. An arrow says drop white on it. Right: a white strip lies across the red one, within half a length of its middle. The red one is faded: it is covered and ignored." style="max-width:359px"><rect class="st" x="42" y="64.5" width="40" height="15" rx="2" fill="#ff4b5c"/><text class="ts" x="62" y="108" text-anchor="middle">red, alone</text><line class="ar soft" x1="104" y1="72" x2="164" y2="72"/><text class="ts" x="134" y="58" text-anchor="middle">drop white</text><circle class="reach" cx="243" cy="64" r="28"/><rect class="st ghost" x="209" y="65.5" width="40" height="15" rx="2" fill="#ff4b5c"/><rect class="st" x="223" y="56.5" width="40" height="15" rx="2" fill="#fff8ec" transform="rotate(32 243 64)"/><text class="t tb" x="240" y="120" text-anchor="middle">white counts;</text><text class="t" x="240" y="137" text-anchor="middle">red is covered</text></svg><figcaption>If a strip lies less than half a length from one dropped later, the lower one is covered. A covered strip is not part of the program at all. To replace a strip, drop another on top of it.</figcaption></figure>
+
+<h3>A dead end stops the program</h3>
+<p>When no linked strip is left to go to, the program <em>halts</em>, which means it stops. The last strip still runs. To make a loop, bend the trail back into itself: the walk keeps going round until a pink sends it out.</p>
+
+<h3>Reds count</h3>
+<p>A red right after a red adds 1 to the number on top instead of pushing a new 1. So a run of five reds <span class="strip mini" style="--c:#ff4b5c" title="red"></span><span class="strip mini" style="--c:#ff4b5c" title="red"></span><span class="strip mini" style="--c:#ff4b5c" title="red"></span><span class="strip mini" style="--c:#ff4b5c" title="red"></span><span class="strip mini" style="--c:#ff4b5c" title="red"></span> pushes 5. To push 3 and then 2, put another color between the runs.</p>
+
+<h2 id="text"><span class="strip" style="--c:#2fd07a"></span>Programs as text</h2>
+<p>Every program can be written down as text, one strip per line: its color, then <code>x</code> and <code>y</code> of its middle, as whole numbers. 1000 is one strip length. <code>#</code> starts a comment. The editor shows this text under <b>Program</b>; files of it end in <code>.kft</code>.</p>
+<pre><code># prints "A" (8*8+1 = 65)
+red     1000 0
+red     2000 0
+...
+white  13000 0</code></pre>
+<p>The origin is <code>(0, 0)</code>. <code>x</code> grows to the right and <code>y</code> away from you, as the editor first shows the stones. Lines go bottom of the pile first, so a later line lies on top of an earlier one.</p>
+
+<h2 id="examples"><span class="strip" style="--c:#29d3e6"></span>The three examples</h2>
+<p>Pick them from <b>Examples…</b> in the editor, or find them in the <code>examples</code> folder.</p>
+
+<h3>hello: a straight line</h3>
+<figure><svg viewBox="-25 0 411 80" role="img" aria-label="hello.kft: thirteen strips in a straight line, starting next to the origin. Eight reds, then orange, blue, red, green and white. Under each strip, the top of the stack after it runs: 1 to 8, then 8, 64, 1, 65, and the letter A." style="max-width:555px"><circle class="org" cx="24" cy="46" r="4"/><text class="ts" x="15" y="50" text-anchor="end">origin</text><path class="dim" d="M42,33 v-5 H240 v5"/><text class="ts" x="141" y="20" text-anchor="middle">a run of 8 reds</text><rect class="st" x="41" y="42.5" width="18" height="7" rx="2" fill="#ff4b5c"/><text class="t small" x="50" y="68" text-anchor="middle">1</text><rect class="st" x="67" y="42.5" width="18" height="7" rx="2" fill="#ff4b5c"/><text class="t small" x="76" y="68" text-anchor="middle">2</text><rect class="st" x="93" y="42.5" width="18" height="7" rx="2" fill="#ff4b5c"/><text class="t small" x="102" y="68" text-anchor="middle">3</text><rect class="st" x="119" y="42.5" width="18" height="7" rx="2" fill="#ff4b5c"/><text class="t small" x="128" y="68" text-anchor="middle">4</text><rect class="st" x="145" y="42.5" width="18" height="7" rx="2" fill="#ff4b5c"/><text class="t small" x="154" y="68" text-anchor="middle">5</text><rect class="st" x="171" y="42.5" width="18" height="7" rx="2" fill="#ff4b5c"/><text class="t small" x="180" y="68" text-anchor="middle">6</text><rect class="st" x="197" y="42.5" width="18" height="7" rx="2" fill="#ff4b5c"/><text class="t small" x="206" y="68" text-anchor="middle">7</text><rect class="st" x="223" y="42.5" width="18" height="7" rx="2" fill="#ff4b5c"/><text class="t small" x="232" y="68" text-anchor="middle">8</text><rect class="st" x="249" y="42.5" width="18" height="7" rx="2" fill="#ff9233"/><text class="t small" x="258" y="68" text-anchor="middle">8</text><text class="ts small" x="255" y="33" text-anchor="start" transform="rotate(-40 255 33)">DUP</text><rect class="st" x="275" y="42.5" width="18" height="7" rx="2" fill="#3d7bff"/><text class="t small" x="284" y="68" text-anchor="middle">64</text><text class="ts small" x="281" y="33" text-anchor="start" transform="rotate(-40 281 33)">MUL</text><rect class="st" x="301" y="42.5" width="18" height="7" rx="2" fill="#ff4b5c"/><text class="t small" x="310" y="68" text-anchor="middle">1</text><text class="ts small" x="307" y="33" text-anchor="start" transform="rotate(-40 307 33)">PUSH</text><rect class="st" x="327" y="42.5" width="18" height="7" rx="2" fill="#2fd07a"/><text class="t small" x="336" y="68" text-anchor="middle">65</text><text class="ts small" x="333" y="33" text-anchor="start" transform="rotate(-40 333 33)">ADD</text><rect class="st" x="353" y="42.5" width="18" height="7" rx="2" fill="#fff8ec"/><text class="t tb" x="362" y="68" text-anchor="middle">A</text><text class="ts small" x="359" y="33" text-anchor="start" transform="rotate(-40 359 33)">OUT</text></svg><figcaption>Under each strip: the top of the stack after it runs.</figcaption></figure>
+<p>Eight reds push 8. Orange copies it, blue multiplies the two: 64. A red pushes 1 and green adds: 65. White writes 65, which is the letter <code>A</code>. Then the trail ends, and so does the program.</p>
+
+<h3>cat: a loop with an exit</h3>
+<figure><svg viewBox="25 12 287 190" role="img" aria-label="cat.kft: a ring of six strips with an exit. From the origin the walk goes up to black, then orange, turns left to red and green, turns left down to pink, turns left to white and back to black. Below pink, a brown strip is the exit." style="max-width:387px"><line class="ar soft" x1="250" y1="167" x2="250" y2="131"/><line class="ar" x1="250" y1="107.5" x2="250" y2="63.3"/><line class="ar" x1="226" y1="51.8" x2="206.8" y2="51.8"/><line class="ar" x1="158.8" y1="51.8" x2="139.6" y2="51.8"/><line class="ar" x1="115.6" y1="63.3" x2="115.6" y2="107.5"/><line class="ar" x1="139.6" y1="119" x2="158.8" y2="119"/><line class="ar" x1="206.8" y1="119" x2="226" y2="119"/><line class="ar soft" x1="115.6" y1="130.5" x2="115.6" y2="174.7"/><rect class="st" x="230" y="111.5" width="40" height="15" rx="2" fill="#2a2c3a"/><rect class="st" x="230" y="44.3" width="40" height="15" rx="2" fill="#ff9233"/><rect class="st" x="162.8" y="44.3" width="40" height="15" rx="2" fill="#ff4b5c"/><rect class="st" x="95.6" y="44.3" width="40" height="15" rx="2" fill="#2fd07a"/><rect class="st" x="95.6" y="111.5" width="40" height="15" rx="2" fill="#ff6ec7"/><rect class="st" x="162.8" y="111.5" width="40" height="15" rx="2" fill="#fff8ec"/><rect class="st" x="95.6" y="178.7" width="40" height="15" rx="2" fill="#b06a3c"/><circle class="org" cx="250" cy="175" r="6"/><text class="t tb" x="276" y="123" text-anchor="start">IN</text><text class="t tb" x="276" y="56" text-anchor="start">DUP</text><text class="t tb" x="182.8" y="33" text-anchor="middle">PUSH 1</text><text class="t tb" x="115.6" y="33" text-anchor="middle">ADD</text><text class="t tb" x="90" y="123" text-anchor="end">BRANCH</text><text class="t tb" x="182.8" y="141" text-anchor="middle">OUT</text><text class="t tb" x="90" y="190" text-anchor="end">DROP</text><text class="ts" x="262" y="179" text-anchor="start">origin</text></svg><figcaption>The walk starts on black, the strip nearest the origin, heading up.</figcaption></figure>
+<p>cat copies its input to its output. Black reads a byte, orange copies it, red and green add 1 to the copy. Pink takes that copy: any real byte plus 1 is positive, so the walk turns left to white, which writes the byte, and on round to black again. At the end of the input black pushes −1; plus 1 is zero, so pink goes straight on to brown, which drops the −1. Brown is a dead end, and the program stops.</p>
+
+<h3>count: a ring with an on-ramp</h3>
+<figure><svg viewBox="5 -4 380 82" role="img" aria-label="count.kft from above: a long row of ten reds, then three orange and blue pairs, then a ring of four strips with a brown exit above it." style="max-width:513px"><circle class="org" cx="16" cy="46" r="3.5"/><rect class="st" x="25" y="38.5" width="14" height="5.5" rx="2" fill="#ff4b5c"/><rect class="st" x="44.2" y="38.5" width="14" height="5.5" rx="2" fill="#ff4b5c"/><rect class="st" x="63.4" y="38.5" width="14" height="5.5" rx="2" fill="#ff4b5c"/><rect class="st" x="82.6" y="38.5" width="14" height="5.5" rx="2" fill="#ff4b5c"/><rect class="st" x="101.8" y="38.5" width="14" height="5.5" rx="2" fill="#ff4b5c"/><rect class="st" x="121" y="38.5" width="14" height="5.5" rx="2" fill="#ff4b5c"/><rect class="st" x="140.2" y="38.5" width="14" height="5.5" rx="2" fill="#ff4b5c"/><rect class="st" x="159.4" y="38.5" width="14" height="5.5" rx="2" fill="#ff4b5c"/><rect class="st" x="178.6" y="38.5" width="14" height="5.5" rx="2" fill="#ff4b5c"/><rect class="st" x="197.8" y="38.5" width="14" height="5.5" rx="2" fill="#ff4b5c"/><rect class="st" x="217" y="38.5" width="14" height="5.5" rx="2" fill="#ff9233"/><rect class="st" x="236.2" y="38.5" width="14" height="5.5" rx="2" fill="#3d7bff"/><rect class="st" x="255.4" y="38.5" width="14" height="5.5" rx="2" fill="#ff9233"/><rect class="st" x="274.6" y="38.5" width="14" height="5.5" rx="2" fill="#3d7bff"/><rect class="st" x="293.8" y="38.5" width="14" height="5.5" rx="2" fill="#ff9233"/><rect class="st" x="313" y="38.5" width="14" height="5.5" rx="2" fill="#3d7bff"/><rect class="st" x="336.2" y="43.3" width="14" height="5.5" rx="2" fill="#ff4b5c"/><rect class="st" x="355.4" y="43.3" width="14" height="5.5" rx="2" fill="#29d3e6"/><rect class="st" x="355.4" y="24.1" width="14" height="5.5" rx="2" fill="#ff9233"/><rect class="st" x="336.2" y="24.1" width="14" height="5.5" rx="2" fill="#ff6ec7"/><rect class="st" x="321.8" y="6.4" width="14" height="5.5" rx="2" fill="#b06a3c"/><path class="dim" d="M25,50 v5 H211.8 v-5"/><text class="ts" x="118.4" y="68" text-anchor="middle">10 reds: 10</text><path class="dim" d="M217,50 v5 H327 v-5"/><text class="ts" x="272" y="68" text-anchor="middle">square it, 3 times</text><text class="ts" x="352.8" y="68" text-anchor="middle">the ring</text></svg><figcaption>The whole of count.kft.</figcaption></figure>
+<figure><svg viewBox="32 20 287 190" role="img" aria-label="The end of count.kft, close up. The on-ramp, orange then blue, joins the ring at red from behind. The ring runs red, cyan, orange, pink and back to red. From pink, zero goes straight on to brown, the exit." style="max-width:387px"><line class="ar" x1="84" y1="157" x2="108" y2="157"/><line class="ar" x1="155.9" y1="161.9" x2="195.1" y2="170.1"/><line class="ar" x1="243" y1="175" x2="267" y2="175"/><line class="ar" x1="291" y1="163.5" x2="291" y2="114.5"/><line class="ar" x1="267" y1="103" x2="243" y2="103"/><line class="ar" x1="219" y1="114.5" x2="219" y2="163.5"/><line class="ar soft" x1="210.3" y1="92.4" x2="173.7" y2="47.6"/><rect class="st" x="40" y="149.5" width="40" height="15" rx="2" fill="#ff9233"/><rect class="st" x="112" y="149.5" width="40" height="15" rx="2" fill="#3d7bff"/><rect class="st" x="199" y="167.5" width="40" height="15" rx="2" fill="#ff4b5c"/><rect class="st" x="271" y="167.5" width="40" height="15" rx="2" fill="#29d3e6"/><rect class="st" x="271" y="95.5" width="40" height="15" rx="2" fill="#ff9233"/><rect class="st" x="199" y="95.5" width="40" height="15" rx="2" fill="#ff6ec7"/><rect class="st" x="145" y="29.5" width="40" height="15" rx="2" fill="#b06a3c"/><text class="t tb" x="60" y="182" text-anchor="middle">DUP</text><text class="t tb" x="132" y="182" text-anchor="middle">MUL</text><text class="t tb" x="219" y="199" text-anchor="middle">PUSH 1</text><text class="t tb" x="291" y="199" text-anchor="middle">SUB</text><text class="t tb" x="291" y="86" text-anchor="middle">DUP</text><text class="t tb" x="193" y="107" text-anchor="end">BRANCH</text><text class="t tb" x="140" y="41" text-anchor="end">DROP</text><text class="ts" x="212" y="143" text-anchor="end">n > 0</text><text class="ts" x="199" y="70" text-anchor="start">zero</text></svg><figcaption>The ring, close up. The on-ramp joins at red from behind.</figcaption></figure>
+<p>count makes 100,000,000 and counts it down to zero. It prints nothing; it is the speed test. Ten reds push 10. Three times, orange copies and blue multiplies, which squares the number: 100, 10,000, 100,000,000. Then the ring subtracts 1, copies the result and branches on it: positive turns left, back round the ring; zero goes straight on to brown. That is 400 million steps. The terminal version does them in about half a second.</p>
+
+<h2 id="patterns"><span class="strip" style="--c:#3d7bff"></span>Layout patterns</h2>
+<ul>
+  <li><b>Spacing.</b> Put middles 1.2 lengths apart on a grid. Then each strip links only to its four straight neighbours; the diagonal ones are 1.7 apart. At exactly 1 length apart, diagonals link too.</li>
+  <li><b>Numbers.</b> A run of reds is one number. Zero is red, orange, cyan: 1, a copy, subtract. Make big numbers by multiplying, as hello does.</li>
+  <li><b>Corners.</b> Where the trail bends and there is only one way on, nothing special is needed: the walk follows the bend.</li>
+  <li><b>Forks.</b> Put a pink where the trail splits. Decide which way is straight on, and put the loop or the exit there to match the sign you will branch on.</li>
+  <li><b>Endings.</b> End each path in a dead end. Brown makes a tidy last strip.</li>
+  <li><b>Doing nothing.</b> There is no color for "do nothing". Orange then brown copies and throws away, which changes nothing, even on an empty stack. Use it to pad a trail.</li>
+  <li><b>Joining a loop.</b> Do not join a loop at a right angle. There, the loop's own next strip and the side trail are both a 90° turn, and the tie is settled by text order. Join from behind instead, so the loop's next strip is always the smaller turn. count does this.</li>
+  <li><b>Keep exits clear.</b> An exit strip within one and a half lengths of another part of the trail links to it, and the program may never stop.</li>
+  <li><b>Mind the origin.</b> Moving a whole program changes which strip is nearest the origin, and the first heading. Check the start ring after moving things.</li>
+</ul>
+
+<h2 id="editor"><span class="strip" style="--c:#9b5cff"></span>The editor</h2>
+<p>The editor is a meadow you can walk around in. The panel on the right holds every control; the bubble at the top left says what to do next and what just happened.</p>
+
+<h3>In the meadow</h3>
+<dl class="controls">
+  <dt>The glove</dt><dd>Over the meadow, your mouse pointer is a white cartoon glove. Press on a strip and drag it to move it; the glove pinches while it carries. Drop a strip on another to cover it.</dd>
+  <dt>Double-click a strip</dt><dd>Flicks it into the air. It lands somewhere nearby.</dd>
+  <dt>Moving the view</dt><dd>Drag the ground to turn around, scroll to zoom, right-drag to slide. On a touch screen, drag with one finger to turn and pinch to zoom.</dd>
+  <dt>What the marks mean</dt><dd>The blue loop is the crayon outline and the blue dot is the origin. Thin dark lines join linked strips. A dark ring marks the start. While a program runs, a yellow pointer floats over the strip that runs next.</dd>
+</dl>
+
+<h3>The panel</h3>
+<div class="tablewrap">
+<table>
+  <thead><tr><th scope="col">Control</th><th scope="col">What it does</th></tr></thead>
+  <tbody>
+    <tr><td>konfetti logo</td><td>A puff of paper confetti. Just for fun.</td></tr>
+    <tr><td><b>Mute</b> <kbd>M</kbd></td><td>Turns all sound off or on. See <a href="#sound">Sound</a>.</td></tr>
+    <tr><td><b>Docs</b></td><td>Opens this guide.</td></tr>
+    <tr><td><b>Fire</b> <kbd>Space</kbd></td><td>Shoots a burst of 40 strips of random colors from the cannon.</td></tr>
+    <tr><td><b>Crayon</b> <kbd>C</kbd></td><td>Pick it, then drag on the stones to draw a loop. It closes itself when you let go. The dot where it touched down is the origin. Drawing again replaces the loop.</td></tr>
+    <tr><td><b>Wind</b> <kbd>W</kbd></td><td>Brings in the real wind where you are. See <a href="#wind">Wind and the flag</a>.</td></tr>
+    <tr><td><b>Run</b></td><td>Walks the program strip by strip, five a second unless you change the speed in the debugger. Output and stacks change as it goes.</td></tr>
+    <tr><td><b>Run fast</b></td><td>Runs the program flat out and shows the result.</td></tr>
+    <tr><td><b>Stop</b></td><td>Stops a run.</td></tr>
+    <tr><td><b>Debug</b> <kbd>D</kbd></td><td>Opens the debugger. See <a href="#debug">Debug mode</a>.</td></tr>
+    <tr><td><b>Input</b></td><td>The text the program reads, one byte at a time, with black strips.</td></tr>
+    <tr><td><b>Output</b></td><td>What the program wrote with white strips, or what went wrong. Past 64 KB it shows only the end, after a <code>…</code>.</td></tr>
+    <tr><td><b>Stacks</b></td><td>The main stack and the stash as rows of boxes, bottom on the left, the top one marked. A number that is a letter shows the letter too.</td></tr>
+    <tr><td><b>As text (.kft)</b></td><td>The program inside the loop as text, kept up to date as you move strips. Copy it to keep your program.</td></tr>
+    <tr><td><b>Load text</b></td><td>Lays out the text in the box as strips in front of the cannon, with a fresh loop around them. It replaces all the confetti. It stops a run first; if the text is not a program, the confetti stays as it was and <b>Output</b> says why.</td></tr>
+    <tr><td><b>Examples…</b></td><td>Loads hello, cat or count.</td></tr>
+    <tr><td><b>Sweep outside</b></td><td>Removes the litter: every landed strip outside the loop.</td></tr>
+    <tr><td><b>Clear all</b></td><td>Removes every strip and the loop.</td></tr>
+    <tr><td><b>Colors</b></td><td>The thirteen colors. Hold the pointer over one to read what it does.</td></tr>
+    <tr><td><b>How it works</b></td><td>A short reminder of the rules.</td></tr>
+    <tr><td><b>Theme</b></td><td>Changes the look of the panel. See <a href="#themes">Themes</a>.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>Keys</h3>
+<div class="tablewrap">
+<table>
+  <thead><tr><th scope="col">Key</th><th scope="col">Does</th></tr></thead>
+  <tbody>
+    <tr><td><kbd>Space</kbd></td><td>Fire</td></tr>
+    <tr><td><kbd>C</kbd></td><td>Pick up or put down the crayon</td></tr>
+    <tr><td><kbd>W</kbd></td><td>Wind on or off</td></tr>
+    <tr><td><kbd>M</kbd></td><td>Mute on or off</td></tr>
+    <tr><td><kbd>D</kbd></td><td>Debug mode on or off</td></tr>
+    <tr><td><kbd>N</kbd> <kbd>P</kbd> <kbd>R</kbd></td><td>In debug mode: Step, Play or pause, Restart</td></tr>
+  </tbody>
+</table>
+</div>
+<p>Keys do nothing while you type in a text box. When a button has keyboard focus, <kbd>Space</kbd> presses that button instead of firing.</p>
+
+<h2 id="debug"><span class="strip" style="--c:#ff6ec7"></span>Debug mode</h2>
+<p>Debug mode shows a program running one strip at a time, and says in words what each strip did. Press <b>Debug</b> or <kbd>D</kbd>. A dock opens at the bottom (at the top on a phone) with the program loaded and paused on its first strip.</p>
+<dl class="controls">
+  <dt><b>Step</b> <kbd>N</kbd></dt><dd>Runs one strip.</dd>
+  <dt><b>Play</b> <kbd>P</kbd></dt><dd>Runs strip after strip, and pauses when pressed again.</dd>
+  <dt><b>Restart</b> <kbd>R</kbd></dt><dd>Back to the start, paused, with the confetti as it lies now.</dd>
+  <dt><b>Speed</b></dt><dd>How many strips a second Play runs: 1 to 30, 5 to begin with. Plain <b>Run</b> uses the same speed.</dd>
+  <dt>Status line</dt><dd>Paused or playing, how many steps have run, and which strip is next.</dd>
+  <dt>Explanation</dt><dd>Point at any strip to read what it does, and whether it is covered or outside the loop. (Not on touch screens.)</dd>
+  <dt>Trace</dt><dd>The last 30 steps, newest first, each in plain words. For example: <code>3 red PUSH #2 pushed 1, went straight on to #3 green</code>.</dd>
+  <dt>Stacks</dt><dd>Both stacks as boxes, the top one marked <b>TOP</b>. A number that is a letter shows the letter: 97 shows <code>'a'</code>.</dd>
+</dl>
+<p>In the meadow, every strip of the program gets a label with its number and its instruction. <b>NOW</b> marks the strip about to run and <b>NEXT</b> the one after it, with an arrow for the turn; a ring and an arrow on the ground show the same. <b>START</b> and the origin are labelled too. Covered strips are struck through and marked <i>covered</i>. Far-away labels shrink to just the number.</p>
+<p>If you move strips before the first step, the paused program follows along. After that, the status line asks you to press Restart. <b>Run fast</b> does not keep a trace.</p>
+
+<h2 id="themes"><span class="strip" style="--c:#f2b73a"></span>Themes</h2>
+<p>Three looks for the panel, the hint and the debugger. The meadow stays the same.</p>
+<ul>
+  <li><b>toybox</b>: chunky outlined buttons, like a toy. The default.</li>
+  <li><b>craft</b>: paper notes held on with tape, in handwriting.</li>
+  <li><b>arcade</b>: a dark arcade cabinet with neon edges.</li>
+</ul>
+<p>Switch with the buttons at the bottom of the panel, or add <code>?theme=craft</code> (or <code>arcade</code>, or <code>toybox</code>) to the address. The editor remembers your choice in this browser.</p>
+
+<h2 id="sound"><span class="strip" style="--c:#b06a3c"></span>Sound</h2>
+<p>The editor makes every sound itself as it plays; there are no sound files. You hear the cannon, each strip landing, strips being picked up and put down, a flick, the crayon scratching as you draw, and the loop closing. While a program runs, every step plays a note. Each color has its own note, all from the same five-note scale, so any program sounds like a tune. Output, the end of a run and mistakes have sounds too. Birds call now and then. With the wind on, you hear it rise and fall with the gusts.</p>
+<p>Browsers stay silent until you click or press a key on the page, so the sound starts then. <b>Mute</b> or <kbd>M</kbd> turns it all off, and the editor remembers that in this browser. When the tab is hidden, it goes quiet by itself.</p>
+
+<h2 id="wind"><span class="strip" style="--c:#29d3e6"></span>Wind and the flag</h2>
+<p>Press <b>Wind</b> or <kbd>W</kbd> to bring in the real wind. Your browser asks for your location; konfetti rounds it to about 10 km and asks the free weather service <a href="https://open-meteo.com">Open-Meteo</a> for the wind there right now. The panel shows it, for example <i>5.7 m/s from 196°</i>: the speed, and the compass direction it blows from. If you say no, or the weather cannot be reached, the editor makes up a wind of 3 to 10 m/s and says so. Press Wind again to stop it.</p>
+<ul>
+  <li><b>In the air</b>, confetti drifts with the wind: about one strip length a second for every m/s.</li>
+  <li><b>On the ground</b>, strips only move in gusts, and slowly: about two or three lengths a minute in a 6 m/s wind. They never lift off again. All strips move at nearly the same pace, so a program keeps its shape for a while, but the whole pile creeps out of the crayon loop, which stays put.</li>
+  <li>A strip that moves has new coordinates, so <b>the wind rewrites your program</b>. A run that has started keeps the program as it was when it started.</li>
+</ul>
+<p><b>The flag</b> on the tall pole at the back left of the stone circle shows the wind. With the wind off it hangs limp. As the wind grows it lifts, streams away downwind and ripples faster, so you can read both direction and strength from it. Even with the wind off, the grass and trees sway, the clouds drift and the windmill turns in a light breeze of their own; turn the wind on and they follow the real one.</p>
+<p class="note">Copy the program text before you turn the wind on. <b>Load text</b> puts it back exactly.</p>
+
+<h2 id="terminal"><span class="strip" style="--c:#2fd07a"></span>In the terminal</h2>
+<p>The editor is one way to run konfetti; the terminal is another. Building needs <a href="https://rustup.rs">Rust</a> with its WebAssembly target, and Python 3 for the editor's little web server.</p>
+<pre><code>rustup target add wasm32-unknown-unknown
+make          # build konfetti and the editor's runtime
+make test     # run the tests
+make serve    # start the editor</code></pre>
+<p><code>make serve</code> serves the editor at <a href="http://localhost:8137/web/">localhost:8137/web/</a>.</p>
+
+<h3>Run a program</h3>
+<pre><code>./target/release/konfetti examples/hello.kft
+echo hi | ./target/release/konfetti examples/cat.kft</code></pre>
+<p>The first prints <code>A</code>; the second prints <code>hi</code>. The program reads what you pipe into it. With nothing piped in, it waits for you to type: finish with <kbd>Ctrl</kbd>+<kbd>D</kbd>. Output goes to the screen.</p>
+<p>To save a program from the editor, copy the text under <b>Program</b> into a file ending in <code>.kft</code>.</p>
+
+<h3>Watch every step</h3>
+<pre><code>echo hi | ./target/release/konfetti --trace examples/cat.kft</code></pre>
+<p><code>--trace</code> prints one line per step to the error stream: the strip's number in the file, its color and position, then both stacks, top on the right.</p>
+<pre><code>bit 0    black   (0, 1000)  main [104]  stash []
+bit 1    orange  (0, 2200)  main [104, 104]  stash []</code></pre>
+
+<h3>Make a program into a command</h3>
+<pre><code>./target/release/konfetti build examples/cat.kft -o cat
+echo hi | ./cat</code></pre>
+<p><code>build</code> writes one file that runs your program, about half a megabyte: the konfetti runtime with your program inside. It runs on the same kind of computer as the one that built it, without konfetti installed. It reads and writes like <code>konfetti cat.kft</code> does, and ignores anything you type after its name. A program with a mistake in it fails to build, so you find out straight away.</p>
+<p>On a Mac, a built program that was downloaded from the internet is blocked, like any app from an unknown developer. It cannot be signed to get past that: your program sits after the end of the runtime, and Apple's signing tool refuses such a file. If you trust it, this lets it run:</p>
+<pre><code>xattr -d com.apple.quarantine ./cat</code></pre>
+
+<h3>Make a program into a web page</h3>
+<pre><code>./target/release/konfetti build examples/cat.kft --html -o cat.html</code></pre>
+<p>This writes a single page, about 70 KB, with the runtime and your program inside. Open it in a browser straight from the file: it needs no server and no internet. It has an <b>Input</b> box, <b>Run</b> (or <kbd>Ctrl</kbd>+<kbd>Enter</kbd>, <kbd>⌘</kbd>+<kbd>Enter</kbd> on a Mac, in the input), <b>Stop</b> for programs that run long, the <b>Output</b> (its last 256 KB, after a <code>…</code>, when there is more), and the program itself under <i>The program</i>. Send it to anyone.</p>
+
+<h3>Run a .kft file directly</h3>
+<p>Make the first line of the file</p>
+<pre><code>#!/usr/bin/env konfetti</code></pre>
+<p>then <code>chmod +x prog.kft</code>. With <code>konfetti</code> in a folder on your <code>PATH</code>, <code>./prog.kft</code> runs it. To konfetti the line is just a comment.</p>
+
+<h3>When it ends</h3>
+<p>konfetti exits with 0 when the program halts, 1 when a file cannot be read or written or the program has a mistake, and 2 when the command itself is wrong, after printing how to use it. Mistakes look like this:</p>
+<pre><code>konfetti: bad.kft: line 1: unknown color `teal`</code></pre>
+
+<h2 id="trouble"><span class="strip" style="--c:#ff4b5c"></span>When something goes wrong</h2>
+<dl class="controls">
+  <dt>The meadow does not appear, or the buttons do nothing.</dt>
+  <dd>Open it through the web server with <code>make serve</code>, not by opening <code>index.html</code> as a file. It also needs the internet, to fetch the 3D library. No Rust? <code>python3 -m http.server 8137</code> in the konfetti folder serves it too, with the runtime that comes ready built.</dd>
+  <dt>"Nothing to run: draw an outline with the crayon first."</dt>
+  <dd>Press Crayon and draw a loop around your strips.</dd>
+  <dt>The program starts at the wrong strip.</dt>
+  <dd>It starts at the strip nearest the blue origin dot. Draw the loop again, touching down right next to the strip you want first.</dd>
+  <dt>It stops too soon.</dt>
+  <dd>Look at the thin lines: a gap of more than one and a half lengths breaks the trail, and a stray strip nearby can steal a turn. Turn on Debug and step through to see where it goes.</dd>
+  <dt>It never stops.</dt>
+  <dd>Press <b>Stop</b>. Every path needs a dead end, and a pink to leave each loop. Check that the exit is not linked to another part of the trail.</dd>
+  <dt>A strip seems to be ignored.</dt>
+  <dd>It may be covered by a strip on top, or outside the loop. In debug mode, point at it to find out.</dd>
+  <dt>A number comes out wrong.</dt>
+  <dd>Two runs of reds that touch are one number: three reds then two reds is 5. Put another color between them.</dd>
+  <dt>The wind wrecked my program.</dt>
+  <dd>Turn the wind off, then drag the strips back, or paste the program text and press <b>Load text</b>.</dd>
+  <dt>There is no sound.</dt>
+  <dd>Click once in the page; browsers wait for that. Check that <b>Mute</b> is off.</dd>
+  <dt>The editor is slow.</dt>
+  <dd>Add <code>?grass=20000</code> to the address for a thinner meadow.</dd>
+  <dt>In the terminal, the program just sits there.</dt>
+  <dd>It is waiting for input. Type some and press <kbd>Ctrl</kbd>+<kbd>D</kbd>, or pipe input in with <code>echo</code>.</dd>
+  <dt>"unknown color" or "expected <code>color x y</code>".</dt>
+  <dd>Each line needs one of the thirteen color names, then two whole numbers. The message gives the line number.</dd>
+</dl>
+</main>
+</div>
+<footer>
+  <p>konfetti is defined exactly in <code>SPEC.md</code>; <code>README.md</code> is the short tour. Both are in the konfetti folder.</p>
+</footer>
+</body>
+</html>

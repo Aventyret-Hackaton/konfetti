@@ -1,0 +1,206 @@
+/* The editor's panel, hint, debugger dock and labels. Three themes, picked with ?theme=NAME or the
+   switcher: toybox (the default, also the base values below), craft and arcade. */
+:root {
+  --font: ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", "Nunito", system-ui, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --ink: #20222c; --soft: #555a6e;
+  --panel: #fffaf0; --panel-line: 3px solid var(--ink); --panel-radius: 26px; --panel-shadow: 7px 7px 0 rgba(32, 34, 44, .85);
+  --card: #fff; --card-line: 2px solid var(--ink); --card-radius: 18px;
+  --field: #fff; --field-line: 2px solid #20222c;
+  --btn: #fff; --btn-ink: var(--ink); --btn-line: 2.5px solid var(--ink); --btn-radius: 14px; --btn-shadow: 0 4px 0 var(--ink); --btn-drop: 4px;
+  --go: #2447d8; --go-ink: #fff; --on: #20222c; --on-ink: #fff; --focus: #2447d8;
+  --make: #ff9233; --run: #3d7bff; --program: #2fd07a; --tidy: #ff6ec7; --title-ink: #20222c;
+  --box: #fff; --box-top: #ffe14d; --box-top-ink: #20222c;
+}
+/* The switcher's buttons carry data-theme too and preview their theme, so --btn-ink is set again
+   in each block: it must follow that theme's --ink, or the preview is ink on ink. */
+[data-theme="craft"] {
+  --btn-ink: var(--ink);
+  --font: "Chalkboard SE", "Comic Neue", "Comic Sans MS", "Marker Felt", cursive, sans-serif;
+  --ink: #3b2f2a; --soft: #6b5a4e;
+  --panel: #efe3c8; --panel-line: 0 solid transparent; --panel-radius: 6px; --panel-shadow: 0 14px 34px rgba(60, 40, 20, .38);
+  --card: #fffdf4; --card-line: 0 solid transparent; --card-radius: 3px;
+  --field: #fffef8; --field-line: 2px dashed #9b8672;
+  --btn: #fffdf4; --btn-line: 2px solid #3b2f2a; --btn-radius: 255px 18px 225px 18px / 18px 225px 18px 255px; --btn-shadow: 2px 3px 0 rgba(59, 47, 42, .35); --btn-drop: 2px;
+  --go: #c2362b; --go-ink: #fff; --on: #2b5ea7; --on-ink: #fff; --focus: #2b5ea7;
+  --make: #f6b04a; --run: #8fc0ea; --program: #a8d68a; --tidy: #f3a6c4;
+  --box: #fffdf4; --box-top: #f6d24a;
+}
+[data-theme="arcade"] {
+  --btn-ink: var(--ink);
+  --font: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --ink: #f4f1ff; --soft: #b9b4dc;
+  --panel: #15122e; --panel-line: 2px solid #29d3e6; --panel-radius: 8px; --panel-shadow: 0 0 0 4px #15122e, 0 0 28px 4px rgba(41, 211, 230, .55);
+  --card: #1e1a40; --card-line: 1px solid #3c3780; --card-radius: 6px;
+  --field: #0c0a1e; --field-line: 1px solid #5b55b0;
+  --btn: #0c0a1e; --btn-line: 2px solid #ff6ec7; --btn-radius: 4px; --btn-shadow: 0 0 10px rgba(255, 110, 199, .5); --btn-drop: 0px;
+  --go: #ffe14d; --go-ink: #15122e; --on: #29d3e6; --on-ink: #0c0a1e; --focus: #ffe14d;
+  --make: #ff9233; --run: #ffe14d; --program: #2fd07a; --tidy: #ff6ec7; --title-ink: #15122e;
+  --box: #0c0a1e; --box-top: #ffe14d; --box-top-ink: #15122e;
+}
+
+html, body { margin: 0; height: 100%; overflow: hidden; font: 14px/1.4 var(--font); color: var(--ink); background: #cfe6f5; }
+#world { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+[hidden] { display: none !important; }
+
+/* ---- panel ---- */
+#panel { position: fixed; top: 14px; right: 16px; bottom: 16px; width: 328px; box-sizing: border-box; padding: 14px; overflow-y: auto; z-index: 3;
+         background: var(--panel); border: var(--panel-line); border-radius: var(--panel-radius); box-shadow: var(--panel-shadow); }
+.top { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+h1 { margin: 0; font-size: 26px; line-height: 1; }
+#logo { all: unset; cursor: pointer; font-weight: 900; letter-spacing: -.01em; border-radius: 8px; }
+#logo span { display: inline-block; color: var(--c); -webkit-text-stroke: 1.2px var(--ink); paint-order: stroke fill;
+             animation: hop .5s calc(var(--i) * 45ms) both; }
+#logo:hover span { animation: hop .5s calc(var(--i) * 30ms) both reverse; }
+#logo:active { transform: scale(.94); }
+@keyframes hop { 0% { transform: translateY(0) rotate(0); } 45% { transform: translateY(-7px) rotate(-8deg); } 100% { transform: translateY(0) rotate(0); } }
+#burst { position: absolute; left: 60px; top: 14px; pointer-events: none; }
+#burst i { position: absolute; width: 11px; height: 5px; border-radius: 1px; animation: fly .9s ease-out forwards; }
+@keyframes fly { to { transform: translate(var(--dx), var(--dy)) rotate(var(--rot)); opacity: 0; } }
+.topbtns { display: flex; gap: 6px; align-items: center; white-space: nowrap; }
+/* The dock shows the stacks while debugging; one copy is enough. */
+.debugging :is(#stacks, #stackh) { display: none; }
+
+.group { margin: 0 0 12px; padding: 20px 10px 10px; position: relative; background: var(--card); border: var(--card-line); border-radius: var(--card-radius); }
+.group > h2, .group > summary { position: absolute; top: -9px; left: 12px; margin: 0; padding: 1px 10px; font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+            color: var(--title-ink); background: var(--soft-title, #ffe14d); border: var(--btn-line); border-width: 2px; border-radius: 999px; }
+.group > summary { cursor: pointer; list-style-position: inside; background: #dfe6ee; }
+.make > h2 { background: var(--make); } .run > h2 { background: var(--run); } .program > h2 { background: var(--program); } .tidy > h2 { background: var(--tidy); }
+details.group:not([open]) { padding-bottom: 0; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; align-items: center; }
+.row:last-child { margin-bottom: 0; }
+
+button, select, a.small { font: inherit; font-weight: 700; padding: 6px 11px; color: var(--btn-ink); background: var(--btn); border: var(--btn-line); border-radius: var(--btn-radius);
+         box-shadow: var(--btn-shadow); cursor: pointer; text-decoration: none; transition: transform .08s, box-shadow .08s; }
+button:hover, select:hover, a.small:hover { transform: translateY(-1px); }
+button:active, a.small:active { transform: translateY(var(--btn-drop)) scale(.96); box-shadow: none; }
+button.small, a.small { padding: 3px 8px; font-size: 12px; }
+button.go { background: var(--go); color: var(--go-ink); }
+button[aria-pressed="true"] { background: var(--on); color: var(--on-ink); }
+:is(button, select, input, textarea, summary, a, ol):focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+kbd { font: 700 10px var(--mono); padding: 0 4px; margin-left: 2px; border: 1px solid currentColor; border-radius: 4px; opacity: .75; }
+
+label, h3 { display: block; margin: 8px 0 3px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--soft); }
+input:not([type=range]), textarea, pre { display: block; width: 100%; box-sizing: border-box; margin: 0; padding: 6px 8px; color: var(--ink);
+       font: 12px/1.4 var(--mono); border: var(--field-line); border-radius: 10px; background: var(--field); }
+::placeholder { color: var(--soft); opacity: 1; }
+pre { min-height: 2.3em; max-height: 9em; overflow: auto; white-space: pre-wrap; word-break: break-all; }
+textarea { height: 7em; resize: vertical; white-space: pre; margin-bottom: 8px; }
+#windinfo { margin: 6px 0 0; font-size: 12px; color: var(--soft); }
+#windinfo:empty { display: none; }
+.help { font-size: 12.5px; color: var(--soft); margin: 4px 0 0; }
+
+#legend { list-style: none; margin: 4px 0 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 5px 10px; font-size: 12px; }
+#legend li { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+#legend i { flex: none; width: 30px; height: 11px; border-radius: 2px; box-shadow: 0 0 0 1.5px rgba(0, 0, 0, .45), 1px 2px 0 rgba(0, 0, 0, .2); transform: rotate(-6deg); }
+#legend li:nth-child(even) i { transform: rotate(5deg); }
+#legend b { margin-left: auto; font: 700 10.5px var(--mono); color: var(--soft); }
+footer { display: flex; justify-content: center; }
+#themes { display: flex; gap: 6px; align-items: center; }
+#themes::before { content: "Theme"; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--soft); }
+
+/* ---- stacks as boxes ---- */
+.stack { display: flex; align-items: flex-start; gap: 4px; min-height: 30px; margin-bottom: 4px; flex-wrap: wrap; }
+.sname { flex: none; width: 40px; padding-top: 5px; font: 700 11px var(--mono); color: var(--soft); }
+.box, .more, .stack .empty { display: inline-flex; flex-direction: column; align-items: center; min-width: 26px; box-sizing: border-box; padding: 3px 6px; font: 700 12px/1.3 var(--mono);
+       color: var(--ink); background: var(--box); border: 2px solid var(--ink); border-radius: 7px; }
+.box small { font-size: 9.5px; font-weight: 400; color: var(--soft); }
+.box.top { background: var(--box-top); color: var(--box-top-ink); }
+.box.top small { color: inherit; }
+.box em { font: 800 8.5px var(--font); letter-spacing: .08em; text-transform: uppercase; }
+.more, .stack .empty { border-style: dashed; font-weight: 400; color: var(--soft); border-color: var(--soft); }
+
+/* ---- hint ---- */
+#hint { position: fixed; top: 14px; left: 16px; z-index: 2; max-width: min(520px, calc(100vw - 392px)); margin: 0; padding: 8px 14px; box-sizing: border-box; font-weight: 700;
+        background: var(--panel); border: var(--btn-line); border-radius: 999px 999px 999px 6px; box-shadow: var(--btn-shadow); }
+#hint:empty { display: none; }
+
+/* ---- debugger dock ---- */
+#dock { position: fixed; left: 16px; bottom: 16px; right: 364px; z-index: 2; height: min(292px, 42vh); display: flex; flex-direction: column; box-sizing: border-box; padding: 10px 12px;
+        background: var(--panel); border: var(--panel-line); border-radius: var(--panel-radius); box-shadow: var(--panel-shadow); }
+.dockbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.docktitle { font-size: 15px; margin-right: 4px; }
+.speed { display: inline-flex; align-items: center; gap: 6px; margin: 0; }
+.speed input { width: 110px; accent-color: var(--go); }
+.speed output { min-width: 78px; text-transform: none; letter-spacing: 0; font-weight: 400; }
+#dstatus { font-size: 12.5px; color: var(--soft); flex: 1 1 200px; }
+#dexplain { margin: 8px 0 0; padding: 4px 10px; font-size: 12.5px; background: var(--card); border: var(--card-line); border-width: 1.5px; border-radius: 8px; }
+.dockcols { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 14px; min-height: 0; flex: 1; }
+.tracecol { display: flex; flex-direction: column; min-height: 0; }
+h3 small { text-transform: none; letter-spacing: 0; font-weight: 400; }
+#trace { list-style: none; margin: 0; padding: 4px 6px; flex: 1; min-height: 60px; overflow-y: auto; font-size: 12.5px; line-height: 1.5;
+         background: var(--field); border: var(--field-line); border-radius: 10px; }
+#trace li { display: flex; gap: 6px; align-items: baseline; padding: 1px 2px; border-radius: 5px; }
+#trace li:first-child:not(.empty) { background: var(--box-top); color: var(--box-top-ink); font-weight: 700; }
+#trace li:first-child:not(.empty) .at { color: inherit; }
+#trace .n { flex: none; min-width: 2.2em; text-align: right; font: 700 12px var(--mono); }
+#trace i { flex: none; align-self: flex-start; margin-top: 5px; width: 18px; height: 8px; border-radius: 2px; box-shadow: 0 0 0 1.5px rgba(0, 0, 0, .5); }
+#trace b { flex: none; min-width: 9.6em; font: 700 11.5px var(--mono); }
+#trace .at { flex: none; min-width: 2.2em; font: 11px var(--mono); color: var(--soft); }
+#trace .empty { color: var(--soft); }
+
+/* ---- labels over the bits (debug mode). Plain high-contrast chips in every theme: they sit on the 3D scene. ---- */
+#labels { position: fixed; inset: 0; z-index: 1; overflow: hidden; pointer-events: none; }
+#labels span { position: absolute; left: 0; top: 0; translate: -50% -135%; white-space: nowrap; padding: 0 5px; font: 700 10.5px/1.5 ui-monospace, Menlo, monospace;
+               color: #20222c; background: rgba(255, 255, 255, .93); border: 1.5px solid #20222c; border-radius: 6px; }
+#labels small { font-weight: 400; opacity: .7; }
+#labels em { font-style: normal; margin-right: 5px; padding: 0 4px; border-radius: 4px; background: #20222c; color: #fff; }
+#labels .tiny { padding: 0 3px; font-size: 9px; border-width: 1px; }
+#labels .below { translate: -50% 55%; }
+#labels .covered { color: #5b5f70; background: rgba(236, 236, 240, .93); border: 1.5px dashed #6c7082; z-index: 0; }
+#labels .start { z-index: 2; background: #20222c; color: #fff; }
+#labels .next { z-index: 3; background: #20222c; color: #ffd21f; }
+#labels .now { z-index: 4; background: #ffd21f; font-size: 12px; box-shadow: 0 2px 0 #20222c; }
+#labels .origin { background: #2447d8; color: #fff; border-color: #fff; }
+
+/* ---- craft: paper notes held on with tape ---- */
+[data-theme="craft"] #panel, [data-theme="craft"] #dock { background: #d9b98a repeating-linear-gradient(48deg, rgba(255, 255, 255, .09) 0 3px, transparent 3px 9px); }
+[data-theme="craft"] .group { box-shadow: 1px 3px 6px rgba(60, 40, 20, .3); transform: rotate(-.5deg); }
+[data-theme="craft"] .group:nth-of-type(even) { transform: rotate(.6deg); }
+[data-theme="craft"] .group > h2, [data-theme="craft"] .group > summary { top: -11px; left: 50%; translate: -50% 0; border: 0; border-radius: 1px; padding: 2px 16px; opacity: .92; transform: rotate(-2deg);
+                                 box-shadow: 0 1px 2px rgba(60, 40, 20, .35); }
+[data-theme="craft"] .group > summary { background: #e8dcc0; }
+[data-theme="craft"] #logo span { -webkit-text-stroke: 0; text-shadow: 1.5px 1.5px 0 #3b2f2a; }
+[data-theme="craft"] #hint { border-radius: 3px; transform: rotate(-.7deg); background: #fff7a8; border: 0; box-shadow: 2px 4px 8px rgba(60, 40, 20, .35); }
+[data-theme="craft"] #dexplain { background: #fff7a8; }
+[data-theme="craft"] :is(input:not([type=range]), textarea, pre, #trace) { border-radius: 2px; background-image: repeating-linear-gradient(transparent 0 16px, rgba(43, 94, 167, .16) 16px 17px); }
+
+/* ---- arcade: a cabinet at night ---- */
+[data-theme="arcade"] #panel, [data-theme="arcade"] #dock { background: #15122e repeating-linear-gradient(0deg, rgba(255, 255, 255, .035) 0 1px, transparent 1px 3px); }
+[data-theme="arcade"] :is(button, select, a.small, .group > h2, .group > summary, label, h3) { text-transform: uppercase; letter-spacing: .05em; }
+[data-theme="arcade"] :is(button, select, a.small) { font-size: 12px; }
+[data-theme="arcade"] .group > h2, [data-theme="arcade"] .group > summary { border-radius: 2px; border: 0; box-shadow: 0 0 10px currentColor; }
+[data-theme="arcade"] .make > h2 { box-shadow: 0 0 10px var(--make); } [data-theme="arcade"] .run > h2 { box-shadow: 0 0 10px var(--run); }
+[data-theme="arcade"] .program > h2 { box-shadow: 0 0 10px var(--program); } [data-theme="arcade"] .tidy > h2 { box-shadow: 0 0 10px var(--tidy); }
+[data-theme="arcade"] .group > summary { color: #15122e; }
+[data-theme="arcade"] .make button { border-color: var(--make); box-shadow: 0 0 10px rgba(255, 146, 51, .5); }
+[data-theme="arcade"] .program :is(button, select) { border-color: var(--program); box-shadow: 0 0 10px rgba(47, 208, 122, .5); }
+[data-theme="arcade"] :is(.run, #dock) button { border-color: var(--run); box-shadow: 0 0 10px rgba(255, 225, 77, .45); }
+[data-theme="arcade"] :is(button, a.small):active { transform: scale(.94); filter: brightness(1.5); }
+[data-theme="arcade"] h1 { font-size: 21px; }
+[data-theme="arcade"] .topbtns kbd { display: none; }
+[data-theme="arcade"] #logo span { -webkit-text-stroke: 0; text-shadow: 0 0 8px var(--c); }
+[data-theme="arcade"] #hint { border-radius: 4px; border-color: #ffe14d; box-shadow: 0 0 14px rgba(255, 225, 77, .5); }
+[data-theme="arcade"] #legend i { box-shadow: 0 0 0 1px rgba(255, 255, 255, .55); }
+[data-theme="arcade"] #trace i { box-shadow: 0 0 0 1px rgba(255, 255, 255, .6); }
+[data-theme="arcade"] select { color-scheme: dark; }
+
+/* ---- phone width: the panel is a sheet at the bottom, the dock sits under the hint ---- */
+@media (max-width: 700px) {
+  #panel { top: auto; left: 8px; right: 8px; bottom: 8px; width: auto; max-height: 44%; }
+  #hint { left: 8px; right: 8px; top: 8px; max-width: none; font-size: 13px; border-radius: 14px; }
+  kbd { display: none; } /* no keyboard to press them on */
+  /* While debugging, the dock takes the top and the panel shrinks, so the confetti keeps the middle. */
+  .debugging #hint { display: none; }
+  .debugging #panel { max-height: 22%; }
+  #dock { display: block; left: 8px; right: 8px; top: 8px; bottom: auto; height: auto; max-height: 38%; overflow-y: auto; padding: 8px 10px; }
+  .dockcols, .tracecol { display: block; }
+  #trace { max-height: 92px; }
+  #trace b { min-width: 0; }
+  .speed input { width: 80px; }
+}
+@media (hover: none) { #dexplain { display: none; } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  button:hover, button:active, select:hover, a.small:hover, a.small:active, #logo:active { transform: none; }
+}
