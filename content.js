@@ -4,7 +4,8 @@
  * Every character typed into a prompt (the ProseMirror composer, or any
  * textarea such as the "edit message" box) is copied onto a full-screen
  * canvas, thrown into the air together with a burst of confetti, and falls
- * to the bottom of the screen where it rests for a moment before fading.
+ * to the bottom of the screen. Nothing ever disappears: the confetti piles up
+ * higher and higher for as long as you keep typing (reload the tab to sweep).
  *
  * The page itself is never modified: the only DOM this script adds is one
  * click-through <canvas> and (lazily) one hidden measuring <div>.
@@ -24,12 +25,11 @@
   const PIECES_PER_CHAR = 10;   // confetti pieces per typed character
   const PIECES_PER_PASTE = 60;  // confetti pieces for a paste
   const MAX_GLYPHS_PER_EVENT = 24;
-  const MAX_PARTICLES = 1500;
+  const MAX_FLYING = 4000;      // airborne pieces at once (keeps frames smooth)
   const GRAVITY = 1200;         // px / s^2
-  const REST_SECONDS = 5;       // time spent lying on the floor
-  const FADE_SECONDS = 1;       // fade-out after resting
   const BUCKET = 6;             // px width of one pile column
-  const MAX_PILE = 60;          // px, maximum pile height
+  const PILE_GROWTH = 0.5;      // px a column grows per piece landing on it
+  const PILE_SLOPE = 2;         // px step between columns before pieces slide
 
   // ---------------------------------------------------------------- canvas
 
@@ -38,7 +38,15 @@
   let W = 0;
   let H = 0;
   let dpr = 1;
-  let pile = new Float32Array(0);
+  let pile = new Float32Array(0);  // height of the heap, per column
+
+  // Confetti that has landed never moves again, so it is painted once onto
+  // this off-screen canvas instead of being redrawn every frame. That keeps
+  // the cost constant no matter how big the heap gets.
+  let heapCanvas = null;
+  let heapCtx = null;
+  /** Everything that has landed, in landing order (used to rebuild on resize). */
+  const resting = [];
 
   function ensureCanvas() {
     if (canvas && canvas.isConnected) return;
@@ -52,6 +60,8 @@
         'pointer-events:none', 'z-index:2147483647',
       ].map((d) => d + ' !important').join(';');
       ctx = canvas.getContext('2d');
+      heapCanvas = document.createElement('canvas');
+      heapCtx = heapCanvas.getContext('2d');
     }
     document.documentElement.appendChild(canvas);
     resize();
@@ -62,19 +72,36 @@
     W = window.innerWidth;
     H = window.innerHeight;
     dpr = window.devicePixelRatio || 1;
-    canvas.width = Math.max(1, Math.round(W * dpr));
-    canvas.height = Math.max(1, Math.round(H * dpr));
-    // The floor moved: let everything that was resting fall again.
-    pile = new Float32Array(Math.ceil(W / BUCKET) + 1);
-    for (const p of particles) {
-      if (p.landed) {
-        p.landed = false;
-        p.bucket = -1;
-        p.vx = 0;
-        p.vy = 0;
-      }
+    heapCanvas.width = canvas.width = Math.max(1, Math.round(W * dpr));
+    heapCanvas.height = canvas.height = Math.max(1, Math.round(H * dpr));
+    // The floor moved: re-stack the whole heap on the new floor.
+    pile = new Float32Array(Math.max(1, Math.ceil(W / BUCKET)));
+    for (const p of resting) {
+      p.x = Math.min(Math.max(p.x, 4), Math.max(4, W - 4));
+      settle(p);
+      paint(heapCtx, p);
     }
-    if (particles.length) start();
+    if (!running) draw();
+  }
+
+  /**
+   * Put a piece to rest on top of the heap below it. Pieces slide downhill
+   * when the heap is too steep, so it grows as a mound rather than a tower.
+   */
+  function settle(p) {
+    const last = pile.length - 1;
+    let b = Math.min(last, Math.max(0, (p.x / BUCKET) | 0));
+    for (let i = 0; i < 200; i++) {
+      const left = b > 0 ? pile[b - 1] : Infinity;
+      const right = b < last ? pile[b + 1] : Infinity;
+      if (pile[b] - Math.min(left, right) <= PILE_SLOPE) break;
+      const dir = left === right ? (Math.random() < 0.5 ? -1 : 1) : left < right ? -1 : 1;
+      b += dir;
+      p.x += dir * BUCKET;
+    }
+    p.y = H - pile[b] - p.h * 0.5 - 1;
+    // Once a column reaches the top of the screen it stops growing.
+    if (pile[b] < H) pile[b] += PILE_GROWTH;
   }
 
   window.addEventListener('resize', resize);
@@ -102,10 +129,6 @@
     p.swayFreq = rand(2, 5);
     p.swayAmp = rand(15, 50);
     p.color = pick(COLORS);
-    p.landed = false;
-    p.bucket = -1;
-    p.rest = REST_SECONDS + rand(0, 1.5);
-    p.alpha = 1;
     return p;
   }
 
@@ -139,20 +162,11 @@
     particles.push(p);
   }
 
-  function removeAt(i) {
-    const p = particles[i];
-    if (p.landed && p.bucket >= 0 && p.bucket < pile.length) {
-      pile[p.bucket] = Math.max(0, pile[p.bucket] - p.pileAdd);
-    }
-    particles.splice(i, 1);
-  }
-
   function burst(x, y, count, power) {
     ensureCanvas();
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < count && particles.length < MAX_FLYING; i++) {
       addPiece(x + rand(-3, 3), y + rand(-3, 3), power);
     }
-    while (particles.length > MAX_PARTICLES) removeAt(0);
     start();
   }
 
@@ -178,16 +192,6 @@
   function update(dt) {
     for (let i = particles.length - 1; i >= 0; i--) {
       const p = particles[i];
-
-      if (p.landed) {
-        p.rest -= dt;
-        if (p.rest < 0) {
-          p.alpha = 1 + p.rest / FADE_SECONDS;
-          if (p.alpha <= 0) removeAt(i);
-        }
-        continue;
-      }
-
       const damp = Math.exp(-p.drag * dt);
       p.vx *= damp;
       p.vy = p.vy * damp + GRAVITY * dt;
@@ -203,20 +207,19 @@
       if (p.x < 4) { p.x = 4; p.vx = Math.abs(p.vx) * 0.4; }
       else if (p.x > W - 4) { p.x = W - 4; p.vx = -Math.abs(p.vx) * 0.4; }
 
-      // Land on the floor (or on whatever confetti is already lying there).
+      // Land on the floor, or on whatever confetti is already lying there,
+      // and stay there for good.
       const b = Math.min(pile.length - 1, Math.max(0, (p.x / BUCKET) | 0));
-      const floor = H - pile[b] - p.h * 0.5 - 1;
-      if (p.vy > 0 && p.y >= floor) {
-        p.y = floor;
-        p.landed = true;
-        p.bucket = b;
-        p.pileAdd = pile[b] < MAX_PILE ? 1.2 : 0;
-        pile[b] += p.pileAdd;
+      if (p.vy > 0 && p.y >= H - pile[b] - p.h * 0.5 - 1) {
         if (p.kind === 'piece') {
           // Lie mostly flat, facing the viewer.
           p.rot = rand(-0.5, 0.5);
           p.flip = rand(-0.6, 0.6);
         }
+        settle(p);
+        paint(heapCtx, p);
+        resting.push(p);
+        particles.splice(i, 1);
       }
     }
   }
@@ -224,39 +227,40 @@
   function draw() {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+    ctx.drawImage(heapCanvas, 0, 0);
+    for (const p of particles) paint(ctx, p);
+  }
 
-    for (const p of particles) {
-      const cos = Math.cos(p.rot);
-      const sin = Math.sin(p.rot);
-      ctx.globalAlpha = Math.max(0, Math.min(1, p.alpha));
-      ctx.fillStyle = p.color;
+  /** Paint one particle onto a canvas context (the live one or the heap). */
+  function paint(c, p) {
+    const cos = Math.cos(p.rot);
+    const sin = Math.sin(p.rot);
+    c.fillStyle = p.color;
 
-      if (p.kind === 'glyph') {
-        ctx.setTransform(cos * dpr, sin * dpr, -sin * dpr, cos * dpr, p.x * dpr, p.y * dpr);
-        ctx.font = p.font;
-        ctx.fillText(p.ch, 0, 0);
-        continue;
-      }
-
-      // Fake a 3D tumble by squashing the piece along its own Y axis.
-      let sy = Math.cos(p.flip);
-      if (Math.abs(sy) < 0.12) sy = sy < 0 ? -0.12 : 0.12;
-      ctx.setTransform(
-        cos * dpr, sin * dpr,
-        -sin * sy * dpr, cos * sy * dpr,
-        p.x * dpr, p.y * dpr
-      );
-      if (p.round) {
-        ctx.beginPath();
-        ctx.arc(0, 0, p.w / 2, 0, Math.PI * 2);
-        ctx.fill();
-      } else {
-        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
-      }
+    if (p.kind === 'glyph') {
+      c.setTransform(cos * dpr, sin * dpr, -sin * dpr, cos * dpr, p.x * dpr, p.y * dpr);
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      c.font = p.font;
+      c.fillText(p.ch, 0, 0);
+      return;
     }
-    ctx.globalAlpha = 1;
+
+    // Fake a 3D tumble by squashing the piece along its own Y axis.
+    let sy = Math.cos(p.flip);
+    if (Math.abs(sy) < 0.12) sy = sy < 0 ? -0.12 : 0.12;
+    c.setTransform(
+      cos * dpr, sin * dpr,
+      -sin * sy * dpr, cos * sy * dpr,
+      p.x * dpr, p.y * dpr
+    );
+    if (p.round) {
+      c.beginPath();
+      c.arc(0, 0, p.w / 2, 0, Math.PI * 2);
+      c.fill();
+    } else {
+      c.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+    }
   }
 
   // ------------------------------------------------- locating typed text
