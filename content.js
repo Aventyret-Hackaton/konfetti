@@ -7,8 +7,12 @@
  * to the bottom of the screen. Nothing ever disappears: the confetti piles up
  * higher and higher for as long as you keep typing (reload the tab to sweep).
  *
- * The page itself is never modified: the only DOM this script adds is one
- * click-through <canvas> and (lazily) one hidden measuring <div>.
+ * Every keystroke also gives the prompt box a discreet shake and a short
+ * haptic pulse (on devices that have a vibration motor).
+ *
+ * The page's own DOM is never modified: the only elements this script adds
+ * are one click-through <canvas> and (lazily) one hidden measuring <div>,
+ * and the shake is a Web Animation, which leaves styles and classes alone.
  */
 (() => {
   'use strict';
@@ -22,13 +26,27 @@
     '#ff3b6b', '#ff8a00', '#ffd400', '#3ddc84',
     '#00c2ff', '#5b6cff', '#b45bff', '#ff5bd1',
   ];
-  const PIECES_PER_CHAR = 10;   // confetti pieces per typed character
+  const PIECES_PER_CHAR = 10;   // confetti pieces for the first character
+  const PIECES_GROWTH = 1;      // extra pieces for every further character
+  const MAX_PIECES_PER_CHAR = 60;
+  const STREAK_TIMEOUT = 10;    // seconds without typing before the amount
+                                // starts over (0 = never start over)
   const PIECES_PER_PASTE = 60;  // confetti pieces for a paste
   const MAX_GLYPHS_PER_EVENT = 24;
   const MAX_FLYING = 4000;      // airborne pieces at once (keeps frames smooth)
   const GRAVITY = 1200;         // px / s^2
   const BUCKET = 6;             // px width of one pile column
+<<<<<<< Updated upstream
   const PILE_GROWTH = 0.5;      // px a column grows per piece landing on it
+=======
+  const PILE_GROWTH = 0.4;      // px a column grows per piece landing on it
+  const SHAKE_PX = 1.5;         // how far the prompt box moves per keystroke
+  const SHAKE_MS = 110;         // how long one shake lasts
+  const VIBRATE_MS = 8;         // haptic pulse (only felt on devices with a
+                                // vibration motor; 0 = off)
+  const KEY_SOUND = false;      // true = soft "tick" per keystroke, a stand-in
+                                // for haptics on machines that cannot vibrate
+>>>>>>> Stashed changes
   const PILE_SLOPE = 2;         // px step between columns before pieces slide
 
   // ---------------------------------------------------------------- canvas
@@ -416,13 +434,31 @@
 
   // --------------------------------------------------------------- effects
 
+  // Like Power Mode's combo: every character entered makes the next burst
+  // bigger, until you stop typing for STREAK_TIMEOUT seconds.
+  let streak = 0;
+  let lastTypedAt = 0;
+
+  /** Count one more character and return how many pieces it has earned. */
+  function nextBurstSize() {
+    const now = Date.now();
+    if (STREAK_TIMEOUT > 0 && now - lastTypedAt > STREAK_TIMEOUT * 1000) streak = 0;
+    lastTypedAt = now;
+    const size = PIECES_PER_CHAR + streak * PIECES_GROWTH;
+    streak++;
+    return Math.min(MAX_PIECES_PER_CHAR, size);
+  }
+
+  /** Bigger bursts are also thrown a little harder, so they spread out. */
+  const burstPower = (size) => 1 + Math.min(0.4, size / 150);
+
   /** Turn freshly typed text into confetti. */
   function explodeTyped(host, text, mustLocate) {
-    if (!text || !host.isConnected) return;
+    if (!text || !host.isConnected) return false;
 
     let chars = locateTyped(host, text);
     // `mustLocate`: only celebrate if the text really ended up in the prompt.
-    if (!chars && mustLocate) return;
+    if (!chars && mustLocate) return false;
     if (!chars) {
       // Position of each character unknown: everything flies from the caret.
       const at = caretPoint(host);
@@ -432,14 +468,17 @@
     // For long insertions (IME, autocomplete) only the last few are shown.
     chars = chars.slice(-MAX_GLYPHS_PER_EVENT);
 
-    const pieces = Math.max(4, Math.round(PIECES_PER_CHAR / Math.sqrt(chars.length)));
+    // Text arriving in one go (IME, autocomplete) shares the airtime.
+    const share = Math.sqrt(chars.length);
     for (const c of chars) {
       if (!isBlank(c.ch)) {
         ensureCanvas();
         addGlyph(c.ch, c.x, c.y, c.style.font, c.style.size);
       }
-      burst(c.x, c.y, pieces, 1);
+      const size = nextBurstSize();
+      burst(c.x, c.y, Math.max(4, Math.round(size / share)), burstPower(size));
     }
+    return true;
   }
 
   /** A bigger burst, with a handful of the pasted characters mixed in. */
@@ -453,6 +492,97 @@
       addGlyph(ch, at.x + rand(-6, 6), at.y + rand(-6, 6), style.font, style.size);
     }
     burst(at.x, at.y, PIECES_PER_PASTE, 1.25);
+  }
+
+  // ---------------------------------------------------- keystroke feedback
+
+  const boxCache = new WeakMap();
+  const shaking = new WeakMap();
+
+  const isTransparent = (color) =>
+    color === 'transparent' || /(,|\/)\s*0\)$/.test(color);
+
+  /**
+   * The visible "box" around a prompt: the nearest rounded ancestor that has
+   * a border, shadow or background of its own. On claude.ai the editable
+   * element itself is unstyled and sits inside such a box.
+   */
+  function promptBox(host) {
+    const cached = boxCache.get(host);
+    if (cached && cached.isConnected && cached.contains(host)) return cached;
+
+    let box = host;
+    const maxWidth = host.getBoundingClientRect().width * 1.6 + 120;
+    let el = host;
+    for (let depth = 0; depth < 8; depth++) {
+      if (!el || el === document.body || el === document.documentElement) break;
+      const cs = getComputedStyle(el);
+      const framed =
+        cs.boxShadow !== 'none' ||
+        (parseFloat(cs.borderTopWidth) > 0 && cs.borderTopStyle !== 'none') ||
+        !isTransparent(cs.backgroundColor);
+      if (framed && parseFloat(cs.borderTopLeftRadius) >= 6 && cs.display !== 'inline') {
+        // Guard against grabbing a whole page section instead of the box.
+        if (el.getBoundingClientRect().width <= maxWidth) box = el;
+        break;
+      }
+      el = el.parentElement;
+    }
+    boxCache.set(host, box);
+    return box;
+  }
+
+  /** Nudge the prompt box a pixel or so in a random direction and back. */
+  function shake(host) {
+    if (SHAKE_PX <= 0 || !host.isConnected) return;
+    const box = promptBox(host);
+    if (typeof box.animate !== 'function') return;
+    const previous = shaking.get(box);
+    if (previous) previous.cancel();
+    const angle = rand(0, Math.PI * 2);
+    const dx = Math.cos(angle) * SHAKE_PX;
+    const dy = Math.sin(angle) * SHAKE_PX;
+    const at = (k) => `translate(${(dx * k).toFixed(2)}px, ${(dy * k).toFixed(2)}px)`;
+    shaking.set(box, box.animate(
+      [
+        { transform: at(0) },
+        { transform: at(1), offset: 0.25 },
+        { transform: at(-0.6), offset: 0.6 },
+        { transform: at(0) },
+      ],
+      // 'add' keeps any transform the page itself has on the box.
+      { duration: SHAKE_MS, easing: 'linear', composite: 'add' }
+    ));
+  }
+
+  let audio = null;
+
+  /** A very quiet, very short tick (only used when KEY_SOUND is on). */
+  function tick() {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    if (!audio) audio = new AC();
+    if (audio.state === 'suspended') audio.resume();
+    const t = audio.currentTime;
+    const osc = audio.createOscillator();
+    const gain = audio.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(190 + rand(-15, 15), t);
+    osc.frequency.exponentialRampToValueAtTime(90, t + 0.03);
+    gain.gain.setValueAtTime(0.05, t);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.035);
+    osc.connect(gain).connect(audio.destination);
+    osc.start(t);
+    osc.stop(t + 0.04);
+  }
+
+  /** What every keystroke in a prompt feels like. */
+  function feedback(host) {
+    safely(() => shake(host));
+    if (VIBRATE_MS > 0 && typeof navigator.vibrate === 'function') {
+      safely(() => navigator.vibrate(VIBRATE_MS));
+    }
+    if (KEY_SOUND) safely(tick);
   }
 
   // ---------------------------------------------------------------- events
@@ -494,16 +624,21 @@
     setTimeout(() => {
       if (pendingKey !== mine) return;
       pendingKey = null;
-      safely(() => explodeTyped(host, mine.text, true));
+      safely(() => { if (explodeTyped(host, mine.text, true)) feedback(host); });
     }, 0);
   }, true);
 
   window.addEventListener('input', (e) => {
     pendingKey = null;
-    if (e.inputType !== 'insertText' || e.isComposing || composing) return;
     const host = promptHost(e.target);
-    if (!host || !e.data) return;
-    safely(() => explodeTyped(host, e.data));
+    if (!host) return;
+    // Confetti first: it measures where the character is, and the shake
+    // would move it. Every edit is felt, deleting included; only newly
+    // typed characters turn into confetti.
+    if (e.inputType === 'insertText' && e.data && !e.isComposing && !composing) {
+      safely(() => explodeTyped(host, e.data));
+    }
+    feedback(host);
   }, true);
 
   // IME / dead keys: celebrate the committed text once, when composition ends.
@@ -524,6 +659,9 @@
     try {
       text = (e.clipboardData && e.clipboardData.getData('text/plain')) || '';
     } catch (_) { /* clipboard not readable: confetti only */ }
-    setTimeout(() => safely(() => explodePasted(host, text)), 0);
+    setTimeout(() => {
+      safely(() => explodePasted(host, text));
+      feedback(host);
+    }, 0);
   }, true);
 })();
