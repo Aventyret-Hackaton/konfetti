@@ -26,7 +26,7 @@ const INC: u8 = 13;
 
 /// Bits at most this far apart are linked.
 pub const REACH: i64 = 1500;
-/// Bits closer than this overlap.
+/// A bit closer than this to a later-listed bit lies under it, covered.
 pub const MIN_GAP: i64 = 500;
 /// Coordinate bound. Keeps every squared distance inside an i64.
 pub const MAX_COORD: i64 = 1_000_000_000;
@@ -104,23 +104,22 @@ fn cmp_turn(a: (i64, i64), b: (i64, i64)) -> Ordering {
 
 /// `fold` merges runs of red into one instruction. Same results, fewer steps;
 /// turn it off to step bit by bit.
-pub fn compile(bits: &[Bit], fold: bool) -> Result<Program, String> {
+pub fn compile(bits: &[Bit], fold: bool) -> Program {
     let n = bits.len();
     if n == 0 {
-        return Ok(Program { ins: Vec::new(), start: HALT });
+        return Program { ins: Vec::new(), start: HALT };
     }
     let d2 = |a: Bit, b: Bit| (a.x - b.x).pow(2) + (a.y - b.y).pow(2);
 
     // ponytail: all-pairs linking is O(n²). Bucket bits into a REACH-sized
     // grid when programs reach tens of thousands of bits.
+    // File order is stacking order. A covered bit takes no part in the program.
+    let covered: Vec<bool> =
+        (0..n).map(|i| (i + 1..n).any(|j| d2(bits[i], bits[j]) < MIN_GAP * MIN_GAP)).collect();
     let mut adj: Vec<Vec<u32>> = vec![Vec::new(); n];
     for i in 0..n {
         for j in i + 1..n {
-            let d = d2(bits[i], bits[j]);
-            if d < MIN_GAP * MIN_GAP {
-                return Err(format!("bits {i} and {j} overlap (closer than {MIN_GAP})"));
-            }
-            if d <= REACH * REACH {
+            if !covered[i] && !covered[j] && d2(bits[i], bits[j]) <= REACH * REACH {
                 adj[i].push(j as u32);
                 adj[j].push(i as u32);
             }
@@ -170,8 +169,9 @@ pub fn compile(bits: &[Bit], fold: bool) -> Result<Program, String> {
         }
     }
 
-    // Start: the bit nearest the cannon, heading away from it.
-    let first = (0..n).min_by_key(|&i| bits[i].x.pow(2) + bits[i].y.pow(2)).unwrap();
+    // Start: the bit nearest the origin, heading away from it. The last bit is
+    // never covered, so there is always one.
+    let first = (0..n).filter(|&i| !covered[i]).min_by_key(|&i| bits[i].x.pow(2) + bits[i].y.pow(2)).unwrap();
     let f = bits[first];
     let heading = if (f.x, f.y) == (0, 0) { (1, 0) } else { (f.x, f.y) };
     let (next, left, right) = successors(first as u32, None, heading);
@@ -188,7 +188,7 @@ pub fn compile(bits: &[Bit], fold: bool) -> Result<Program, String> {
             }
         }
     }
-    Ok(Program { ins, start })
+    Program { ins, start }
 }
 
 pub struct Vm {
@@ -347,7 +347,7 @@ mod wasm {
         let prog = std::str::from_utf8(&s.buf[..src_len])
             .map_err(|e| e.to_string())
             .and_then(parse)
-            .and_then(|bits| compile(&bits, fold != 0));
+            .map(|bits| compile(&bits, fold != 0));
         match prog {
             Ok(p) => {
                 s.vm = Some(Vm::new(p));
@@ -408,7 +408,7 @@ mod tests {
     use super::*;
 
     fn run_bits(bits: &[Bit], input: &[u8], fold: bool) -> Vec<u8> {
-        let mut vm = Vm::new(compile(bits, fold).unwrap());
+        let mut vm = Vm::new(compile(bits, fold));
         let (mut inp, mut out) = (input, Vec::new());
         assert!(vm.run(1_000_000, &mut inp, &mut out).unwrap(), "did not halt");
         out
@@ -422,7 +422,7 @@ mod tests {
         out
     }
 
-    /// One letter per bit, laid out east from the cannon. Spaces are ignored.
+    /// One letter per bit, laid out east from the origin. Spaces are ignored.
     fn line(ops: &str) -> Vec<Bit> {
         ops.chars()
             .filter(|c| !c.is_whitespace())
@@ -484,11 +484,20 @@ mod tests {
     }
 
     #[test]
+    fn a_later_bit_covers_the_one_under_it() {
+        // The white at 2400 lies under a brown, so nothing is printed there;
+        // the walk steps over it to the red and white beyond.
+        let src = "red 1200 0\nwhite 2400 0\nbrown 2500 100\nred 3700 0\nwhite 4900 0\n";
+        assert_eq!(run(src, b""), [1]);
+        // A covered bit cannot be the start either, however near the origin.
+        assert_eq!(run("red 100 0\nwhite 200 0\n", b""), []);
+    }
+
+    #[test]
     fn load_errors() {
         assert!(parse("teal 0 0").unwrap_err().contains("line 1"));
         assert!(parse("red 0").is_err());
         assert!(parse("red 0 2000000000").is_err());
-        assert!(compile(&parse("red 0 0\nred 300 300").unwrap(), true).err().unwrap().contains("overlap"));
         assert!(run("# nothing\n", b"").is_empty());
     }
 

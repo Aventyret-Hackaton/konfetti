@@ -27,8 +27,9 @@ which is a build output, and goes stale otherwise.
   dispatch loop; `mod wasm` is the C ABI the editor calls; tests are at the
   bottom.
 - `src/main.rs`: the CLI.
-- `web/main.js`: the three.js editor. No build step, no dependencies besides
-  three.js from a CDN.
+- `web/main.js`: the three.js editor: bits, crayon outline, wind, running.
+  `web/world.js`: the scenery and the cannon, all procedural. No build step,
+  no dependencies besides three.js from a CDN.
 - `examples/*.kft`: `hello` and `cat` are also test fixtures.
 
 ## Rules of the codebase
@@ -38,22 +39,27 @@ which is a build output, and goes stale otherwise.
 - The palette order is the opcode order. It appears in `COLORS` in
   `src/lib.rs`, in `PALETTE` in `web/main.js`, and in the table in `SPEC.md`.
   Change all three together.
-- The editor maps language `(x, y)` to world `(x, 0, -y)`, 1000 language units
-  per world unit.
-- The editor's start-bit and link rules in `refresh()` mirror the runtime's.
-  Keep them in step.
+- The editor maps language `(x, y)` to world `(origin.x + x, -, origin.z - y)`,
+  1000 language units per world unit, where the origin is the first point of
+  the crayon outline.
+- The editor's program is the landed bits inside the outline, sorted by height
+  so that file order is stacking order.
+- The editor's covering, start-bit and link rules in `refresh()` mirror the
+  runtime's. Keep them in step.
 - A language change means: `SPEC.md`, then `src/lib.rs` with a test, then
   `README.md` and this file if the tour or the recipes change.
 
 ## Writing konfetti programs
 
-A `.kft` file is one bit per line, `color x y`, integers, `#` comments.
-Bit numbers in errors and traces count bits from 0 in file order.
+A `.kft` file is one bit per line, `color x y`, integers, `#` comments, bottom
+of the pile first. Bit numbers in traces count bits from 0 in file order.
 
 ### Semantics you must hold in your head
 
-- Bits link when their centres are at most 1500 apart. Closer than 500 is a
-  load error.
+- Bits link when their centres are at most 1500 apart.
+- A bit closer than 500 to any later-listed bit is covered: it is ignored
+  entirely. When writing a program by hand, keep every pair at least 500
+  apart so nothing is covered by accident.
 - Start: the bit nearest `(0, 0)`. First heading: from `(0, 0)` to that bit.
 - Each step: execute the current bit, then move to a linked bit other than the
   one just left, taking the smallest absolute turn. No such bit: halt.
@@ -103,9 +109,8 @@ Bit numbers in errors and traces count bits from 0 in file order.
   it and the program never halts. Check distances between every pair of bits
   that should not link.
 - **No no-op color.** Use orange then brown to pad a trail.
-- **The cannon is the origin.** Translating a program changes which bit is
-  nearest the origin and the first heading. Re-check the start after moving
-  anything.
+- **The origin matters.** Translating a program changes which bit is nearest
+  `(0, 0)` and the first heading. Re-check the start after moving anything.
 
 ### Idioms
 
@@ -121,6 +126,14 @@ Bit numbers in errors and traces count bits from 0 in file order.
 ## Checking editor changes
 
 `make serve`, open the page, and confirm at least: the examples load and
-**Run fast** gives `A` for hello and echoes the input for cat; a bit can be
-dragged and the program text follows; dropping a bit on another is refused.
-The page should log no console errors.
+**Run fast** gives `A` for hello and echoes the input for cat; after **Fire**,
+a crayon outline drawn around landed bits fills the program text; dragging a
+bit out of the outline removes its line; **Wind** moves landed bits. The page
+should log no console errors.
+
+`window.konfetti` exposes `camera`, `controls`, `bits()`, `area()`,
+`program()` and `physics(dt, t)` for driving the editor from a script. To land
+a burst without waiting, call `physics(0.03, i * 0.03)` a few hundred times.
+Headless Chrome's software renderer is too slow for the meadow; on a Mac,
+launch it with `--use-angle=metal --enable-gpu`, or load the page with
+`?grass=3000`.

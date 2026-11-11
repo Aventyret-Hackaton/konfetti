@@ -1,23 +1,28 @@
 # konfetti language spec — v0
 
-A program is a scatter of colored confetti bits lying on the ground. Execution
-follows the trail of bits like a finger tracing a path. Only color and position
-matter.
+A program is a scatter of colored confetti bits lying on the ground, inside an
+outline drawn with a crayon. Execution follows the trail of bits like a finger
+tracing a path. Only color, position and what lies on top of what matter.
 
 ## 1. Program
 
 A program is a list of **bits**. Each bit has:
 
 - `color` — one of 13 palette colors (section 4)
-- `x`, `y` — integer ground coordinates, 1000 units = one bit diameter
+- `x`, `y` — integer ground coordinates of its centre, 1000 units = one bit length
 
 Integer coordinates are deliberate: all geometry is exact integer math, so the
 native and web runtimes agree on every program, bit for bit.
 
-Height, rotation and tumble are rendering only. The cannon sits at the origin
-`(0, 0)`.
+A bit is a thin paper strip. Which way it points is rendering only.
 
-Two bits closer than 500 units are an overlap: load error.
+The origin `(0, 0)` is the mark where the crayon first touched the ground. The
+program is the bits inside the outline; everything outside is litter.
+
+**Covering.** Bits are listed bottom of the pile first: a later bit lies on top
+of an earlier one. A bit closer than 500 units to any later bit is **covered**.
+A covered bit is not part of the program: it links to nothing and cannot be the
+start. Dropping a bit on another replaces it.
 
 ## 2. Machine
 
@@ -32,10 +37,11 @@ which is Turing complete.
 
 ## 3. Walking the trail
 
-**Links.** Two bits are linked when their centres are at most 1500 units apart.
+**Links.** Two uncovered bits are linked when their centres are at most 1500
+units apart.
 
 **Start.** `cur` is the bit nearest the origin (first listed wins a tie);
-`prev` is the origin itself, so the first heading points away from the cannon.
+`prev` is the origin itself, so the first heading points away from the mark.
 A bit exactly on the origin starts heading +x. An empty program halts at once.
 
 **Step.** Execute `cur`, then pick the next bit from the **candidates**: bits
@@ -56,26 +62,27 @@ Loops are literal: bend the trail back into itself.
 
 | Color  | Hex       | Op     | Effect                                                        |
 |--------|-----------|--------|---------------------------------------------------------------|
-| red    | `#e6194b` | PUSH   | If the previously executed bit was red: increment top. Else push 1. So a run of *n* reds pushes *n*. |
-| orange | `#f58231` | DUP    | `a -- a a`                                                    |
-| yellow | `#ffe119` | SWAP   | `a b -- b a`                                                  |
-| green  | `#3cb44b` | ADD    | `a b -- a+b`                                                  |
-| cyan   | `#42d4f4` | SUB    | `a b -- a-b`                                                  |
-| blue   | `#4363d8` | MUL    | `a b -- a*b`                                                  |
-| purple | `#911eb4` | DIVMOD | `a b -- a/b a%b` (floored; `b = 0` is a no-op)                |
-| pink   | `#f032e6` | BRANCH | Pop `a`. `a = 0`: go straightest. `a > 0`: take the leftmost candidate (largest turn). `a < 0`: take the rightmost (smallest turn). |
-| white  | `#ffffff` | OUT    | Pop `a`, write its low 8 bits as one byte                     |
-| black  | `#000000` | IN     | Push next input byte, or -1 at end of input                   |
-| brown  | `#9a6324` | DROP   | `a --`                                                        |
-| silver | `#c0c0c0` | STASH  | Pop main, push onto stash                                     |
-| gold   | `#d4af37` | FETCH  | Pop stash, push onto main                                     |
+| red    | `#ff4b5c` | PUSH   | If the previously executed bit was red: increment top. Else push 1. So a run of *n* reds pushes *n*. |
+| orange | `#ff9233` | DUP    | `a -- a a`                                                    |
+| yellow | `#ffe14d` | SWAP   | `a b -- b a`                                                  |
+| green  | `#2fd07a` | ADD    | `a b -- a+b`                                                  |
+| cyan   | `#29d3e6` | SUB    | `a b -- a-b`                                                  |
+| blue   | `#3d7bff` | MUL    | `a b -- a*b`                                                  |
+| purple | `#9b5cff` | DIVMOD | `a b -- a/b a%b` (floored; `b = 0` is a no-op)                |
+| pink   | `#ff6ec7` | BRANCH | Pop `a`. `a = 0`: go straightest. `a > 0`: take the leftmost candidate (largest turn). `a < 0`: take the rightmost (smallest turn). |
+| white  | `#fff8ec` | OUT    | Pop `a`, write its low 8 bits as one byte                     |
+| black  | `#2a2c3a` | IN     | Push next input byte, or -1 at end of input                   |
+| brown  | `#b06a3c` | DROP   | `a --`                                                        |
+| silver | `#dfe6ee` | STASH  | Pop main, push onto stash                                     |
+| gold   | `#f2b73a` | FETCH  | Pop stash, push onto main                                     |
 
 An instruction without enough operands is a no-op (BRANCH then goes
 straightest). Sloppy confetti should misbehave, not crash.
 
 ## 5. Text format — `.kft`
 
-One bit per line: `color x y`. `#` starts a comment. Blank lines ignored.
+One bit per line: `color x y`, bottom of the pile first. `#` starts a comment.
+Blank lines ignored.
 This is what the editor saves, what the CLI runs, and what goes in git.
 
 ```
@@ -108,10 +115,11 @@ CLI and to WebAssembly for the editor.
 ## 7. Wind
 
 Wind is not part of the language; it is part of the world the editor puts the
-program in. With wind on, the editor reads the local wind from weather data,
-blows airborne bits off course, and in gusts shoves landed bits too. A shoved
-bit has new coordinates, so wind rewrites programs. A run works on a snapshot
-taken when it starts.
+program in. With wind on, the editor reads the local wind from weather data and
+blows airborne bits off course. Gusts slide landed bits along the ground and
+lift some back into the air, into and out of the outline. A moved bit has new
+coordinates, so wind rewrites programs. A run works on a snapshot taken when it
+starts.
 
 ## 8. Not in v0
 

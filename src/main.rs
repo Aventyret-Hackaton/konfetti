@@ -18,7 +18,7 @@ fn main() {
     };
     let src = std::fs::read_to_string(path).unwrap_or_else(|e| fail(e.to_string()));
     let bits = parse(&src).unwrap_or_else(|e| fail(e));
-    let mut vm = Vm::new(compile(&bits, !trace).unwrap_or_else(|e| fail(e)));
+    let mut vm = Vm::new(compile(&bits, !trace));
 
     let mut inp = io::stdin().lock();
     let stdout = io::stdout().lock();

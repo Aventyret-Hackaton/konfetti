@@ -1,13 +1,15 @@
 # konfetti
 
 A programming language written in confetti. A program is a scatter of colored
-bits on the ground; running it means following the trail from the cannon,
-bit by bit. Color says what to do, position says where to go next.
+paper strips on the ground, inside an outline drawn with a crayon; running it
+means following the trail bit by bit. Color says what to do, position says
+where to go next.
 
 - **Turing complete**: two unbounded stacks and a three-way branch.
 - **Fast**: about 800 million steps a second natively, and 400 million steps
   in 0.7 s as WebAssembly in Chrome (Apple Silicon laptop, `examples/count.kft`).
-- **3D editor**: fire a confetti cannon, pick up what lands, lay it out, run it.
+- **3D editor**: a meadow, a confetti cannon and a crayon. Fire, draw an
+  outline, arrange what landed inside it, run it. Then turn on the wind.
 
 [SPEC.md](SPEC.md) is the full definition. This page is the tour.
 
@@ -29,10 +31,10 @@ make serve                                    # then open http://localhost:8137/
 ## The language in two minutes
 
 A bit has a color and a position. Positions are integers; 1000 is one bit
-width. The cannon stands at `(0, 0)`.
+length. `(0, 0)` is the mark where the crayon first touched the ground.
 
 **Walking.** Bits at most 1500 apart are linked. The walk starts on the bit
-nearest the cannon, heading away from it. After each bit it moves to a linked
+nearest the mark, heading away from it. After each bit it moves to a linked
 bit, never straight back to the one it came from, choosing whichever needs the
 smallest turn. When there is nowhere to go, the program halts. To loop, bend
 the trail back into itself.
@@ -58,7 +60,11 @@ input and output.
 
 An instruction that lacks operands does nothing. Nothing ever crashes.
 
-**On disk.** A `.kft` file has one bit per line, `color x y`, with `#` comments:
+**Piles.** A bit lying on another (centres closer than 500) covers it, and a
+covered bit is out of the program. To replace a bit, drop another on top.
+
+**On disk.** A `.kft` file has one bit per line, `color x y`, bottom of the
+pile first, with `#` comments:
 
 ```
 # prints "A": 8, squared, plus 1
@@ -100,23 +106,27 @@ red     2000 0
 
 `make serve`, then open <http://localhost:8137/web/>.
 
-- **Fire** (or space) shoots a burst of random bits. They flutter down and lie
-  where they land as loose litter.
-- **Click or drag** a landed bit to place it. Placed bits are the program.
-  Lines show the links; the white ring marks the start. A bit dropped on top of
-  another goes back where it came from.
-- **Double-click** a placed bit to flick it out of the program.
+- **Fire** (or space) shoots a burst of random bits from the cannon. They
+  flutter down and lie where they land.
+- **Crayon** (or C), then drag on the stones to draw an outline. It closes
+  itself when you let go. The confetti inside is the program; the dot where the
+  crayon touched down is the origin. Drawing again replaces the outline.
+- **Drag** bits in, out and into place. Thin lines show the links; the ring
+  marks the start. A bit dropped on another covers it.
+- **Double-click** a bit to flick it into the air.
 - **Run** walks the trail at five bits a second with a pointer over the current
   bit, showing output and stacks. **Run fast** runs flat out.
 - **Program (.kft)** shows the program as text. Paste text and press
-  **Load text** to lay it out, or pick an example.
+  **Load text** to lay it out with an outline around it, or pick an example.
+- **Sweep outside** removes the litter outside the outline.
 - **Wind** asks your browser for your location, rounds it to about 10 km, and
   fetches the current wind from [Open-Meteo](https://open-meteo.com). Flying
-  bits drift downwind; gusts push landed bits along the ground, placed ones
-  included, so wind rewrites your program. Without a location it invents a wind
-  and says so.
+  bits are carried off, and gusts slide landed bits and lift them back into the
+  air, so wind rewrites your program, usually into nothing. Even a calm day
+  gets a stiff breeze. Without a location it invents a wind and says so.
 - Drag the ground to orbit, scroll to zoom, right-drag to pan.
 
+On a slow machine, add `?grass=20000` to the address for a thinner meadow.
 The editor loads three.js from a CDN, so it needs a network connection.
 
 ## Layout of this repo
@@ -126,10 +136,10 @@ The editor loads three.js from a CDN, so it needs a network connection.
 | `SPEC.md` | The language definition |
 | `src/lib.rs` | The whole runtime: parse, link, compile, run, tests, wasm exports |
 | `src/main.rs` | The CLI |
-| `web/` | The editor: `index.html`, `main.js`, and the built `konfetti.wasm` |
+| `web/` | The editor: `index.html`, `main.js` (editing and running), `world.js` (scenery), and the built `konfetti.wasm` |
 | `examples/` | Programs |
 | `AGENTS.md` | Notes for AI agents working here or writing konfetti |
 
 ## Not there yet
 
-A colorblind-safe palette, and a world with more in it than grass and a cannon.
+A colorblind-safe palette.

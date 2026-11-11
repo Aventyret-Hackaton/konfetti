@@ -1,5 +1,5 @@
 # cat: copies input to output until end of input.
-# A counter-clockwise ring. The cannon (origin) is south of the black bit,
+# A counter-clockwise ring. The origin is south of the black bit,
 # so the walk starts there heading north.
 #
 #   green -- red --- orange
