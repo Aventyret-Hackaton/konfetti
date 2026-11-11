@@ -1,0 +1,16 @@
+# cat: copies input to output until end of input.
+# A counter-clockwise ring. The cannon (origin) is south of the black bit,
+# so the walk starts there heading north.
+#
+#   green -- red --- orange
+#     |       |        |
+#   pink -- white -- black   <- start
+#     |
+#   brown  (exit)
+black      0  1000   # IN:     c            (-1 at end of input)
+orange     0  2200   # DUP:    c c
+red    -1200  2200   # PUSH 1: c c 1
+green  -2400  2200   # ADD:    c c+1        (0 at end of input)
+pink   -2400  1000   # BRANCH: >0 turn left to white, 0 straight on to brown
+white  -1200  1000   # OUT:    writes c, then straight on to black again
+brown  -2400  -200   # DROP the -1; dead end, halt

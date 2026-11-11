@@ -1,0 +1,31 @@
+# count: counts 100,000,000 down to 0, prints nothing. 400M steps. Benchmark.
+# Prefix builds 10^8 (10, squared three times), then joins the ring by an
+# on-ramp: the last blue sits behind the ring's red, so the ring never
+# turns back into it.
+#
+#                     brown (exit)
+#                        \
+#                        pink --- orange
+#                         |         |
+#   red x10 ... blue -->  red ---- cyan
+red      1000   300
+red      2200   300
+red      3400   300
+red      4600   300
+red      5800   300
+red      7000   300
+red      8200   300
+red      9400   300
+red     10600   300
+red     11800   300
+orange  13000   300
+blue    14200   300
+orange  15400   300
+blue    16600   300
+orange  17800   300
+blue    19000   300
+red     20450     0   # PUSH 1: n 1
+cyan    21650     0   # SUB:    n-1
+orange  21650  1200   # DUP:    n-1 n-1
+pink    20450  1200   # >0 turn left to red, 0 straightest = brown
+brown   19550  2300   # DROP the 0; dead end, halt
