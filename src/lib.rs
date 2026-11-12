@@ -476,6 +476,18 @@ mod tests {
     }
 
     #[test]
+    fn infix() {
+        // Precedence and parentheses, one expression per line; the last line needs no newline.
+        let infix = include_str!("../examples/infix.kft");
+        assert_eq!(run(infix, b"4 + 3"), b"7\n");
+        assert_eq!(run(infix, b"4 + 3 * 2"), b"10\n");
+        assert_eq!(run(infix, b"(4 + 3) * 2"), b"14\n");
+        assert_eq!(run(infix, b"2 - 3 - 4"), b"-5\n");
+        assert_eq!(run(infix, b"2*(3+4)*5\n\n-(100 / 7 / 2)\n7/0 + 1"), b"70\n-7\n8\n");
+        assert_eq!(run(infix, b""), b"");
+    }
+
+    #[test]
     fn cat_loops_until_end_of_input() {
         assert_eq!(run(include_str!("../examples/cat.kft"), b"konfetti\n"), b"konfetti\n");
         assert_eq!(run(include_str!("../examples/cat.kft"), b""), b"");

@@ -4,7 +4,7 @@
 // +y is away from the default camera and left turns are counter-clockwise.
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { buildWorld, paint, strokes, PAPER } from './world.js';
+import { buildWorld, paint, strokes, PAPER, PATIO } from './world.js';
 import { sound } from './sound.js';
 import { createHand } from './hand.js';
 import { EXPLAIN, describe, turn, TURN_WORDS, TURN_ARROW, drawStacks, drawTrace, makeLabels } from './debug.js';
@@ -882,7 +882,18 @@ function loadText(text, { fit = '', tray = [] } = {}) {
     box.x0 = Math.min(box.x0, r.x); box.x1 = Math.max(box.x1, r.x);
     box.z0 = Math.min(box.z0, r.z); box.z1 = Math.max(box.z1, r.z);
   }
-  const pad = 1.3, ox = -(box.x0 + box.x1) / 2, oz = 12 + pad - box.z0;
+  const pad = 1.3, ox = -(box.x0 + box.x1) / 2;
+  // The outline's far side lies 12 from the cannon whenever every strip then lands on the stones. A program too
+  // big for that patch slides toward the cannon, only as far as it takes to bring every strip and the outline
+  // onto the stones, and never past centred on the cannon.
+  const all = [...rows, ...rowsOf(fit)], farthest = far => Math.max(...all.map(r => Math.hypot(ox + r.x, far + pad + r.z - box.z0)));
+  let far = 12;
+  if (farthest(far) > PATIO - 1) {
+    const deep = box.z1 - box.z0 + 2 * pad, half = (box.x1 - box.x0) / 2 + pad;
+    const strips = Math.min(...all.map(r => Math.sqrt(Math.max(0, (PATIO - 1) ** 2 - (ox + r.x) ** 2)) - (r.z - box.z0))) - pad;
+    far = Math.max(-deep / 2, Math.min(far, strips, Math.sqrt(Math.max(0, (PATIO - 0.05) ** 2 - half ** 2)) - deep)); // 0.05: the crayon wobbles
+  }
+  const oz = far + pad - box.z0;
   for (const r of rows) {
     const b = addBit(r.color, ox + r.x, 0, oz + r.z, 'land');
     b.mesh.rotation.y = 0;

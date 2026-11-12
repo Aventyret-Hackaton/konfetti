@@ -3,7 +3,7 @@
 // always wins and the cache is only the fallback. That goes for three.js too, which is a file of ours
 // under vendor/. Change VERSION whenever this file changes how or what it caches; a new VERSION
 // throws the old cache away. Changing the editor's files needs no new VERSION.
-const VERSION = 5;
+const VERSION = 6;
 // Named after the scope too: copies on one host (user.github.io/konfetti/, /a-fork/) keep apart.
 const CACHE = `konfetti-${VERSION} ${self.registration.scope}`;
 // ms to wait for the network before falling back to a cached copy. ponytail: on a link slower than
@@ -16,7 +16,7 @@ const WAIT = 3000;
 // a page from before it moved into vendor/ may be the one that installs this worker, and it never
 // loaded those files, while the './' cached here needs them.
 const PAGES = ['./', 'docs.html', 'build-template.html', 'vendor/three/build/three.module.js', 'vendor/three/examples/jsm/controls/OrbitControls.js',
-  ...['hello', 'cat', 'count', 'dad', 'countdown', 'compare', 'reverse', 'aventyret', '8ball', 'calc'].map(n => `../examples/${n}.kft`)];
+  ...['hello', 'cat', 'count', 'dad', 'countdown', 'compare', 'reverse', 'aventyret', '8ball', 'calc', 'infix'].map(n => `../examples/${n}.kft`)];
 
 self.addEventListener('install', e => {
   e.waitUntil((async () => {
