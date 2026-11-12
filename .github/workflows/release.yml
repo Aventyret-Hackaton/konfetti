@@ -127,7 +127,9 @@ jobs:
           # A window titled konfetti must be on the screen, and a picture of it is kept, once with
           # WebKitGTK's default renderer and once with the older one: the runner has no graphics card,
           # and there the default one may leave the meadow blank.
-          look() { xvfb-run -a -s '-screen 0 1400x900x24' sh -c "openbox & sleep 2; $OUT/konfetti-app & sleep 30
+          look() { xvfb-run -a -s '-screen 0 1400x900x24' sh -c "openbox & sleep 2; $OUT/konfetti-app > app.log 2>&1 & sleep 45
+                     id=\$(xdotool search --name '^konfetti\$' | head -1); xwininfo -id \$id | grep -iE 'map state|class' || true; xprop -id \$id WM_STATE _NET_WM_STATE || true
+                     xdotool search --onlyvisible --name '^konfetti\$' || echo 'not visible'; ps -eo pid,stat,etime,args | grep -iE 'konfetti|WebKit' | grep -v grep || true; cat app.log || true
                      xdotool search --name '^konfetti\$' > /dev/null; found=\$?
                      xdotool search --name '^konfetti\$' getwindowgeometry || true; xwininfo -root -tree | head -20 || true
                      xwd -root -silent | convert xwd:- $1 || import -window root $1; pkill -x konfetti-app; exit \$found" \
