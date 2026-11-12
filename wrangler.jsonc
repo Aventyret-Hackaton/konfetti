@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "konfetti",
+  "name": "konfetti-plan-d",
   "compatibility_date": "2026-11-01",
   // Static site, no Worker script: the repo root is served as-is.
   // .assetsignore keeps non-site files out of the upload.
@@ -8,5 +8,8 @@
     "directory": "."
   },
   // Required by `wrangler preview`; the Preview name defaults to the git branch.
-  "previews": {}
+  "previews": {},
+  "routes": [
+    { "pattern": "plan-d.konfetti.ax", "custom_domain": true }
+  ]
 }
