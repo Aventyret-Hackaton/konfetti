@@ -4,6 +4,26 @@ What changed in each version of konfetti, newest first. The editor runs at
 <https://konfetti.ax/>; the desktop apps are on the
 [releases page](https://github.com/Aventyret-Hackaton/konfetti/releases).
 
+## v0.0.12
+
+2026-11-12
+
+- **A calculator you can talk to the usual way.** `infix` in the **Examples**
+  menu knows precedence and parentheses: put `4 + 3 * 2` in **Input** and it
+  writes `10`; `(4 + 3) * 2` writes `14`; `2 - 3 - 4` writes `-5`. Spaces are
+  optional, a line may start with a minus (`-3 + 5`), and in the terminal it
+  answers one expression per line. 157 strips of konfetti and no operator
+  stack: each open parenthesis keeps four numbers on the stack, and that is
+  all it needs. (`calc`, the reverse Polish one from v0.0.11, is still there.)
+- Not yet: a minus straight after an operator. Write `2 * (0 - 3)` for
+  `2 * -3`.
+- **Load text places big programs on the stones.** A program too big for the
+  patch in front of the cannon now slides toward the cannon just far enough to
+  lie on the stone circle. Everything that fitted before lands exactly where
+  it did.
+- One thing to know: with a program that big loaded, **Fire** drops its
+  confetti onto the program. Load it again to clean up.
+
 ## v0.0.11
 
 2026-11-12
