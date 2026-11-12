@@ -1663,8 +1663,11 @@ dependencies = [
 
 [[package]]
 name = "konfetti-app"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
+ "objc2",
+ "objc2-core-location",
+ "objc2-foundation",
  "tauri",
  "tauri-build",
 ]

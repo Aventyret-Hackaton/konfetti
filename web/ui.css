@@ -107,7 +107,8 @@ details.group:not([open]) > summary { position: static; translate: none; }
 /* Make and Run buttons sit on a grid, their keys as tags on the corner, so the rows stay short. */
 .make .row { display: grid; grid-template-columns: repeat(3, 1fr); }
 .run .row { display: grid; grid-template-columns: 1fr 1fr; }
-:is(.make, .run) .row button { position: relative; padding-inline: 6px; }
+:is(.make, .run) .row { align-items: stretch; } /* every button in a row as tall as the tallest */
+:is(.make, .run) .row button { position: relative; padding-inline: 6px; white-space: nowrap; } /* a label never stacks on its picture */
 :is(.make, .run) .row kbd { position: absolute; top: -8px; right: -6px; margin: 0; padding: 0 4px; line-height: 14px; color: var(--btn-ink); background: var(--btn); border: 1.5px solid var(--btn-ink); opacity: 1; }
 
 button, select, a.small { font: inherit; font-weight: 700; padding: 6px 10px; color: var(--btn-ink); background: var(--btn); border: var(--btn-line); border-radius: var(--btn-radius);
@@ -287,7 +288,7 @@ p.lbytes { display: flex; flex-wrap: wrap; gap: 3px; margin: 3px 0 6px; }
 [data-theme="paper"] .group { padding: 15px 7px 7px; background: var(--grain), var(--card); background-clip: padding-box; border-image: var(--deckle-card) 8 round; box-shadow: 0 2px 5px -1px rgba(58, 35, 64, .2); }
 [data-theme="paper"] .group > summary { top: -13px; left: 9px; }
 /* A wash of color, darker where the pigment pooled at its edge. */
-[data-theme="paper"] .group h2 { padding: 1px 12px 2px 13px; font: 700 16px/1.3 var(--hand); letter-spacing: .01em; text-transform: none; border: 0; border-radius: 14px 18px 12px 20px / 16px 12px 18px 14px;
+[data-theme="paper"] .group h2 { padding: 2px 11px; border: 0; border-radius: 14px 18px 12px 20px / 16px 12px 18px 14px;
                                   background: radial-gradient(farthest-side, transparent 60%, rgba(90, 50, 40, .14)), var(--grain), var(--sec); box-shadow: 0 1px 2px rgba(58, 35, 64, .22); }
 [data-theme="paper"] h1 { font: 700 30px/1 var(--hand); }
 [data-theme="paper"] #logo span { -webkit-text-stroke: 1px var(--ink); }

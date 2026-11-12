@@ -362,13 +362,14 @@ function windAt(t) {
   return { x: wind.x * k, z: wind.z * k };
 }
 
-// The Mac app has no location: its web view never answers the request below, not even with a no.
-const NO_LOCATION = '__TAURI_INTERNALS__' in window;
+// The Mac app's web view never answers a browser's request for the location, not even with a no.
+// There the app asks the Mac instead, and hands over `coords` it has already rounded to one decimal.
+const APP = window.__TAURI_INTERNALS__;
 
 async function fetchWind() {
   try {
-    if (NO_LOCATION) throw new Error('no location');
-    const pos = await new Promise((ok, no) => navigator.geolocation.getCurrentPosition(ok, no, { timeout: 8000 }));
+    const pos = APP ? { coords: await APP.invoke('location') }
+      : await new Promise((ok, no) => navigator.geolocation.getCurrentPosition(ok, no, { timeout: 8000 }));
     // One decimal (about 10 km) is plenty for weather and keeps the location vague.
     const q = `latitude=${pos.coords.latitude.toFixed(1)}&longitude=${pos.coords.longitude.toFixed(1)}`;
     const res = await fetch(`https://api.open-meteo.com/v1/forecast?${q}&current=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms`);

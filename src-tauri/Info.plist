@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>NSLocationUsageDescription</key>
+	<string>When you press Wind, konfetti looks up where you are once, rounds it to about 10 km and asks Open-Meteo for the wind there.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>When you press Wind, konfetti looks up where you are once, rounds it to about 10 km and asks Open-Meteo for the wind there.</string>
+</dict>
+</plist>

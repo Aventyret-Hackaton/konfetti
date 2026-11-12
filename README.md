@@ -188,14 +188,15 @@ colors are set as far from each other as their names allow.
   text and press **Load text** to lay it out with an outline around it, or
   pick one of the seven examples.
 - **Sweep outside** removes the litter outside the outline.
-- **Wind** (or W) asks your browser for your location, rounds it to about
-  10 km, and fetches the current wind from [Open-Meteo](https://open-meteo.com).
+- **Wind** (or W) asks for your location (your browser asks you; in the Mac
+  app, macOS does), rounds it to about 10 km, and fetches the current wind
+  from [Open-Meteo](https://open-meteo.com).
   Flying bits drift with it. Landed bits only creep in gusts, about two or
   three bit lengths a minute in a 6 m/s wind, and never take off again, so a
   program keeps its shape for a while but slowly walks out of its outline.
   The flag on the stones hangs limp with the wind off and streams downwind as
-  the wind picks up. Without a location the editor invents a wind and says so;
-  the Mac app has no location, so there the wind is always invented.
+  the wind picks up. Without a location, because you said no or none could
+  be found, the editor invents a wind and says so.
 - **Sound** is all synthesized: the cannon, landings, the crayon, a note per
   step. **Mute** (or M) silences it and is remembered.
 - **Themes** for the panel, the hint, the lesson card and the debugger: paper
@@ -240,8 +241,15 @@ open src-tauri/target/release/bundle/macos/Konfetti.app
   app, guide included.
 - The theme you pick, **Mute** and the lessons you have passed are remembered
   between launches.
-- **Wind** is always an invented one: the app's web view cannot ask for your
-  location.
+- **Wind** uses the Mac's location. The first time you press it, macOS asks
+  whether Konfetti may use your location, and says what for. Say yes and you
+  get the real wind where you are. Choose **Don't Allow** and the wind is an
+  invented one, marked *(made up: no location)*, as in a browser that says
+  no. macOS remembers the answer; to change it, open **System Settings >
+  Privacy & Security > Location Services** and find Konfetti in the list. The
+  app rounds your position to about 10 km before the page gets it, and only
+  that goes to Open-Meteo. If the question stays unanswered for a minute, the
+  wind is invented that time: answer the question, then press Wind off and on.
 - The app is not signed by an Apple developer. On the Mac that built it, it
   just opens. A copy that reached another Mac through a browser, a chat or
   AirDrop is stopped the first time: open it once, then go to **System
