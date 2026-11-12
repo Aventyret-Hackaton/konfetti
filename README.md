@@ -15,7 +15,7 @@ where to go next.
   or a single web page.
 
 **Try it** in the browser, with nothing to install:
-<https://aventyret-hackaton.github.io/konfetti/>. GitHub Pages publishes the
+<https://konfetti.ax/>. GitHub Pages publishes the
 `main` branch there; the root `index.html` only forwards to `web/`, and
 `.nojekyll` makes Pages serve the files as they are.
 

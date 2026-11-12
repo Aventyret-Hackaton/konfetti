@@ -403,11 +403,13 @@ machine's speakers.
 
 ## The site and the app
 
-GitHub Pages publishes the `main` branch at
-<https://aventyret-hackaton.github.io/konfetti/>, and every push to `main`
-redeploys it. The root `index.html` only forwards to `web/`, and `.nojekyll`
+GitHub Pages publishes the `main` branch at <https://konfetti.ax/>, and every
+push to `main` redeploys it. The `CNAME` file at the root names that domain
+for Pages: leave it alone. DNS is at Cloudflare, which stands in front of
+Pages; the old address, `aventyret-hackaton.github.io/konfetti/`, forwards to
+the domain. The root `index.html` only forwards to `web/`, and `.nojekyll`
 makes Pages serve the files as they are. Keep every path relative (no leading
-`/`), so the site also works under another path or a custom domain.
+`/`), so the site also works under a sub-path, as it did before the domain.
 
 The service worker only runs over HTTPS or on localhost. Cache versioning:
 changing the editor's files needs nothing. Bump `VERSION` in `web/sw.js`
