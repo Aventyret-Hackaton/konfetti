@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>§</title>
+<link rel="icon" href="data:,">
+<style>
+  :root { color-scheme: light dark; --bg: #fffdf7; --ink: #20222c; --dim: #5a5e70; --box: #fff; --line: #c9c4b6; --go: #2447d8; --err: #b3261e; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #17181f; --ink: #f1efe8; --dim: #b3b6c6; --box: #22242e; --line: #4a4d5c; --go: #3f5fee; --err: #ff8a80; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 16px/1.5 system-ui, sans-serif; color: var(--ink); background: var(--bg); }
+  /* The palette, in opcode order, as a strip of confetti. */
+  body::before { content: ""; display: block; height: 10px; background: linear-gradient(90deg,
+    #d2103a 0 7.7%, #f16603 0 15.4%, #ffff00 0 23.1%, #28b260 0 30.8%, #00f0ff 0 38.5%, #195cec 0 46.2%, #7a0a9e 0 53.8%,
+    #ff659a 0 61.5%, #ffffff 0 69.2%, #1c1c1c 0 76.9%, #6e3104 0 84.6%, #9ca8ac 0 92.3%, #ffb300 0); }
+  main { max-width: 40rem; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+  h1 { margin: 0; font-size: 2rem; letter-spacing: -.02em; overflow-wrap: anywhere; }
+  .by { margin: 0 0 1.5rem; color: var(--dim); }
+  label, h2 { display: block; margin: 1.25rem 0 .25rem; font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--dim); }
+  textarea, pre { display: block; width: 100%; margin: 0; padding: .6rem .75rem; font: .95rem/1.45 ui-monospace, monospace;
+                  color: var(--ink); background: var(--box); border: 1px solid var(--line); border-radius: 10px; }
+  textarea { min-height: 6.5em; resize: vertical; }
+  pre { min-height: 2.8em; max-height: 60vh; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .row { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin-top: .75rem; }
+  button { font: inherit; font-weight: 600; min-height: 2.75rem; padding: 0 1.4rem; color: var(--ink); background: var(--box);
+           border: 1px solid var(--line); border-radius: 999px; cursor: pointer; }
+  button:disabled { opacity: .5; cursor: default; }
+  #run { color: #fff; background: var(--go); border-color: var(--go); }
+  :focus-visible { outline: 3px solid var(--go); outline-offset: 2px; }
+  #status { color: var(--dim); }
+  #status.err { color: var(--err); }
+  details { margin-top: 2rem; color: var(--dim); }
+  summary { cursor: pointer; font-weight: 600; }
+  details pre { margin-top: .5rem; white-space: pre; }
+</style>
+</head>
+<body>
+<main>
+  <h1>§</h1>
+  <p class="by">A konfetti program.</p>
+  <label for="input">Input</label>
+  <textarea id="input" autocomplete="off" spellcheck="false"></textarea>
+  <div class="row">
+    <button id="run" type="button" disabled>Run</button>
+    <button id="stop" type="button" disabled>Stop</button>
+    <span id="status" role="status">Loading…</span>
+  </div>
+  <h2 id="outlabel">Output</h2>
+  <pre id="output" aria-labelledby="outlabel" aria-live="polite" tabindex="0"></pre>
+  <details>
+    <summary>The program</summary>
+    <pre id="src" tabindex="0">§</pre>
+  </details>
+</main>
+<script>
+(async () => {
+  const $ = id => document.getElementById(id);
+  const say = (text, err) => { $('status').textContent = text; $('status').className = err ? 'err' : ''; };
+  try {
+    const wasm = Uint8Array.from(atob('§'), c => c.charCodeAt(0));
+    const kf = (await WebAssembly.instantiate(wasm)).instance.exports;
+    const enc = new TextEncoder(), dec = new TextDecoder();
+    // Rebuilt on every read: the wasm memory can move when it grows. Only the last 256 KB are
+    // shown, so a program that prints without end cannot slow the page until Stop stops working.
+    const output = () => {
+      const n = kf.kf_out_len(), k = Math.min(n, 1 << 18);
+      return (k < n ? '…' : '') + dec.decode(new Uint8Array(kf.memory.buffer, kf.kf_out() + n - k, k));
+    };
+    let stop = false;
+
+    $('run').onclick = async () => {
+      const src = enc.encode($('src').textContent), input = enc.encode($('input').value);
+      const p = kf.kf_buf(src.length + input.length);
+      new Uint8Array(kf.memory.buffer, p, src.length + input.length).set(src);
+      new Uint8Array(kf.memory.buffer, p + src.length, input.length).set(input);
+      if (kf.kf_load(src.length, 1) !== 0) return say(output(), true);
+
+      stop = false;
+      $('run').disabled = true; $('stop').disabled = false;
+      $('output').textContent = '';
+      say('Running…');
+      let halted = false, shown = 0;
+      try {
+        while (!halted && !stop) {
+          for (const end = performance.now() + 12; !halted && performance.now() < end;) halted = kf.kf_run(1000000) === 1;
+          if (kf.kf_out_len() !== shown) { shown = kf.kf_out_len(); $('output').textContent = output(); }
+          // Let the page draw and the Stop button work.
+          await new Promise(r => setTimeout(r));
+        }
+        say(halted ? 'Done.' : 'Stopped.');
+      } catch (e) {
+        say('The program crashed: ' + e.message, true);
+      }
+      $('run').disabled = false; $('stop').disabled = true;
+    };
+    $('stop').onclick = () => { stop = true; };
+    $('input').onkeydown = e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) $('run').click(); };
+    $('run').disabled = false;
+    say('Ready.');
+  } catch (e) {
+    say('Could not start: ' + e.message, true);
+  }
+})();
+</script>
+</body>
+</html>

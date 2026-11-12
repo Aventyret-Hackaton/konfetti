@@ -62,7 +62,9 @@ echo hi | ./cat
   to run it.
 - **A web page** is one HTML file of about 70 KB with the WebAssembly runtime
   inside. It opens straight from disk, with no server and no network, and has
-  an input box, Run and Stop buttons and the output.
+  an input box, Run and Stop buttons and the output. The editor's **Build**
+  button makes the same page, byte for byte, from the text in its box: both
+  fill in `web/build-template.html`.
 - A program that does not load fails the build, not later on someone else's
   machine.
 - A `.kft` file may start with `#!/usr/bin/env konfetti`; with `chmod +x` and
@@ -189,7 +191,9 @@ colors are set as far from each other as their names allow.
 - **As text (.kft)**, under **Program**, shows the program as text. Paste
   text and press **Load text** to lay it out with an outline around it, or
   pick one of the nine examples. **Save** writes the text to a file,
-  `program.kft`, and **Open…** lays such a file out again.
+  `program.kft`, and **Open…** lays such a file out again. **Build** writes
+  `program.html`, the web page `konfetti build --html` would make of that
+  file (see [Share a program](#share-a-program)).
 - **Sweep outside** removes the litter outside the outline.
 - **Wind** (or W) asks for your location (your browser asks you; in the Mac
   app, macOS does), rounds it to about 10 km, and fetches the current wind
@@ -245,7 +249,8 @@ open src-tauri/target/release/bundle/macos/Konfetti.app
 - The theme you pick, **Mute** and the lessons you have passed are remembered
   between launches.
 - **Save** asks where to keep the program, as Mac apps do, with `program.kft`
-  filled in as its name, and **Open…** shows the Mac's own file chooser.
+  filled in as its name (**Build** too, with `program.html`), and **Open…**
+  shows the Mac's own file chooser.
 - **Wind** uses the Mac's location. The first time you press it, macOS asks
   whether Konfetti may use your location, and says what for. Say yes and you
   get the real wind where you are. Choose **Don't Allow** and the wind is an
@@ -269,8 +274,8 @@ open src-tauri/target/release/bundle/macos/Konfetti.app
 |------|------|
 | `SPEC.md` | The language definition |
 | `src/lib.rs` | The whole runtime: parse, link, compile, run, tests, wasm exports |
-| `src/main.rs` | The CLI: run, trace, and `build` for executables and web pages |
-| `web/` | The editor: `index.html`, `main.js` (editing and running), `world.js` (the painted scenery, cannon, flag), `debug.js` (the debugger's words and views), `learn.js` (learn mode), `sound.js`, `hand.js` (the glove), `ui.css` (panel and themes), the built `konfetti.wasm`, `vendor/three/` (three.js 0.170.0, as published), `docs.html`, the guide and tutorials, and the installable app: `manifest.webmanifest`, `icons/`, `sw.js`, `pwa.js`, `pwa.css` |
+| `src/main.rs` | The CLI: run, trace, and `build` for executables and web pages (the page is `web/build-template.html`) |
+| `web/` | The editor: `index.html`, `main.js` (editing and running), `build-template.html` (the page that **Build** and `konfetti build --html` fill in), `world.js` (the painted scenery, cannon, flag), `debug.js` (the debugger's words and views), `learn.js` (learn mode), `sound.js`, `hand.js` (the glove), `ui.css` (panel and themes), the built `konfetti.wasm`, `vendor/three/` (three.js 0.170.0, as published), `docs.html`, the guide and tutorials, and the installable app: `manifest.webmanifest`, `icons/`, `sw.js`, `pwa.js`, `pwa.css` |
 | `src-tauri/` | The Mac app: a small Tauri crate of its own that shows `web/` in a window; `make app` builds it |
 | `index.html`, `.nojekyll` | For GitHub Pages: the site's root forwards to `web/` |
 | `lessons/` | The lessons of learn mode: `index.json` and a starter and a solution program for each; `make test` checks that each can be solved |
