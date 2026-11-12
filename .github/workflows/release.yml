@@ -76,7 +76,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential pkg-config libwebkit2gtk-4.1-dev librsvg2-dev patchelf file xdg-utils xvfb imagemagick
+          sudo apt-get install -y build-essential pkg-config libwebkit2gtk-4.1-dev librsvg2-dev patchelf file xdg-utils xvfb imagemagick openbox xdotool
 
       # The same script `make app` runs. web/konfetti.wasm is used as committed.
       - name: Copy the editor into src-tauri/dist
@@ -106,6 +106,9 @@ jobs:
           archs=$(lipo -archs "$app/Contents/MacOS/konfetti-app")
           want "$archs" x86_64 "no Intel half: $archs"
           want "$archs" arm64 "no Apple silicon half: $archs"
+          # For reading the picture: on a runner without Metal the web view has no WebGL, and the page
+          # shows its panel but no meadow.
+          system_profiler SPDisplaysDataType | grep -iE 'chipset|metal|vendor' || true
           "$app/Contents/MacOS/konfetti-app" & pid=$!
           sleep 15
           kill -0 $pid || { echo "::error::the app ended by itself"; exit 1; }
@@ -121,9 +124,14 @@ jobs:
           alive $OUT/konfetti-app
           chmod +x $OUT/bundle/appimage/*.AppImage
           alive $OUT/bundle/appimage/*.AppImage --appimage-extract-and-run # the runner has no FUSE
-          # The picture. WebKitGTK's default renderer draws no WebGL on a screen without a graphics card.
-          WEBKIT_DISABLE_DMABUF_RENDERER=1 xvfb-run -a -s '-screen 0 1400x900x24' sh -c \
-            "$OUT/konfetti-app & sleep 30; import -window root smoke-linux.png; kill \$!" || true
+          # A window titled konfetti must be on the screen, and a picture of it is kept, once with
+          # WebKitGTK's default renderer and once with the older one: the runner has no graphics card,
+          # and there the default one may leave the meadow blank.
+          look() { xvfb-run -a -s '-screen 0 1400x900x24' sh -c "openbox & sleep 2; $OUT/konfetti-app & sleep 30
+                     xdotool search --name '^konfetti\$' > /dev/null; found=\$?; import -window root $1; pkill -x konfetti-app; exit \$found" \
+                   || { echo "::error::no konfetti window on the screen ($1)"; exit 1; }; }
+          look smoke-linux.png
+          WEBKIT_DISABLE_DMABUF_RENDERER=1 look smoke-linux-older-renderer.png
 
       - name: Smoke test (Windows)
         if: runner.os == 'Windows'
