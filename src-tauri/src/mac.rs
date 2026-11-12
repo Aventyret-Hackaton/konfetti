@@ -6,7 +6,7 @@ use objc2_core_location::{
     CLAuthorizationStatus, CLLocation, CLLocationManager, CLLocationManagerDelegate, kCLLocationAccuracyThreeKilometers,
 };
 use objc2_app_kit::{NSModalResponseOK, NSSavePanel};
-use objc2_foundation::{NSArray, NSError, NSObject, NSObjectProtocol, ns_string};
+use objc2_foundation::{NSArray, NSError, NSObject, NSObjectProtocol, NSString};
 use std::cell::{OnceCell, RefCell};
 use std::collections::HashMap;
 use std::fs;
@@ -137,11 +137,11 @@ pub async fn location(app: AppHandle) -> Result<Place, String> {
 /// text there itself. It answers the file's name, or nothing when the person cancels; the page
 /// never learns the folder.
 #[tauri::command]
-pub async fn save(app: AppHandle, text: String) -> Result<Option<String>, String> {
+pub async fn save(app: AppHandle, text: String, name: String) -> Result<Option<String>, String> {
     let (done, mut answer) = tauri::async_runtime::channel(1);
     app.run_on_main_thread(move || {
         let panel = NSSavePanel::savePanel(MainThreadMarker::new().unwrap());
-        panel.setNameFieldStringValue(ns_string!("program.kft"));
+        panel.setNameFieldStringValue(&NSString::from_str(&name)); // program.kft for Save, program.html for Build
         let to = (panel.runModal() == NSModalResponseOK).then(|| panel.URL()).flatten().and_then(|url| url.to_file_path());
         let name = |to: &PathBuf| to.file_name().unwrap_or_default().to_string_lossy().into_owned();
         let _ = done.try_send(to.map(|to| fs::write(&to, text).map(|()| name(&to)).map_err(|e| e.to_string())).transpose());

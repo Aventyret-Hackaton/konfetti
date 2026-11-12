@@ -37,18 +37,19 @@ const keyless = text => (noHover.matches ? text.replace(/ \((?:Space|[A-Z])\)/g,
 const kf = (await WebAssembly.instantiateStreaming(fetch('konfetti.wasm'))).instance.exports;
 const enc = new TextEncoder(), dec = new TextDecoder();
 
-function kfLoad(src, input, fold) {
+/** Loads a program into the runtime, or into `k`, another instance of it. */
+function kfLoad(src, input, fold, k = kf) {
   const s = enc.encode(src), i = enc.encode(input);
-  const p = kf.kf_buf(s.length + i.length);
-  const mem = new Uint8Array(kf.memory.buffer, p, s.length + i.length);
+  const p = k.kf_buf(s.length + i.length);
+  const mem = new Uint8Array(k.memory.buffer, p, s.length + i.length);
   mem.set(s);
   mem.set(i, s.length);
-  still = null; // the runtime drops its old program, and with it what a stopped run left on screen
-  return kf.kf_load(s.length, fold ? 1 : 0) === 0;
+  if (k === kf) still = null; // the runtime drops its old program, and with it what a stopped run left on screen
+  return k.kf_load(s.length, fold ? 1 : 0) === 0;
 }
 // Views are rebuilt on every read: the wasm memory can move when it grows.
-const kfBytes = () => new Uint8Array(kf.memory.buffer, kf.kf_out(), kf.kf_out_len());
-const kfOutput = () => dec.decode(kfBytes());
+const kfBytes = (k = kf) => new Uint8Array(k.memory.buffer, k.kf_out(), k.kf_out_len());
+const kfOutput = (k = kf) => dec.decode(kfBytes(k));
 const kfStack = which => Array.from(new BigInt64Array(kf.memory.buffer, kf.kf_stack(which), kf.kf_stack_len(which)), String);
 
 // ---- world ----
@@ -871,12 +872,7 @@ const rowsOf = text => text.split('\n').map(line => line.split('#')[0].trim().sp
  */
 function loadText(text, { fit = '', tray = [] } = {}) {
   stop(); // checking the text replaces the program in the runtime, so no run can go on
-  if (!kfLoad(text, '', true)) {
-    $('output').textContent = 'error: ' + kfOutput();
-    sound.error();
-    say('That text is not a program. The output box says why.');
-    return showMachine();
-  }
+  if (!kfLoad(text, '', true)) return refuse(kfOutput());
   const rows = rowsOf(text);
   stop();
   removeBits(() => false);
@@ -927,6 +923,15 @@ function loadText(text, { fit = '', tray = [] } = {}) {
     settle(b);
   });
   return tray.length ? { x0: Math.min(x0, (x0 + x1) / 2 - reach), x1: Math.max(x1, (x0 + x1) / 2 + reach), z0, z1: z1 + 2.2 } : { x0, x1, z0, z1 };
+}
+
+/** Says that some text is not a program, and why (`error`, from the runtime), in the output box. */
+function refuse(error) {
+  stop(); // a run would write over the reason
+  $('output').textContent = 'error: ' + error;
+  sound.error();
+  say('That text is not a program. The output box says why.');
+  showMachine();
 }
 
 // ---- what covers the world: the panel or sheet, the lesson card, the dock, the quick buttons ----
@@ -1139,19 +1144,45 @@ $('run').onclick = () => start(false);
 $('fast').onclick = () => start(true);
 $('stop').onclick = stop;
 $('load').onclick = () => loadText($('kft').value);
-// Save writes the text in the box to a file, as a download; Open reads such a file back and lays it out.
+/** Hands `text` over as a file called `name`: a download, or in the Mac app a save panel. `tip` follows "Saved as". */
+function offer(text, name, type, tip = '') {
+  // In the desktop app a download cannot say whether it worked. There the app asks where and writes the file: `save` in src-tauri.
+  if (APP) return APP.invoke('save', { text, name }).then(file => say(file ? `Saved as ${file}.${tip}` : 'Not saved.'), e => say(`Not saved: ${e}`));
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type }));
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  say(`Saved as ${name}, where your browser keeps downloads.${tip}`);
+}
+const asFile = text => text.replace(/\n?$/, '\n'); // ending in one newline
+// Save writes the text in the box to a file; Open reads such a file back and lays it out.
 $('save').onclick = () => {
   const text = $('kft').value;
   if (!text.trim()) return say('Nothing to save yet: the program box is empty.');
-  // In the desktop app a download cannot say whether it worked. There the app asks where and writes the file: `save` in src-tauri.
-  if (APP) return APP.invoke('save', { text: text.replace(/\n?$/, '\n') }) // ending in one newline, as below
-    .then(name => say(name ? `Saved as ${name}.` : 'Not saved.'), e => say(`Not saved: ${e}`));
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([text.endsWith('\n') ? text : text + '\n'], { type: 'text/plain' }));
-  a.download = 'program.kft';
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  say('Saved as program.kft, where your browser keeps downloads.');
+  offer(asFile(text), 'program.kft', 'text/plain');
+};
+// Build makes from the text in the box what `konfetti build program.kft --html` makes from the saved file:
+// one web page that runs the program. Same template, same runtime, filled the same way as app_html in src/main.rs.
+const escapeHtml = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\r/g, '&#13;');
+function buildPage(template, name, src, wasm) {
+  const fills = [escapeHtml(name), escapeHtml(name), escapeHtml(src), btoa(Array.from(wasm, b => String.fromCharCode(b)).join(''))];
+  return template.split('§').reduce((html, part, i) => html + fills[i - 1] + part);
+}
+$('build').onclick = async () => {
+  const text = asFile($('kft').value);
+  if (!text.trim()) return say('Nothing to build yet: the program box is empty.');
+  try {
+    const get = url => fetch(url).then(res => (res.ok ? res : Promise.reject(new Error(`${url}: ${res.status}`))));
+    const [template, wasm] = await Promise.all([get('build-template.html').then(r => r.text()),
+      get('konfetti.wasm').then(async r => new Uint8Array(await r.arrayBuffer()))]);
+    // Checked by a runtime of its own, so a program running on the ground runs on.
+    const k = (await WebAssembly.instantiate(wasm)).instance.exports;
+    if (!kfLoad(text, '', true, k)) return refuse(kfOutput(k));
+    offer(buildPage(template, 'program', text, wasm), 'program.html', 'text/html', ' Open it to run the program.');
+  } catch (e) {
+    say(`Not built: ${e.message}`);
+  }
 };
 $('open').onclick = () => $('file').click();
 $('file').onchange = async e => {

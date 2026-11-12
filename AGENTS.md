@@ -22,7 +22,8 @@ target/release/konfetti build prog.kft --html -o prog.html  # one self-contained
 
 After changing `src/lib.rs`, run `make`: the editor runs `web/konfetti.wasm`,
 which is a build output, and goes stale otherwise. The CLI embeds that same
-file for `build --html`, which is why `make` builds the wasm first. The wasm is
+file for `build --html`, which is why `make` builds the wasm first, and the
+page it goes into, `web/build-template.html`. The wasm is
 tracked in git so that `cargo build` works on a clean checkout; commit the
 rebuilt one with the runtime change.
 
@@ -38,8 +39,15 @@ stderr for I/O and load errors, 2 with the usage text for bad arguments.
 - `src/main.rs`: the CLI. `build` writes either a copy of the running binary
   with the source appended (then a u64 little-endian length and the magic
   `\x89KFTexe\n`; at startup the binary checks its own last 16 bytes), or the
-  page template `APP`, whose `§` slots take the name, the source and the wasm
-  as base64. Tests are at the bottom.
+  page `APP`, which is `web/build-template.html` (`include_str!`), filled in
+  by `app_html`. Tests are at the bottom.
+- `web/build-template.html`: the page a program becomes, for
+  `konfetti build --html` and the editor's **Build** alike. Its four `§` are
+  slots: the name, the name, the source (each with `&`, `<`, `>` and CR
+  escaped) and the wasm as base64. `app_html` in `src/main.rs` and
+  `buildPage` in `web/main.js` fill it in, the same way to the byte; change
+  one, change the other. Not a page to open as it is. A changed byte changes
+  every page built from then on.
 - `web/index.html`: the page, and the import map that points `three` and
   `three/addons/` at `web/vendor/three/`.
 - `web/vendor/three/`: three.js 0.170.0, the files the editor imports and
@@ -115,7 +123,7 @@ stderr for I/O and load errors, 2 with the usage text for bad arguments.
   native and wasm must agree on every program.
 - The palette order is the opcode order. It appears in `COLORS` in
   `src/lib.rs`, in `PALETTE` in `web/main.js`, in `EXPLAIN` in `web/debug.js`,
-  in the palette strip of `APP` in `src/main.rs`, in the tables in `SPEC.md`,
+  in the palette strip of `web/build-template.html`, in the tables in `SPEC.md`,
   `README.md` and `web/docs.html`, and in `docs.html`'s band. Change them all
   together. The hex values also stand in the docs-check script below (`HEX`)
   and in every strip `docs.html` draws; its diagrams number the dark strips
@@ -386,7 +394,7 @@ errors.
 
 Controls have these ids: `fire`, `crayon`, `wind`, `run`, `fast`, `stop`,
 `debug`, `mute`, `docs`, `learn`, `input`, `output`, `stacks`, `kft`, `load`,
-`examples`, `save`, `open` (with the hidden file input `file`), `sweep`, `clear`, `hint`, in the debugger `dstep`, `dplay`,
+`examples`, `save`, `open` (with the hidden file input `file`), `build`, `sweep`, `clear`, `hint`, in the debugger `dstep`, `dplay`,
 `drestart`, `dspeed`, `dstatus`, `trace`, `dstacks`, and on the lesson card
 (`lesson`) `llist`, `lexit`, `ltitle`, `lcheck`, `lhint`, `lwatch`, `lreset`,
 `lresult`, `lnext`, and on a phone the quick buttons (`fabs`) `qcrayon`,
@@ -435,9 +443,10 @@ changing the editor's files needs nothing. Bump `VERSION` in `web/sw.js`
 whenever you change what or how `sw.js` caches (the precache list, the
 strategy, the keys); the new worker then deletes the old cache. Keep `PAGES`
 in `sw.js` in step with the Examples menu in `index.html`. A new module or
-file the editor loads needs no entry: the page sends the worker what it
-loaded. The vendored three.js files are the exception and are listed in
-`PAGES`: the page that installs worker 2 may be a v0.0.5 page that loaded
+file the editor loads at startup needs no entry: the page sends the worker
+what it loaded. A file it fetches only when asked, as **Build** fetches
+`build-template.html`, goes in `PAGES`. The vendored three.js files are
+listed too: the page that installs worker 2 may be a v0.0.5 page that loaded
 three.js from the CDN, and offline the new `./` needs them.
 
 ## The desktop app
@@ -469,7 +478,8 @@ or every build dirties the tree. The version is in `tauri.conf.json` and
 The page in the app is `tauri://localhost/web/index.html` (on Windows
 `http://tauri.localhost/web/index.html`: see "Linux and Windows"), the same
 files as the web version. It gets two things from the app, the commands
-`location` (for Wind) and `save` (for Save), and no Tauri API besides.
+`location` (for Wind) and `save` (for Save and Build), and no Tauri API
+besides.
 `build.rs` names the commands (`AppManifest::commands`), which takes them
 away from every window, and the one capability in `tauri.conf.json`
 (`editor`) gives `allow-location` and `allow-save` back to the window `main`.
@@ -518,10 +528,12 @@ What differs in the app:
   `~/Downloads`, as `program.kft`, then `program (1).kft`. But the first one
   makes macOS ask whether Konfetti may access the Downloads folder, and the
   page cannot tell a no, or any failure, from a file written. So in the app
-  the Save button calls `APP.invoke('save', { text })`, the text already
-  ending in one newline. `save` in `src-tauri/src/mac.rs` shows the Mac's
+  the Save button calls `APP.invoke('save', { text, name: 'program.kft' })`,
+  the text already ending in one newline, and Build calls it with the page
+  and `name: 'program.html'` (`offer` in `main.js`). `save` in
+  `src-tauri/src/mac.rs` shows the Mac's
   save panel (`NSSavePanel`, `runModal` on the main thread, the way wry runs
-  the open panel) with `program.kft` as the name, writes the text where the
+  the open panel) with `name` as the name, writes the text where the
   person says, and answers the file's name, never its folder; `null` when
   the person cancels; an error when the file cannot be written. The page
   says `Saved as <name>.`, `Not saved.` or `Not saved: <reason>`. macOS
@@ -743,6 +755,13 @@ shows `Showing #AuthPrompt` and `#AuthPrompt posted`.
 `konfetti build examples/cat.kft -o cat && echo hi | ./cat` prints `hi`, and
 `konfetti build examples/hello.kft --html -o hello.html` gives a page that
 prints `A` when opened from disk and run.
+
+The editor's **Build** must write the same bytes as `build --html` of the
+same text saved as `program.kft`: put a program's text in the `kft` box
+(the file's text exactly, comments and all, not a layout of it), press
+**Build**, and `cmp` the download with the CLI's page. Do it for `hello`,
+`cat` and `aventyret` (non-ASCII and quotes), and a program with `<` and `&`
+in a comment, in Chrome and WebKit.
 
 ## Checking the docs
 
