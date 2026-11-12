@@ -1,5 +1,5 @@
-/* The editor's panel, hint, debugger dock and labels. Three themes, picked with ?theme=NAME or the
-   switcher: toybox (the default, also the base values below), craft and arcade. */
+/* The editor's panel, hint, debugger dock and labels. Four themes, picked with ?theme=NAME or the
+   switcher: paper (the default), toybox (the base values below), craft and arcade. */
 :root {
   --font: ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", "Nunito", system-ui, sans-serif;
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
@@ -42,6 +42,26 @@
   --go: #ffe14d; --go-ink: #15122e; --on: #29d3e6; --on-ink: #0c0a1e; --focus: #ffe14d;
   --make: #ff9233; --run: #ffe14d; --program: #2fd07a; --tidy: #ff6ec7; --title-ink: #15122e;
   --box: #0c0a1e; --box-top: #ffe14d; --box-top-ink: #15122e;
+}
+/* Cream watercolor paper, so the panels belong to the world's picture book. The torn edge is drawn in
+   the border (border-image): a mask would hide the lesson card too, which is fixed inside the panel. */
+[data-theme="paper"] {
+  --btn-ink: var(--ink);
+  --font: "Avenir Next", Avenir, Seravek, "Segoe UI", system-ui, sans-serif;
+  --hand: Noteworthy, "Segoe Print", "Bradley Hand", "Comic Neue", var(--font); /* headings, lettered by hand */
+  --ink: #3a2340; --soft: #664d66;
+  --panel: #f6eedd; --panel-line: 8px solid transparent; --panel-radius: 8px; --panel-shadow: 0 14px 26px -10px rgba(58, 35, 64, .5), 0 3px 8px -2px rgba(58, 35, 64, .2);
+  --sheet-shadow: 0 -8px 22px -6px rgba(58, 35, 64, .4);
+  --card: #fdf9ef; --card-line: 5px solid transparent; --card-radius: 4px;
+  --field: #fffdf7; --field-line: 1.5px solid #8a7389;
+  --btn: #fffaf0; --btn-line: 1.5px solid #6e566f; --btn-radius: 7px 12px 8px 11px / 11px 7px 12px 8px; --btn-shadow: 0 2px 0 rgba(58, 35, 64, .28), 0 3px 7px -2px rgba(58, 35, 64, .3); --btn-drop: 2px;
+  --go: #34508c; --go-ink: #fff8ea; --on: #4a2b52; --on-ink: #fff8ea; --focus: #1b5fc1;
+  --make: #f3c9a0; --run: #b9d8e6; --program: #c8dca8; --tidy: #ecc3d2; --title-ink: #3a2340; --fold: #e9dfca;
+  --box: #fffdf7; --box-top: #f9e08a; --box-top-ink: #3a2340;
+  /* A 120px sheet torn within its 8px rim; each rim's middle repeats along the edge, so the ends match. */
+  --deckle: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cpath d='M.8 2.8l1.2 .9l2 -.9l2 .1l2 -.5l2 -.1l2 -.4l2 1.3l2 -.5l2 1.5l2 -.3l2 -.6l2 -.3l2 1l2 .5l2 -.3l2 -.8l2 1.2l2 -.8l2 -.5l2 -.8l2 .3l2 .4l2 .3l2 -1l2 -1l2 0l2 -.4l2 .2l2 .2l2 .7l2 1.6l2 0l2 -.1l2 0l2 .1l2 -.8l2 .6l2 -.2l2 -.8l2 -.7l2 .2l2 .7l2 -1.3l2 -.2l2 .8l2 .2l2 -.6l2 -.2l2 .3l2 .2l2 .5l2 0l2 1.2l2 -.9l2 .1l2 -.5l2 -.1l2 -.4l2 1.3l1.3 -.2l-.4 -.7l-.5 1.7l.4 2l.8 2l-1.1 2l-.3 2l-.1 2l-.4 2l.3 2l.7 2l-.4 2l-.1 2l0 2l-2 2l-.1 2l.8 2l.3 2l-.8 2l1.5 2l.3 2l-.8 2l1.4 2l-.5 2l.5 2l-.4 2l-.9 2l-1.1 2l1.2 2l-1.8 2l-.7 2l.3 2l.9 2l-.8 2l.1 2l-1.1 2l-.1 2l0 2l.5 2l-.3 2l1.5 2l.4 2l-.5 2l1.4 2l.8 2l-1.6 2l-.3 2l.7 2l.7 2l-.7 2l.1 2l.1 2l1.6 2l.6 2l-1 2l.4 2l.8 2l-1.1 2l-.3 2l-.1 2l-.8 1.2l.7 -3.6l-2 -.3l-2 .4l-2 -.2l-2 .1l-2 1.9l-2 1l-2 -.4l-2 -1.5l-2 .7l-2 0l-2 .7l-2 .3l-2 -.2l-2 -1l-2 .5l-2 0l-2 -1l-2 .6l-2 -.8l-2 .4l-2 .6l-2 0l-2 -.5l-2 .6l-2 .5l-2 -.4l-2 .4l-2 -.5l-2 .7l-2 -.3l-2 -.6l-2 -1.3l-2 .4l-2 .3l-2 .5l-2 -.4l-2 .6l-2 -.3l-2 .3l-2 -.4l-2 .5l-2 .1l-2 .1l-2 -.1l-2 0l-2 .3l-2 -1l-2 -.8l-2 1.1l-2 -.5l-2 -1.4l-2 .3l-2 -.3l-2 .4l-2 -.2l-2 .1l-2 1.9l-2 1l-1.1 -1l1.8 .5l-.1 -2l-.1 -2l.2 -2l.2 -2l-.4 -2l-1.2 -2l-.9 -2l0 -2l0 -2l.8 -2l.1 -2l-.2 -2l.4 -2l0 -2l1.1 -2l0 -2l-.2 -2l.9 -2l.8 -2l-.4 -2l-.1 -2l-.9 -2l.7 -2l-.7 -2l.4 -2l-.2 -2l-1.9 -2l.1 -2l1.1 -2l-.6 -2l.1 -2l.6 -2l1.9 -2l.5 -2l.2 -2l-.9 -2l.1 -2l1 -2l-.8 -2l.8 -2l.4 -2l-1.1 -2l.1 -2l-.3 -2l-1 -2l-.4 -2l1.3 -2l.1 -2l-.7 -2l-.8 -2l-.9 -2l.9 -2l-.1 -2l-.1 -2l.2 -2l.2 -2l-.4 -2l-1.2 -2z' fill='%23f6eedd' stroke='%23a89478' stroke-opacity='.45' stroke-width='.7'/%3E%3C/svg%3E");
+  --deckle-card: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cpath d='M.7 2.9l1.3 -.7l2 -.2l2 .8l2 -1.3l2 -.6l2 .7l2 .7l2 .5l2 -1.4l2 0l2 .4l2 .2l2 0l2 .1l2 .9l2 -.4l2 .2l2 -.8l2 -1l2 .6l2 .7l2 -.3l2 .3l2 1l2 -.7l2 .7l2 .6l2 -.4l2 -1.7l2 1.5l2 .4l2 -1.2l2 -1.4l2 -.1l2 1.8l2 .4l2 -.3l2 -.4l2 1.1l2 .5l2 -1.4l2 .8l2 -.3l2 1.1l2 1.1l2 .2l2 -.4l2 -.5l2 -.9l2 -.8l2 .8l2 -1.2l2 -.4l2 -.2l2 .8l2 -1.3l2 -.6l2 .7l2 .7l1.3 .7l-2.4 -1l-.9 2l-1.2 2l1.3 2l.3 2l.6 2l-.7 2l1.2 2l-.3 2l0 2l-.4 2l-.5 2l1.5 2l-.1 2l-.6 2l-.3 2l.9 2l-.3 2l0 2l1.3 2l.9 2l0 2l0 2l-.7 2l-.9 2l.2 2l-.9 2l.5 2l1.2 2l-.7 2l-1.3 2l-.4 2l.5 2l-1.2 2l1 2l0 2l.7 2l.6 2l-1.3 2l-.3 2l1.6 2l-.2 2l-.5 2l-.5 2l.4 2l-.6 2l-1.6 2l-.3 2l.8 2l.3 2l-.2 2l-.1 2l1.2 2l-.9 2l-1.2 2l1.3 2l.3 2l.6 2l-.7 2l.9 1.2l.7 -.4l-1.9 -1.3l-2 -.1l-2 1l-2 -.3l-2 -.8l-2 -.3l-2 .6l-2 -1.4l-2 -.1l-2 .2l-2 -.9l-2 .2l-2 .1l-2 1.1l-2 .1l-2 .1l-2 -.5l-2 .4l-2 1.3l-2 -1.7l-2 -1.5l-2 .7l-2 -.4l-2 -.1l-2 .8l-2 -.2l-2 2.1l-2 -.3l-2 -.1l-2 0l-2 .8l-2 -1.4l-2 -.1l-2 1.1l-2 -.5l-2 .4l-2 .4l-2 .1l-2 -1.4l-2 .8l-2 -.6l-2 .6l-2 .3l-2 -1.3l-2 .1l-2 2l-2 .5l-2 0l-2 .3l-2 0l-2 -.1l-2 -.5l-2 -1.5l-2 -.1l-2 1l-2 -.3l-2 -.8l-2 -.3l-1.2 .2l3.3 .8l.1 -2l.7 -2l-1.2 -2l-.4 -2l.1 -2l-.9 -2l-.2 -2l-.1 -2l-.2 -2l.3 -2l-.7 -2l-.9 -2l.5 -2l2.2 -2l-.5 -2l-.1 -2l1 -2l-1.1 -2l-1 -2l0 -2l-.4 -2l-.4 -2l1.6 -2l-.4 -2l-.2 -2l.6 -2l-.5 -2l-.4 -2l1.6 -2l-.7 -2l-.4 -2l.5 -2l-.7 -2l.3 -2l-.3 -2l.3 -2l.3 -2l.3 -2l-.1 -2l-.4 -2l-1.1 -2l1.5 -2l-.8 -2l1.3 -2l1.1 -2l1.1 -2l-.4 -2l.2 -2l-.5 -2l-.4 -2l.2 -2l-.4 -2l.1 -2l.7 -2l-1.2 -2l-.4 -2l.1 -2l-.9 -2z' fill='%23fdf9ef' stroke='%23a89478' stroke-opacity='.45' stroke-width='.7'/%3E%3C/svg%3E");
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g' x='0' y='0'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .42 0 0 0 0 .32 0 0 0 0 .24 .5 0 0 0 -.22'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23g)'/%3E%3C/svg%3E");
 }
 
 /* The page never scrolls or zooms under a finger: the world takes every gesture, the panels scroll inside. */
@@ -226,6 +246,7 @@ p.lbytes { display: flex; flex-wrap: wrap; gap: 3px; margin: 3px 0 6px; }
 @media (min-width: 701px) and (max-width: 1100px) and (min-height: 501px) {
   #lesson, .learning.debugging #lesson { position: static; z-index: auto; width: auto; max-height: none; overflow: visible; margin: 0 0 12px; padding: 10px 12px;
             background: var(--card); border: var(--card-line); border-radius: var(--card-radius); box-shadow: none; }
+  [data-theme="paper"] #panel #lesson { background: var(--grain), var(--card); background-clip: padding-box; border-image: var(--deckle-card) 8 round; box-shadow: 0 2px 5px -1px rgba(58, 35, 64, .2); }
 }
 
 /* ---- the phone's quick buttons and the sheet's handle: hidden on a wide screen ---- */
@@ -258,6 +279,38 @@ p.lbytes { display: flex; flex-wrap: wrap; gap: 3px; margin: 3px 0 6px; }
 [data-theme="arcade"] #legend i { box-shadow: 0 0 0 1px rgba(255, 255, 255, .55); }
 [data-theme="arcade"] #trace i { box-shadow: 0 0 0 1px rgba(255, 255, 255, .6); }
 [data-theme="arcade"] select { color-scheme: dark; }
+
+/* ---- paper: torn sheets lying on the picture, painted tabs, hand-lettered headings ---- */
+[data-theme="paper"] :is(#panel, #dock, #lesson, #hint, .pwa) { background: var(--grain), var(--panel); background-clip: padding-box; border-image: var(--deckle) 8 round; }
+[data-theme="paper"] :is(#hint, .pwa) { border-width: 6px; }
+[data-theme="paper"] #hint { padding: 6px 12px; border-radius: 0; } /* the torn edge is the shape: a rounded fill would leave holes in its corners */
+[data-theme="paper"] .group { padding: 15px 7px 7px; background: var(--grain), var(--card); background-clip: padding-box; border-image: var(--deckle-card) 8 round; box-shadow: 0 2px 5px -1px rgba(58, 35, 64, .2); }
+[data-theme="paper"] .group > summary { top: -13px; left: 9px; }
+/* A wash of color, darker where the pigment pooled at its edge. */
+[data-theme="paper"] .group h2 { padding: 1px 12px 2px 13px; font: 700 16px/1.3 var(--hand); letter-spacing: .01em; text-transform: none; border: 0; border-radius: 14px 18px 12px 20px / 16px 12px 18px 14px;
+                                  background: radial-gradient(farthest-side, transparent 60%, rgba(90, 50, 40, .14)), var(--grain), var(--sec); box-shadow: 0 1px 2px rgba(58, 35, 64, .22); }
+[data-theme="paper"] h1 { font: 700 30px/1 var(--hand); }
+[data-theme="paper"] #logo span { -webkit-text-stroke: 1px var(--ink); }
+[data-theme="paper"] .docktitle { font: 700 18px var(--hand); }
+[data-theme="paper"] #lesson h2 { font: 700 23px/1.2 var(--hand); }
+/* Buttons are paper labels: a wash lighter in the middle (not the switcher's, which show their own theme);
+   pressed in, they sit in their own shadow. */
+[data-theme="paper"] :is(button, select, a.small):not([data-theme]) { background-image: radial-gradient(130% 100% at 50% 30%, rgba(255, 255, 255, .16), rgba(255, 255, 255, 0) 70%), linear-gradient(transparent 65%, rgba(58, 35, 64, .07)); }
+[data-theme="paper"] button[aria-pressed="true"] { box-shadow: inset 0 2px 5px rgba(20, 8, 24, .5); }
+[data-theme="paper"] :is(input:not([type=range]), textarea, pre, #trace) { border-radius: 4px 7px 5px 6px; box-shadow: inset 0 1px 3px rgba(58, 35, 64, .12); }
+[data-theme="paper"] :is(.box, .more, .stack .empty, .lbyte) { border-width: 1.5px; border-radius: 5px 8px 6px 7px; }
+[data-theme="paper"] .lbyte.diff { border-width: 3px; }
+[data-theme="paper"] #dexplain { border: 1.5px solid #ddd0b8; border-radius: 5px 8px 6px 7px; }
+[data-theme="paper"] :is(#lgoal, #lresult) { border-width: 1.5px; border-radius: 6px 9px 7px 8px; }
+[data-theme="paper"] #lresult.pass { background: #dcebc8; }
+[data-theme="paper"] #lresult.fail { background: #f7dcd3; }
+[data-theme="paper"] :is(#legend, #trace) i { box-shadow: 0 0 0 1.5px rgba(40, 32, 54, .85), 1px 2px 2px rgba(40, 32, 54, .2); }
+/* The labels stay plain chips, in plum ink on cream, lifted a little off the ground. :where keeps each
+   kind of label's own colors above these. */
+:where([data-theme="paper"]) #labels span { color: #2a1a30; background: rgba(255, 250, 238, .95); border-color: #2a1a30; box-shadow: 0 1px 3px rgba(42, 26, 48, .35); }
+:where([data-theme="paper"]) #labels :is(em, .start, .next) { background: #2a1a30; }
+:where([data-theme="paper"]) #labels .now { box-shadow: 0 2px 0 #2a1a30; }
+:where([data-theme="paper"]) #labels .covered { color: #5e4f60; background: rgba(240, 233, 221, .93); border-color: #7a687b; }
 
 /* ---- phone: the world fills the screen. The panel is a sheet at the bottom that rests as a peek
    showing the output, half open or full; the quick buttons ride on top of it. While debugging, the
@@ -320,6 +373,9 @@ p.lbytes { display: flex; flex-wrap: wrap; gap: 3px; margin: 3px 0 6px; }
   :is(#fabs, .dockbtns) button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: 64px; height: 60px; box-sizing: border-box;
                                  padding: 4px 10px; font-size: 12.5px; line-height: 1.1; border-radius: 18px; }
   [data-theme="craft"] :is(#fabs, .dockbtns) button { border-radius: 255px 22px 225px 22px / 22px 225px 22px 255px; }
+  [data-theme="paper"] :is(#fabs, .dockbtns) button { border-radius: 14px 20px 15px 19px / 19px 14px 20px 15px; }
+  [data-theme="paper"] #panel { border-width: 8px 0 0; } /* torn along the top only: the sides are the screen's */
+  [data-theme="paper"] #lesson { background: none; }
   .ico { font-size: 22px; line-height: 1; }
   #fabs #qcheck { display: none; }
   .learning:not(.debugging):has(#lcheck) #fabs #qcheck { display: flex; }
@@ -361,6 +417,7 @@ p.lbytes { display: flex; flex-wrap: wrap; gap: 3px; margin: 3px 0 6px; }
 /* A phone on its side: the sheet stands at the right, the dock at the left, the quick buttons in a column. */
 @media (max-height: 500px) and (min-aspect-ratio: 1/1) {
   #panel { left: auto; width: min(380px, 46vw); border-radius: var(--panel-radius) 0 0 0; padding-right: calc(12px + env(safe-area-inset-right)); }
+  [data-theme="paper"] #panel { border-left-width: 8px; }
   #hint { right: auto; max-width: calc(100% - min(380px, 46vw) - 120px); }
   #fabs { left: auto; translate: none; right: calc(8px + env(safe-area-inset-right)); flex-direction: column; }
   html:not([data-sheet="peek"]) #fabs { right: calc(min(380px, 46vw) + 10px); bottom: calc(8px + env(safe-area-inset-bottom)); }
@@ -368,6 +425,7 @@ p.lbytes { display: flex; flex-wrap: wrap; gap: 3px; margin: 3px 0 6px; }
   .debugging #fabs { left: auto; }
   /* The dock: its name and ✕, the speed, the status; then the stacks, then the trace taking what is left; its buttons at the foot. */
   #dock { right: auto; bottom: calc(8px + env(safe-area-inset-bottom)); width: min(310px, 38vw); max-height: none; display: flex; flex-direction: column; overflow: hidden; padding-bottom: 66px; }
+  [data-theme="paper"] #dock { padding-inline: 5px; } /* the torn rim is 8px wide: this keeps the trace as wide as in the other themes */
   .speed { order: 3; flex-basis: 100%; }
   .speed input { flex: 1; }
   .dockbtns { position: absolute; left: 8px; right: 8px; bottom: 8px; justify-content: space-between; flex-direction: row; transition: none; }

@@ -40,21 +40,35 @@ stderr for I/O and load errors, 2 with the usage text for bad arguments.
   page template `APP`, whose `§` slots take the name, the source and the wasm
   as base64. Tests are at the bottom.
 - `web/index.html`: the page and the import map for three.js 0.170.0.
-- `web/main.js`: the editor: bits, crayon outline, wind physics, running,
-  debug mode, keys, themes, `window.konfetti`. A mouse must hit a strip to
-  pick it up; on a touch screen `bitAt` also takes a strip when the touch
-  lands within `FINGER` (30 CSS px) of its long middle line: the nearest
-  one, and the top one in a pile.
-- `web/world.js`: the scenery, the cannon and the wind flag, all procedural.
-  `buildWorld(scene, renderer, grassCount)` returns `{ muzzle, update(dt, t, wind) }`.
+- `web/main.js`: the editor: bits and how they look, links and rings, the
+  crayon outline, the paper tooth, wind physics, running, debug mode, keys,
+  themes, `window.konfetti`. A mouse must hit a strip to pick it up; on a
+  touch screen `bitAt` also takes a strip when the touch lands within
+  `FINGER` (30 CSS px) of its long middle line: the nearest one, and the top
+  one in a pile. See "How the world is drawn".
+- `web/world.js`: the scenery as a watercolor pop-up book, the cannon and the
+  wind flag, all procedural. `buildWorld(scene, renderer, grassCount)` returns
+  `{ muzzle, update(dt, t, wind, camera) }`. Pass the camera every frame: the
+  cut-outs turn and lean toward it and the balloons' glints face it.
+  `grassCount` counts grass blades, drawn as
+  `round(min(grassCount, 180000) / 8)` tufts of about eight. It also exports
+  `PATIO` (the stones' radius), `PAPER` and `STONE` (bare paper and the
+  stones' wash), `paint(material, inject)` (flat painted light),
+  `hull(color, grow)` (a rim: the material for a second mesh of the same
+  geometry, back faces only, pushed out by `grow`) and
+  `strokes({ color, width, minPx, maxPx, opacity, fade })` (lines on the
+  ground, a mesh with `.set(pts, alphas)`, never thinner on screen than
+  `minPx`).
 - `web/debug.js`: the debugger's words (`EXPLAIN`, `describe`) and views
   (stacks as boxes, the trace, the floating labels). No three.js.
 - `web/sound.js`: every sound, synthesized with Web Audio. Exports `sound`.
-- `web/hand.js`: the cartoon glove that replaces the mouse pointer.
+- `web/hand.js`: the cartoon glove that replaces the mouse pointer, flat
+  white with an ink rim made with `paint` and `hull` from `world.js`.
 - `web/learn.js`: learn mode: the lesson list and the lesson card. It fetches
   `../lessons/`, so serve the repo root, as `make serve` does.
-- `web/ui.css`: the panel, hint, debugger dock and labels, and the three
-  themes (`toybox`, `craft`, `arcade`).
+- `web/ui.css`: the panel, hint, debugger dock and labels, and the four
+  themes: `paper` (the default), `toybox` (the base values), `craft` and
+  `arcade`.
 - `web/docs.html`: the guide for people, linked from the editor's panel. Static
   HTML with inline CSS and SVG, no script, no requests. Its second half,
   *Learn konfetti*, is 17 tutorials and a cheat sheet; see "Checking the docs".
@@ -207,6 +221,68 @@ passes when dropped 250 off in any of eight directions. The test reads a small
 JSON subset: objects, arrays, strings with only the escapes `\"`, `\\` and
 `\n`, whole numbers, `true` and `false`.
 
+## How the world is drawn
+
+The world is a watercolor pop-up book: flat painted cut-outs (trees, bushes,
+rocks, hills, clouds, the windmill, the balloon) standing in layers on one
+painted ground sheet, each with a rim of bare paper, and grass as painted
+tufts that bend in the wind. `paint()` lights every material flat; the
+renderer has no tone mapping and no post-processing pass. Grain and pooled
+edges are painted onto things in world space, so they move with them. The
+only thing fixed to the screen is the paper tooth: `<div id="tooth">`, which
+`main.js` inserts right after the canvas, `position: fixed`,
+`mix-blend-mode: multiply`, no z-index, darkening by at most `TOOTH` (3%).
+Every overlay has a z-index of 1 or more and so sits above it; give a new
+overlay one too.
+
+The program must stay clear over all of that. This is how it is drawn, in
+`main.js`:
+
+- **Strips** keep the palette colors, washed onto a paper texture
+  (`stripTexture()`) inside a dark outline (`OUTLINE`, `EDGE` = 0.04 strip
+  lengths). Silver and gold are foil with slanting bands, blue-grey on silver
+  and brown on gold, so they differ from white and yellow by more than color.
+  Black has its own texture: dark slate with a pale line inside the outline,
+  so two black strips across each other stay two. Each kind has `WASHES`
+  textures and strips lie mirrored at random, so a row does not repeat its
+  blooms. A strip under about 8 px across fades to the middle of its wash
+  (`farWash`): at a pixel or two the outline would muddy its color. A
+  landed strip has a soft dark halo under it; all halos are one
+  `InstancedMesh`, refilled every frame by `drawHalos()`.
+- **Links** are ink (`#1c1f36`) lines on a paper-colored rim (`cased()`, made
+  of two `strokes()`), never thinner than 1.6 px on screen.
+- **The start ring** is an ink ring on a paper rim, with a drawn hairline
+  along it that keeps it in sight from far off or low down (`ringMark()`).
+- **Debug marks** are one family, flat yellow (`NOW`, `#ffd21f`) with an ink
+  rim: the pointer over the bit that runs now, the ring on the bit that runs
+  next, and the arrow between them, drawn over the links. The labels, dock,
+  trace and stacks are DOM, styled per theme in `ui.css`.
+- **Pencil seams** on the stones (in `world.js`) are pale curved graphite
+  strokes, so none can be taken for a link.
+
+**Legibility criteria.** Measured on rendered pixels, not on palette values,
+at the framing the editor gives a loaded program, in sun, in shade, on the
+ring of bare paper round the stones, and with strips half over each other.
+Contrast is the WCAG ratio; color distance is CIE76 ΔE in Lab.
+
+- Every two strip colors' fills are at least ΔE 18 apart.
+- Every strip stands off the ground: its outline or its fill at 3:1 or more,
+  or a fill at least ΔE 25 from the ground.
+- A half-covered strip keeps its color within ΔE 12 of its color in the open.
+- Where one strip lies on another, the upper one's edge is at least 2:1
+  against the lower one's fill, or the two fills are at least ΔE 20 apart.
+- Links and the start ring are at least 4.5:1 against the ground, the crayon
+  outline at least 3:1, and the pencil seams at most 2:1.
+
+Strips at the far edge of the stones, seen from the default camera, are a few
+pixels across and are not judged. Any change to the world, the strips, the
+links, the rings or the debug marks must be checked against these criteria
+before it lands. One way: load the 13 colors 1700 apart with **Load text**
+(`red 0 1000`, `orange 1700 1000`, five to a row), project the strips' faces
+and edges to the screen with `konfetti.camera`, and sample a screenshot.
+The closest calls today are orange against gold, and black, purple or brown
+lying on black.
+
 ## Checking editor changes
 
 `make serve`, open the page, and confirm at least: the examples load and
@@ -258,11 +334,21 @@ remembers passed lessons in `localStorage` under `konfetti.learn`; the sheet's
 stop is `konfetti.sheet`, which groups are folded `konfetti.groups.phone`
 and `konfetti.groups.wide`, and the install card's dismissal (until when not
 to offer again) `konfetti.install`.
-`?theme=toybox|craft|arcade` picks a theme.
+`?theme=paper|toybox|craft|arcade` picks a theme; without it the theme
+picked with the switcher wins (stored under `konfetti.theme.picked` on the
+click, never on load), then `konfetti.theme` unless it says `toybox`, then
+`paper`. Browsers that ran v0.0.4 hold `konfetti.theme`, written on every
+load, so its `toybox` is that version's default and not a choice.
 
+`?grass=N` sets the number of grass blades, drawn as `N / 8` tufts; it is
+180,000 (22,500 tufts) when absent or 0, and more is capped at that.
 Headless Chrome's software renderer is too slow for the meadow; on a Mac,
 launch it with `--use-angle=metal --enable-gpu`, or load the page with
 `?grass=3000`.
+
+To hide the UI for a screenshot, set `opacity: 0` on it, not
+`display: none`: framing the view, debug mode included, measures `#panel`
+and throws without it.
 
 Always launch a test browser with `--mute-audio`. The editor plays sound once
 a script clicks or presses a key, and headless Chrome plays it out loud on the

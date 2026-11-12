@@ -11,9 +11,10 @@
 <script>
   // Before the first paint, so the page never flashes in the wrong theme. main.js checks the name.
   (function () {
+    // The theme picked with the switcher. konfetti.theme counts too, unless it says toybox: that one was stored as a default, not picked.
     var t = new URLSearchParams(location.search).get('theme');
-    try { t = t || localStorage.getItem('konfetti.theme'); } catch (e) {}
-    document.documentElement.dataset.theme = t || 'toybox';
+    try { var shown = localStorage.getItem('konfetti.theme'); t = t || localStorage.getItem('konfetti.theme.picked') || (shown !== 'toybox' && shown); } catch (e) {}
+    document.documentElement.dataset.theme = t || 'paper';
   })();
 </script>
 <link rel="stylesheet" href="ui.css">

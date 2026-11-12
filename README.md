@@ -8,9 +8,9 @@ where to go next.
 - **Turing complete**: two unbounded stacks and a three-way branch.
 - **Fast**: about 800 million steps a second natively, and 400 million steps
   in 0.7 s as WebAssembly in Chrome (Apple Silicon laptop, `examples/count.kft`).
-- **3D editor**: a meadow, a confetti cannon and a crayon. Fire, draw an
-  outline, arrange what landed inside it, run it, step through it. Then turn on
-  the wind.
+- **3D editor**: a meadow painted like a watercolor pop-up book, a confetti
+  cannon and a crayon. Fire, draw an outline, arrange what landed inside it,
+  run it, step through it. Then turn on the wind.
 - **Shareable**: `konfetti build` turns a program into a standalone executable
   or a single web page.
 
@@ -156,6 +156,14 @@ exercises in the guide's tutorials.
 `make serve`, then open <http://localhost:8137/web/>. The bubble at the top
 left always says what to do next.
 
+The world is a watercolor pop-up book: flat painted cut-outs of trees,
+bushes, rocks, hills, clouds, a windmill and a balloon stand in layers on a
+painted ground, each with a rim of bare paper, and the grass is painted tufts
+that bend in the wind. The stones the cannon stands on are one pale wash with
+a few curved pencil seams. The confetti is the brightest thing in the
+picture: every strip has a dark outline, silver and gold are foil with bands
+across them, and black is dark slate with a pale line inside its edge.
+
 - **Learn konfetti** (or L) opens twelve lessons. Each lays out a program
   with the spare strips it needs; **Check my program** runs it on the lesson's
   inputs and says what is wrong, **Hint** helps, **Watch it run** opens the
@@ -166,8 +174,9 @@ left always says what to do next.
   itself when you let go. The confetti inside is the program; the dot where the
   crayon touched down is the origin. Drawing again replaces the outline.
 - **Drag** bits in, out and into place with the glove that stands in for the
-  mouse pointer. Thin lines show the links; the ring marks the start. A bit
-  dropped on another covers it. **Double-click** a bit to flick it into the air.
+  mouse pointer. Dark lines with a pale edge show the links; a dark ring
+  marks the start. A bit dropped on another covers it. **Double-click** a bit
+  to flick it into the air.
 - **Run** walks the trail at five bits a second with a pointer over the current
   bit, showing output and stacks. **Run fast** runs flat out.
 - **Debug** (or D) opens a debugger: **Step** (N), **Play** (P), **Restart**
@@ -187,8 +196,10 @@ left always says what to do next.
   the wind picks up. Without a location the editor invents a wind and says so.
 - **Sound** is all synthesized: the cannon, landings, the crayon, a note per
   step. **Mute** (or M) silences it and is remembered.
-- **Themes**: toybox (the default), craft and arcade, from the switcher at the
-  bottom of the panel or `?theme=craft` in the address.
+- **Themes** for the panel, the hint, the lesson card and the debugger: paper
+  (the default: torn watercolor paper and hand-lettered headings), toybox,
+  craft and arcade, from the switcher at the bottom of the panel or
+  `?theme=craft` in the address. The world looks the same in all four.
 - Drag the ground to orbit, scroll to zoom, right-drag to pan.
 - On a phone the panel is a sheet at the bottom that opens half way or all
   the way, with the end of the output on its edge, and **Crayon**, **Fire**,
@@ -216,7 +227,7 @@ on their next load.
 | `SPEC.md` | The language definition |
 | `src/lib.rs` | The whole runtime: parse, link, compile, run, tests, wasm exports |
 | `src/main.rs` | The CLI: run, trace, and `build` for executables and web pages |
-| `web/` | The editor: `index.html`, `main.js` (editing and running), `world.js` (scenery, cannon, flag), `debug.js` (the debugger's words and views), `learn.js` (learn mode), `sound.js`, `hand.js` (the glove), `ui.css` (panel and themes), the built `konfetti.wasm`, `docs.html`, the guide and tutorials, and the installable app: `manifest.webmanifest`, `icons/`, `sw.js`, `pwa.js`, `pwa.css` |
+| `web/` | The editor: `index.html`, `main.js` (editing and running), `world.js` (the painted scenery, cannon, flag), `debug.js` (the debugger's words and views), `learn.js` (learn mode), `sound.js`, `hand.js` (the glove), `ui.css` (panel and themes), the built `konfetti.wasm`, `docs.html`, the guide and tutorials, and the installable app: `manifest.webmanifest`, `icons/`, `sw.js`, `pwa.js`, `pwa.css` |
 | `index.html`, `.nojekyll` | For GitHub Pages: the site's root forwards to `web/` |
 | `lessons/` | The lessons of learn mode: `index.json` and a starter and a solution program for each; `make test` checks that each can be solved |
 | `examples/` | Programs, including the tutorials' |

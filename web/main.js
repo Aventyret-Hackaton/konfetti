@@ -4,7 +4,7 @@
 // +y is away from the default camera and left turns are counter-clockwise.
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { buildWorld } from './world.js';
+import { buildWorld, paint, strokes, PAPER } from './world.js';
 import { sound } from './sound.js';
 import { createHand } from './hand.js';
 import { EXPLAIN, describe, turn, TURN_WORDS, TURN_ARROW, drawStacks, drawTrace, makeLabels } from './debug.js';
@@ -19,10 +19,13 @@ const PALETTE = [
   ['gold', '#f2b73a', 'FETCH'],
 ];
 const UNIT = 1000, REACH = 1500, MIN_GAP = 500;
+const TOOTH = 0.03;             // how much the paper's tooth darkens the picture at most
 const THICK = 0.008;            // a bit is a paper-thin strip
 const LAYER = THICK * 1.5;      // height step between stacked bits; the slack keeps faces from flickering
 const FOOTPRINT = 1.05;         // bits with centres closer than this may touch, so they stack
 const CRAYON = '#2447d8';
+const OUTLINE = 'rgba(40,32,54,0.9)'; // the line round every strip
+const EDGE = 0.04;                     // its width, in strip lengths
 const $ = id => document.getElementById(id);
 const params = new URLSearchParams(location.search);
 // The phone layout (the panel is a sheet at the bottom): the same query is in ui.css.
@@ -56,35 +59,87 @@ const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.toneMapping = THREE.NeutralToneMapping;
+renderer.toneMapping = THREE.NoToneMapping; // painted colors go to the screen as painted
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(48, 1, 0.3, 2000);
 camera.position.set(0, 7.5, 25);
-// ?grass=N sets the number of grass blades, for slow machines.
+// ?grass=N sets the number of grass blades, for slow machines. They stand in tufts of about eight.
 const world = buildWorld(scene, renderer, Number(params.get('grass')) || 180000);
 
+// The picture is on cold-press paper, and paper does not move: its tooth is a still, very faint layer over
+// the canvas. Everything else a painter leaves (mottling, granulation, ragged and pooled edges) is painted
+// onto the things themselves in world.js, so it travels with them when the camera moves.
+{
+  const N = 256, c = document.createElement('canvas'), g = c.getContext('2d');
+  c.width = c.height = N;
+  const img = g.createImageData(N, N), v = Float32Array.from({ length: N * N }, Math.random);
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const at = (dx, dy) => v[((y + dy + N) % N) * N + (x + dx + N) % N];
+    const t = 255 - Math.round(TOOTH * 255 * (at(0, 0) * 2 + at(1, 0) + at(0, 1) + at(-1, 0) + at(0, -1)) / 6);
+    img.data.set([t, t, t, 255], (y * N + x) * 4);
+  }
+  g.putImageData(img, 0, 0);
+  const tooth = document.createElement('div');
+  tooth.id = 'tooth';
+  tooth.style.cssText = `position:fixed;inset:0;pointer-events:none;mix-blend-mode:multiply;background:url(${c.toDataURL()})`;
+  canvas.after(tooth);
+}
+
 // Overlay: links between program bits, a ring on the start bit, a pointer on the running bit.
-const ink = '#22242e';
-const links = new THREE.LineSegments(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: ink, transparent: true, opacity: 0.6 }));
-links.frustumCulled = false;
-const startRing = new THREE.Mesh(new THREE.RingGeometry(0.66, 0.74, 48).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: ink, side: THREE.DoubleSide }));
-const pointer = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.5, 20).rotateX(Math.PI), new THREE.MeshStandardMaterial({ color: '#ffe14d', emissive: '#b98f00', roughness: 0.4 }));
+// Links and rings are drawn lines with a rim of another color, so they read on pale stone, on any strip
+// and on each other, and none can be taken for a pencil seam. They never get thinner than a couple of pixels.
+const ink = '#1c1f36';
+/** A line with a rim: `set(pts)` as for strokes(). */
+function cased(color, rimColor, width, rim, minPx) {
+  const under = strokes({ color: rimColor, width: width + rim * 2, minPx: minPx + 2 }), over = strokes({ color, width, minPx });
+  under.renderOrder = 2; over.renderOrder = 3;
+  const group = new THREE.Group().add(under, over);
+  group.set = pts => { under.set(pts); over.set(pts); };
+  return group;
+}
+/**
+ * A ring with a rim, flat on the ground: true in perspective from close by. Inside it runs a hair of a drawn
+ * line in the same color, which is what keeps the ring in sight from far off or from low down.
+ */
+function ringMark(color, rimColor, r, width, rim) {
+  const flat = (r0, r1, c, y) => new THREE.Mesh(new THREE.RingGeometry(r0, r1, 72).rotateX(-Math.PI / 2).translate(0, y, 0), new THREE.MeshBasicMaterial({ color: c, side: THREE.DoubleSide }));
+  const hair = strokes({ color, width: 0.02, minPx: 2 }), pts = [];
+  for (let i = 0; i < 72; i++) { const a = i / 72 * Math.PI * 2, b = (i + 1) / 72 * Math.PI * 2; pts.push(Math.cos(a) * r, 0.004, Math.sin(a) * r, Math.cos(b) * r, 0.004, Math.sin(b) * r); }
+  hair.set(pts);
+  hair.renderOrder = 3;
+  return new THREE.Group().add(flat(r - width / 2 - rim, r + width / 2 + rim, rimColor, 0), flat(r - width / 2, r + width / 2, color, 0.003), hair);
+}
+const links = cased(ink, PAPER, 0.046, 0.02, 1.6);
+const startRing = ringMark(ink, PAPER, 0.7, 0.085, 0.03);
+// The debugger's marks are one family: flat yellow with an ink rim. The pointer over the bit that runs now,
+// the arrow along the way the walk takes, the ring on the bit it goes to next.
+const NOW = '#ffd21f';
+const pointer = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.5, 20).rotateX(Math.PI), new THREE.MeshBasicMaterial({ color: NOW }));
+pointer.add(new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.5, 20).rotateX(Math.PI).scale(1.32, 1.2, 1.32).translate(0, 0.02, 0), new THREE.MeshBasicMaterial({ color: ink, side: THREE.BackSide })));
 pointer.castShadow = true;
 // Debug mode only: a ring on the bit the walk goes to next, and an arrow to it from the current one.
-const nextRing = new THREE.Mesh(new THREE.RingGeometry(0.56, 0.64, 48).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#ffd21f', side: THREE.DoubleSide }));
-const arrow = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial({ color: ink, side: THREE.DoubleSide }));
-arrow.frustumCulled = false;
+const nextRing = ringMark(NOW, ink, 0.6, 0.075, 0.032);
+const arrow = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial({ color: NOW, side: THREE.DoubleSide }));
+const arrowRim = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial({ color: ink, side: THREE.DoubleSide }));
+arrow.add(arrowRim);
+arrow.frustumCulled = arrowRim.frustumCulled = false;
+arrow.renderOrder = 5; arrowRim.renderOrder = 4; // over the links, which are drawn late because they are see-through at their edges
+arrow.material.transparent = arrowRim.material.transparent = true;
 startRing.visible = pointer.visible = nextRing.visible = arrow.visible = false;
 scene.add(links, startRing, pointer, nextRing, arrow);
 
 /** Lays a flat arrow on the ground from world point `a` to `b`, clear of both bits' middles. */
 function drawArrow(a, b) {
   const len = Math.hypot(b.x - a.x, b.z - a.z) || 1, ux = (b.x - a.x) / len, uz = (b.z - a.z) / len;
-  const y = Math.max(a.y, b.y) + 0.03, w = 0.05, head = 0.16, t0 = Math.min(0.3, len * 0.25), t1 = len - t0, tn = t1 - 0.3;
-  const at = (t, side) => [a.x + ux * t - uz * side, y, a.z + uz * t + ux * side];
-  arrow.geometry.setAttribute('position', new THREE.Float32BufferAttribute([
-    ...at(t0, w), ...at(t0, -w), ...at(tn, w), ...at(tn, w), ...at(t0, -w), ...at(tn, -w),
-    ...at(tn, head), ...at(tn, -head), ...at(t1, 0)], 3));
+  const y = Math.max(a.y, b.y) + 0.03, t0 = Math.min(0.3, len * 0.25), t1 = len - t0;
+  const shape = (w, head, grow, y) => {
+    const tn = t1 - 0.3 - grow * 0.4, at = (t, side) => [a.x + ux * t - uz * side, y, a.z + uz * t + ux * side];
+    return new THREE.Float32BufferAttribute([
+      ...at(t0 - grow, w), ...at(t0 - grow, -w), ...at(tn, w), ...at(tn, w), ...at(t0 - grow, -w), ...at(tn, -w),
+      ...at(tn, head), ...at(tn, -head), ...at(t1 + grow * 2.2, 0)], 3);
+  };
+  arrow.geometry.setAttribute('position', shape(0.045, 0.15, 0, y));
+  arrowRim.geometry.setAttribute('position', shape(0.075, 0.2, 0.03, y - 0.004));
 }
 
 // ---- the crayon and the area it draws ----
@@ -92,7 +147,7 @@ function drawArrow(a, b) {
 let area = null;
 let stroke = null;       // points of the line being drawn right now
 let crayonMode = false;
-const wax = new THREE.MeshStandardMaterial({ color: CRAYON, roughness: 1, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+const wax = paint(new THREE.MeshLambertMaterial({ color: CRAYON, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
 const outline = new THREE.Mesh(new THREE.BufferGeometry(), wax);
 outline.frustumCulled = false;
 const originDot = new THREE.Mesh(new THREE.CircleGeometry(0.24, 24).rotateX(-Math.PI / 2), wax);
@@ -100,11 +155,14 @@ originDot.visible = false;
 scene.add(outline, originDot);
 
 const crayon = new THREE.Group(); // the tip is at the group's origin
-const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 1.3, 16).translate(0, 0.95, 0), new THREE.MeshStandardMaterial({ color: CRAYON, roughness: 0.6 }));
+// Painted flat like the world, with an ink line round it, so it reads as a thing in the hand and not as scenery.
+const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 1.3, 16).translate(0, 0.95, 0), paint(new THREE.MeshLambertMaterial({ color: CRAYON })));
 const tip = new THREE.Mesh(new THREE.ConeGeometry(0.11, 0.3, 16).rotateX(Math.PI).translate(0, 0.15, 0), stick.material);
-const wrapper = new THREE.Mesh(new THREE.CylinderGeometry(0.116, 0.116, 0.8, 16).translate(0, 1.05, 0), new THREE.MeshStandardMaterial({ color: '#f3efe2', roughness: 0.9 }));
-crayon.add(stick, tip, wrapper);
-crayon.traverse(o => { o.castShadow = true; });
+const wrapper = new THREE.Mesh(new THREE.CylinderGeometry(0.116, 0.116, 0.8, 16).translate(0, 1.05, 0), paint(new THREE.MeshLambertMaterial({ color: PAPER })));
+// The line: one shell a little larger than the whole crayon, of which only the far side shows.
+const shell = new THREE.Mesh(new THREE.LatheGeometry([[0.001, -0.06], [0.145, 0.3], [0.148, 1.635], [0.001, 1.635]].map(([r, y]) => new THREE.Vector2(r, y)), 20), new THREE.MeshBasicMaterial({ color: ink, side: THREE.BackSide }));
+crayon.add(stick, tip, wrapper, shell);
+for (const part of [stick, tip, wrapper]) part.castShadow = true;
 crayon.rotation.set(0.45, 0, -0.5);
 crayon.visible = false;
 scene.add(crayon);
@@ -155,15 +213,89 @@ function setCrayonMode(on) {
 
 // ---- bits ----
 const bitGeo = new THREE.BoxGeometry(1, THICK, 0.4);
-const bitMats = PALETTE.map(([, hex], i) =>
-  new THREE.MeshStandardMaterial({ color: hex, roughness: i >= 11 ? 0.3 : 0.55, metalness: i >= 11 ? 0.35 : 0.05 }));
+// Paper strips: an even wash that pools darker along the edge, inside a dark line, so that every color
+// (white on pale stone or bare paper, black in shade) has its own outline. Silver and gold are foil, with
+// bands of glint across them, which tells them from white and yellow by more than their color. Black has a
+// pale line inside its dark one: without it two black strips lying across each other are one blot.
+function stripTexture(kind) {
+  const c = document.createElement('canvas'), g = c.getContext('2d'), W = 320, H = 128;
+  c.width = W; c.height = H;
+  g.fillStyle = kind === 'black' ? PALETTE[9][1] : '#fff'; g.fillRect(0, 0, W, H);
+  // the wash is not quite even: soft blooms, fainter on black, where a pale bloom would show as smoke
+  for (let i = 0; i < 50; i++) {
+    const x = Math.random() * W, y = Math.random() * H, r = 16 + Math.random() * 40, tone = Math.random() < 0.5 ? '110,110,120' : '255,255,255';
+    const bloom = g.createRadialGradient(x, y, 0, x, y, r);
+    bloom.addColorStop(0, `rgba(${tone},${(0.05 + Math.random() * 0.06) * (kind === 'black' ? 0.4 : 1)})`); bloom.addColorStop(1, `rgba(${tone},0)`);
+    g.fillStyle = bloom;
+    g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+  }
+  const band = { silver: 'rgba(48,60,100,0.82)', gold: 'rgba(150,62,0,0.5)' }[kind];
+  if (band) {
+    for (let x = -80, i = 0; x < W + 80; x += 44, i++) { g.lineWidth = i & 1 ? 25 : 17; g.strokeStyle = i & 1 ? band : 'rgba(255,255,255,0.95)'; g.beginPath(); g.moveTo(x, H + 10); g.lineTo(x + 70, -10); g.stroke(); }
+  }
+  for (const [lw, a] of [[30, 0.07], [20, 0.09]]) { g.strokeStyle = `rgba(60,45,70,${a})`; g.lineWidth = lw; g.strokeRect(0, 0, W, H); } // the pooled edge
+  if (kind === 'black') { g.strokeStyle = 'rgba(222,216,232,0.85)'; g.lineWidth = 8; g.strokeRect(19, 19, W - 38, H - 38); }
+  g.strokeStyle = OUTLINE; g.lineWidth = EDGE * 2 * W; g.strokeRect(0, 0, W, H); // half of the line is off the sheet
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  return t;
+}
+// A few washes of each kind, each laid either way round (addBit), so strips side by side in a row do not show the same blooms.
+const WASHES = 3, washes = kind => Array.from({ length: WASHES }, () => stripTexture(kind));
+const stripMaps = { plain: washes(), silver: washes('silver'), gold: washes('gold'), black: washes('black') };
+// A strip only a few pixels across would be mostly outline, and colors would muddy into each other: there it
+// fades to the middle of its own wash. Measured across the strip's short side, so a strip seen end-on keeps its line.
+const farWash = shader => {
+  shader.fragmentShader = shader.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
+    float across = 1.0 / max(length(vec2(dFdx(vMapUv.y), dFdy(vMapUv.y))), 1e-4);
+    diffuseColor.rgb = mix(diffuse * textureLod(map, vec2(0.5), 5.0).rgb, diffuseColor.rgb, smoothstep(3.0, 8.0, across));`);
+};
+const bitMats = PALETTE.map(([name, hex]) => (stripMaps[name] || stripMaps.plain).map(map => paint(new THREE.MeshLambertMaterial({ color: name === 'black' ? '#fff' : hex, map }), farWash)));
 /** state: 'air' (flying) | 'land' (lying on the ground) | 'held' (being dragged) */
 let bits = [];
 let dirty = true; // the program may have changed: redraw the overlay and the text
 let serial = 0;
 
+// A landed strip darkens the sheet a little all round it, so even a white strip stands off pale stone.
+const haloTexture = (() => {
+  const c = document.createElement('canvas'), g = c.getContext('2d');
+  c.width = 128; c.height = 64;
+  g.fillStyle = '#000'; g.fillRect(0, 0, 128, 64);
+  g.fillStyle = '#fff'; g.fillRect(9, 9, 110, 46);
+  // softened by drawing it small and back up: canvas `filter` is not in every browser
+  const s = document.createElement('canvas'), sg = s.getContext('2d');
+  s.width = 32; s.height = 16;
+  sg.drawImage(c, 0, 0, 32, 16);
+  g.drawImage(s, 0, 0, 128, 64);
+  return new THREE.CanvasTexture(c);
+})();
+const haloGeo = new THREE.PlaneGeometry(1.17, 0.585).rotateX(-Math.PI / 2).translate(0, -THICK / 2 - 0.001, 0);
+// Both sides: a mirrored strip (see addBit) turns its halo's winding round.
+const haloMat = new THREE.MeshBasicMaterial({ color: '#33293c', alphaMap: haloTexture, transparent: true, opacity: 0.5, depthWrite: false, side: THREE.DoubleSide });
+// All halos are one mesh, one draw call however many strips there are. Same color, so the order they blend in is no matter.
+let halos = new THREE.InstancedMesh(haloGeo, haloMat, 64);
+/** Puts a halo under every landed strip, where it lies this frame. */
+function drawHalos() {
+  const land = bits.filter(b => b.state === 'land');
+  if (land.length > halos.instanceMatrix.count) {
+    scene.remove(halos);
+    halos.dispose();
+    halos = new THREE.InstancedMesh(haloGeo, haloMat, land.length * 2);
+  }
+  if (!halos.parent) {
+    halos.frustumCulled = false; // its instances move every frame
+    halos.renderOrder = -1;      // under the links and everything else see-through on the stones
+    scene.add(halos);
+  }
+  land.forEach((b, i) => { b.mesh.updateMatrix(); halos.setMatrixAt(i, b.mesh.matrix); }); // a strip's parent is the scene
+  halos.count = land.length;
+  halos.instanceMatrix.needsUpdate = true;
+}
+
 function addBit(color, x, y, z, state) {
-  const mesh = new THREE.Mesh(bitGeo, bitMats[color]);
+  const mesh = new THREE.Mesh(bitGeo, bitMats[color][Math.floor(Math.random() * WASHES)]);
+  mesh.scale.set(Math.random() < 0.5 ? 1 : -1, 1, Math.random() < 0.5 ? 1 : -1); // mirrored: the same box, its wash the other way round
   mesh.castShadow = true;
   mesh.position.set(x, y, z);
   mesh.rotation.y = Math.random() * Math.PI;
@@ -347,7 +479,7 @@ function refresh() {
       }
     }
   }
-  links.geometry.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+  links.set(pts);
   startRing.visible = first >= 0;
   if (first >= 0) startRing.position.copy(list[first].mesh.position).y += 0.015;
   view = { list, live, first };
@@ -966,15 +1098,20 @@ function judge(inputs, cap) {
 }
 
 // ---- panel ----
-const THEMES = ['toybox', 'craft', 'arcade'];
+const THEMES = ['paper', 'toybox', 'craft', 'arcade']; // the first is the default
 function setTheme(name) {
   if (!THEMES.includes(name)) name = THEMES[0];
   document.documentElement.dataset.theme = name;
-  try { localStorage.setItem('konfetti.theme', name); } catch {}
   for (const b of $('themes').children) b.setAttribute('aria-pressed', String(b.dataset.theme === name));
 }
 $('themes').innerHTML = THEMES.map(t => `<button class="small" data-theme="${t}">${t}</button>`).join('');
-$('themes').onclick = e => { if (e.target.dataset.theme) setTheme(e.target.dataset.theme); };
+// Only a theme someone picks here is kept, so that one only shown (the default, or from ?theme=) never sticks.
+$('themes').onclick = e => {
+  const name = e.target.dataset.theme;
+  if (!name) return;
+  setTheme(name);
+  try { localStorage.setItem('konfetti.theme.picked', name); } catch {}
+};
 setTheme(document.documentElement.dataset.theme);
 
 function setMuted(on) {
@@ -1119,7 +1256,7 @@ renderer.setAnimationLoop(() => {
     applyLift();
   }
   const air = windAt(t), strength = Math.hypot(air.x, air.z);
-  world.update(dt, t, air);
+  world.update(dt, t, air, camera);
   // The wind sound follows the gusts; only told when it has changed enough to hear.
   if (Math.abs(strength - windHeard) > 0.25 || (!strength && windHeard)) sound.setWind(windHeard = strength);
   controls.update();
@@ -1139,6 +1276,7 @@ renderer.setAnimationLoop(() => {
     hand.update(dt, t);
   }
   if (debugOn) drawLabels();
+  drawHalos();
   renderer.render(scene, camera);
 });
 

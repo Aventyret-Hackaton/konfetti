@@ -73,6 +73,12 @@
   .strip { display: inline-block; flex: none; width: 2.3em; height: .8em; border-radius: 2px; background: var(--c); box-shadow: 0 0 0 1.5px var(--edge); transform: rotate(var(--r, -6deg)); vertical-align: -.05em; }
   h2 .strip { width: 1.5em; height: .55em; }
   .strip.mini { width: 1.6em; height: .55em; margin: 0 .15em; }
+  /* As on the ground, picked out by their color: silver and gold are foil with bands across them, and black has a pale line inside its edge.
+     Sizes are in percent so that every swatch, small or large, has them in the same places as a strip. */
+  .strip[style*="#dfe6ee"] { background: repeating-linear-gradient(115deg, #dfe6ee 0 9%, #4a5677 9% 16.5%, #dfe6ee 16.5% 23.7%); }
+  .strip[style*="#f2b73a"] { background: repeating-linear-gradient(115deg, #f2b73a 0 9%, #c0721d 9% 16.5%, #f2b73a 16.5% 23.7%); }
+  .strip[style*="#2a2c3a"] { position: relative; }
+  .strip[style*="#2a2c3a"]::after { content: ""; position: absolute; inset: 13% 5%; border: 1px solid rgba(222, 216, 232, .85); }
 
   /* ---- step cards ---- */
   ol.steps { list-style: none; padding: 0; counter-reset: step; }
@@ -233,7 +239,7 @@
     <p>Find a black <span class="strip mini" style="--c:#2a2c3a" title="black"></span>, an orange <span class="strip mini" style="--c:#ff9233" title="orange"></span> and two white <span class="strip mini" style="--c:#fff8ec" title="white"></span> strips. Your pointer is a white glove: press on a strip and drag it to some empty stones, between the cannon and you. Lay them in a row: black, orange, white, white. Put their middles about one strip length apart. Which way a strip points does not matter.</p></li>
   <li><h3>Draw the outline</h3>
     <p>Press <b>Crayon</b> or <kbd>C</kbd>. Put the crayon down just past the black strip, at the end of the row away from the others, and drag an outline around all four. Let go: the outline closes itself.</p>
-    <p>Whatever lies inside the outline is the program. The blue dot where the crayon touched down is the <em>origin</em>. Thin lines now join neighbouring strips, and a dark ring sits on the black one: the walk starts there, because it is the strip nearest the origin. If other strips ended up inside the outline, drag them out.</p></li>
+    <p>Whatever lies inside the outline is the program. The blue dot where the crayon touched down is the <em>origin</em>. Dark lines with a pale edge now join neighbouring strips, and a dark ring sits on the black one: the walk starts there, because it is the strip nearest the origin. If other strips ended up inside the outline, drag them out.</p></li>
   <li><h3>Run it</h3>
     <p>Type <code>hi</code> in the <b>Input</b> box and press <b>Run</b>. A yellow pointer hops from strip to strip. Black reads the <code>h</code>, orange copies it, and each white writes one copy. <b>Output</b> shows <code>hh</code>.</p></li>
   <li><h3>Look inside</h3>
@@ -263,6 +269,7 @@
   </tbody>
 </table>
 </div>
+<p>On the ground every strip has a dark outline, so even white stands out on the pale stones. Silver and gold are foil, with bands across them: blue-grey on silver, brown on gold. Black is dark slate with a pale line inside its edge, so two black strips lying across each other still look like two.</p>
 <p>How to read <code>a b -- a+b</code>: before the strip runs, the top two numbers are <code>a</code> and <code>b</code>, with <code>b</code> on top; afterwards <code>a+b</code> is there instead.</p>
 <p>There is a second stack, the <em>stash</em>, for keeping a number out of the way: silver puts it there, gold brings it back. Input and output are <em>bytes</em>, numbers from 0 to 255; text is bytes, one for each letter from a to z or A to Z, digit or sign such as <code>!</code>, and several for other letters, such as <code>é</code>, and for emoji. A strip that needs more numbers than the stack holds does nothing. A konfetti program never crashes; sloppy confetti just misbehaves.</p>
 
@@ -331,7 +338,7 @@ white  13000 0</code></pre>
 </ul>
 
 <h2 id="editor"><span class="strip" style="--c:#9b5cff"></span>The editor</h2>
-<p>The editor is a meadow you can walk around in. The panel on the right holds every control; the bubble at the top left says what to do next and what just happened.</p>
+<p>The editor is a meadow you can walk around in, painted like a watercolor pop-up book: flat painted trees, bushes, rocks, hills and clouds stand in layers around a circle of pale stones, and the grass bends in the wind. The panel on the right holds every control; the bubble at the top left says what to do next and what just happened.</p>
 <p>On a phone the panel is a sheet at the bottom of the screen. Its edge shows the end of the output; tap or drag the handle to open it half way or all the way. <b>Crayon</b>, <b>Fire</b> and <b>Run</b> float just above it, with <b>Check</b> while a lesson is open. Each group of controls folds away: tap its title to open or close it.</p>
 <p><b>As an app.</b> konfetti can be installed, to open from its own icon like an app. In Chrome or Edge, press <b>Install</b> on the card that offers it a few seconds after the editor opens, or use the browser's own install button. On an iPhone or iPad, tap <b>Share</b>, then <b>Add to Home Screen</b>. After one visit, the editor also works offline.</p>
 
@@ -340,7 +347,7 @@ white  13000 0</code></pre>
   <dt>The glove</dt><dd>Over the meadow, your mouse pointer is a white cartoon glove. Press on a strip and drag it to move it; the glove pinches while it carries. Drop a strip on another to cover it. On a touch screen, press a finger on a strip and drag. A touch that just misses still takes the nearest strip within a fingertip, and in a pile the one on top.</dd>
   <dt>Double-click a strip</dt><dd>Flicks it into the air. It lands somewhere nearby. On a touch screen, tap it twice.</dd>
   <dt>Moving the view</dt><dd>Drag the ground to turn around, scroll to zoom, right-drag to slide. On a touch screen, drag with one finger to turn, pinch to zoom and slide two fingers to move.</dd>
-  <dt>What the marks mean</dt><dd>The blue line is the crayon outline and the blue dot is the origin. Thin dark lines join linked strips. A dark ring marks the start. While a program runs, a yellow pointer floats over the strip that runs next.</dd>
+  <dt>What the marks mean</dt><dd>The blue line is the crayon outline and the blue dot is the origin. Dark lines with a pale edge join linked strips. A dark ring marks the start. While a program runs, a yellow pointer, outlined in ink, floats over the strip that runs next. The faint curved pencil lines on the ground are only the joins between the stones.</dd>
 </dl>
 
 <h3>The panel</h3>
@@ -415,17 +422,18 @@ white  13000 0</code></pre>
   <dt>Trace</dt><dd>The last 30 steps, newest first, each in plain words. For example: <code>3 red PUSH #2 pushed 1, went straight on to #3 green</code>.</dd>
   <dt>Stacks</dt><dd>Both stacks as boxes, the top one marked <b>TOP</b>. A number that is a letter shows the letter: 97 shows <code>'a'</code>.</dd>
 </dl>
-<p>In the meadow, every strip of the program gets a label with its number and its instruction. <b>NOW</b> marks the strip about to run and <b>NEXT</b> the one after it, with an arrow for the turn; a ring and an arrow on the ground show the same. <b>START</b> and the origin are labelled too. Covered strips are struck through and marked <i>covered</i>. Far-away labels shrink to just the number.</p>
+<p>In the meadow, every strip of the program gets a label with its number and its instruction. <b>NOW</b> marks the strip about to run and <b>NEXT</b> the one after it, with an arrow for the turn; on the ground, a yellow ring and a yellow arrow, both outlined in ink, show the same. <b>START</b> and the origin are labelled too. Covered strips are struck through and marked <i>covered</i>. Far-away labels shrink to just the number.</p>
 <p>If you move strips before the first step, the paused program follows along. After that, the status line asks you to press Restart. <b>Run fast</b> does not keep a trace.</p>
 
 <h2 id="themes"><span class="strip" style="--c:#f2b73a"></span>Themes</h2>
-<p>Three looks for the panel, the hint and the debugger. The meadow stays the same.</p>
+<p>Four looks for the panel, the hint, the lesson card and the debugger. The meadow stays the same.</p>
 <ul>
-  <li><b>toybox</b>: chunky outlined buttons, like a toy. The default.</li>
+  <li><b>paper</b>: torn sheets of cream watercolor paper, headings lettered by hand on pale washes. The default.</li>
+  <li><b>toybox</b>: chunky outlined buttons, like a toy.</li>
   <li><b>craft</b>: paper notes held on with tape, in handwriting.</li>
   <li><b>arcade</b>: a dark arcade cabinet with neon edges.</li>
 </ul>
-<p>Switch with the buttons at the bottom of the panel, or add <code>?theme=craft</code> (or <code>arcade</code>, or <code>toybox</code>) to the address. The editor remembers your choice in this browser.</p>
+<p>Switch with the buttons at the bottom of the panel, or add <code>?theme=craft</code> (or <code>paper</code>, <code>toybox</code> or <code>arcade</code>) to the address. The editor remembers the theme you last picked with the buttons in this browser.</p>
 
 <h2 id="sound"><span class="strip" style="--c:#b06a3c"></span>Sound</h2>
 <p>The editor makes every sound itself as it plays; there are no sound files. You hear the cannon, each strip landing, strips being picked up and put down, a flick, the crayon scratching as you draw, and the outline closing. While a program runs, every step plays a note. Each color has its own note, all from the same five-note scale, so any program sounds like a tune. Output, the end of a run and mistakes have sounds too. Birds call now and then. With the wind on, you hear it rise and fall with the gusts.</p>
@@ -490,7 +498,7 @@ echo hi | ./cat</code></pre>
   <dt>The program starts at the wrong strip.</dt>
   <dd>It starts at the strip nearest the blue origin dot. Draw the outline again, touching down right next to the strip you want first.</dd>
   <dt>It stops too soon.</dt>
-  <dd>Look at the thin lines: a gap of more than one and a half lengths breaks the trail, and a stray strip nearby can steal a turn. Turn on Debug and step through to see where it goes.</dd>
+  <dd>Look at the lines between strips: a gap of more than one and a half lengths breaks the trail, and a stray strip nearby can steal a turn. Turn on Debug and step through to see where it goes.</dd>
   <dt>It never stops.</dt>
   <dd>Press <b>Stop</b>. Every path needs a dead end, and a pink to leave each loop. Check that the exit is not linked to another part of the trail.</dd>
   <dt>A strip seems to be ignored.</dt>
@@ -560,7 +568,7 @@ white    4800      0</code></pre>
 <!-- ============================== 2 ============================== -->
 <h2 id="t-trail"><span class="kicker">2</span>Make the trail longer</h2>
 <p class="learn"><b>You will learn</b> when two strips are linked, and how to add strips to a trail.</p>
-<p>The walk only moves between strips that are <em>linked</em>. Two strips are linked when their middles are at most one and a half lengths apart: 1500 in the text. In the editor a thin line joins every linked pair. (See <a href="#walk">How the walk works</a> for a picture.)</p>
+<p>The walk only moves between strips that are <em>linked</em>. Two strips are linked when their middles are at most one and a half lengths apart: 1500 in the text. In the editor a dark line joins every linked pair. (See <a href="#walk">How the walk works</a> for a picture.)</p>
 <p>The lesson starts with the program of tutorial 1, which echoes two characters. With <code>Hey</code> as input it writes <code data-kft="lessons/trail.start.kft" data-in="Hey" data-out="He">He</code>: the <code>y</code> is never read. You add one black and one white at the end of the row.</p>
 <figure><svg class="prog" data-kft="lessons/trail.solution.kft" viewBox="-64 -30 468 82" role="img" aria-label="lessons/trail.solution.kft: 0 black at (1200, 0); 1 white at (2400, 0); 2 black at (3600, 0); 3 white at (4800, 0); 4 black at (6000, 0); 5 white at (7200, 0)" style="max-width:702px"><line class="ar" x1="81.0" y1="0.0" x2="98.0" y2="0.0"/><line class="ar" x1="141.0" y1="0.0" x2="158.0" y2="0.0"/><line class="ar" x1="201.0" y1="0.0" x2="218.0" y2="0.0"/><line class="ar" x1="261.0" y1="0.0" x2="278.0" y2="0.0"/><line class="ar" x1="321.0" y1="0.0" x2="338.0" y2="0.0"/><line class="ar soft" x1="7.0" y1="0.0" x2="37.0" y2="0.0"/><rect class="st" data-xy="1200 0" x="42.0" y="-7.5" width="36" height="15" rx="2" fill="#2a2c3a" data-bit="0"/><text class="num on-dark" x="60.0" y="0.0" dy=".36em" text-anchor="middle">0</text><rect class="st" data-xy="2400 0" x="102.0" y="-7.5" width="36" height="15" rx="2" fill="#fff8ec" data-bit="1"/><text class="num" x="120.0" y="0.0" dy=".36em" text-anchor="middle">1</text><rect class="st" data-xy="3600 0" x="162.0" y="-7.5" width="36" height="15" rx="2" fill="#2a2c3a" data-bit="2"/><text class="num on-dark" x="180.0" y="0.0" dy=".36em" text-anchor="middle">2</text><rect class="st" data-xy="4800 0" x="222.0" y="-7.5" width="36" height="15" rx="2" fill="#fff8ec" data-bit="3"/><text class="num" x="240.0" y="0.0" dy=".36em" text-anchor="middle">3</text><rect class="addbox" x="278.5" y="-11.0" width="43" height="22" rx="4"/><rect class="st" data-xy="6000 0" x="282.0" y="-7.5" width="36" height="15" rx="2" fill="#2a2c3a" data-bit="4"/><text class="num on-dark" x="300.0" y="0.0" dy=".36em" text-anchor="middle">4</text><rect class="addbox" x="338.5" y="-11.0" width="43" height="22" rx="4"/><rect class="st" data-xy="7200 0" x="342.0" y="-7.5" width="36" height="15" rx="2" fill="#fff8ec" data-bit="5"/><text class="num" x="360.0" y="0.0" dy=".36em" text-anchor="middle">5</text><circle class="ring" cx="60.0" cy="0.0" r="25.0"/><circle class="org" cx="0" cy="0" r="4.5"/><text class="tc" x="0" y="19" text-anchor="middle">origin</text></svg><figcaption><code>lessons/trail.solution.kft</code>. Strips 4 and 5, in dashed frames, are the two you add.</figcaption></figure>
 <pre class="kft" data-kft="lessons/trail.solution.kft"><code># Echoes three characters: one black and one white for each.
@@ -575,7 +583,7 @@ white    7200      0</code></pre>
 <pre><code>printf 'Hey' | ./target/release/konfetti --trace lessons/trail.solution.kft</code></pre>
 <div class="tablewrap"><table class="walk" data-kft="lessons/trail.solution.kft" data-in="Hey" data-from="1"><thead><tr><th scope="col">Step</th><th scope="col">Strip</th><th scope="col">What it did</th><th scope="col">Main</th><th scope="col">Output</th></tr></thead><tbody><tr><td class="n">1</td><td><span class="strip mini" style="--c:#2a2c3a"></span>#0 <span class="cn">black</span></td><td>read <code>H</code> (72)</td><td class="m">72</td><td class="o"></td></tr><tr><td class="n">2</td><td><span class="strip mini" style="--c:#fff8ec"></span>#1 <span class="cn">white</span></td><td>wrote <code>H</code> (72)</td><td class="m"><span class="soft">empty</span></td><td class="o">H</td></tr><tr><td class="n">3</td><td><span class="strip mini" style="--c:#2a2c3a"></span>#2 <span class="cn">black</span></td><td>read <code>e</code> (101)</td><td class="m">101</td><td class="o">H</td></tr><tr><td class="n">4</td><td><span class="strip mini" style="--c:#fff8ec"></span>#3 <span class="cn">white</span></td><td>wrote <code>e</code> (101)</td><td class="m"><span class="soft">empty</span></td><td class="o">He</td></tr><tr><td class="n">5</td><td><span class="strip mini" style="--c:#2a2c3a"></span>#4 <span class="cn">black</span></td><td>read <code>y</code> (121)</td><td class="m">121</td><td class="o">He</td></tr><tr><td class="n">6</td><td><span class="strip mini" style="--c:#fff8ec"></span>#5 <span class="cn">white</span></td><td>wrote <code>y</code> (121). Dead end: stop</td><td class="m"><span class="soft">empty</span></td><td class="o">Hey</td></tr></tbody></table></div>
 <h3>Try next</h3>
-<p>In the editor, drag strip 5 a little away from strip 4 and watch the thin line between them. It disappears once the middles are more than 1.5 lengths apart, and then <b>Check my program</b> fails: the walk stops at strip 4. Drag it back.</p>
+<p>In the editor, drag strip 5 a little away from strip 4 and watch the line between them. It disappears once the middles are more than 1.5 lengths apart, and then <b>Check my program</b> fails: the walk stops at strip 4. Drag it back.</p>
 <p>Do not drop a new strip right on top of another one. A strip whose middle lies less than half a length from the middle of a strip dropped later is <em>covered</em>, and is no longer part of the program. Tutorial 8 is about that.</p>
 <h3>Exercises</h3>
 <ol class="ex">
@@ -1188,7 +1196,7 @@ bit 7    white   (1200, 1200)  main []  stash []
 bit 0    black   (1200, 0)  main [-1]  stash []
 bit 1    white   (2400, 0)  main []  stash []</code></pre>
 <p><b>What the trace shows.</b> After strip 7, the end of the second row, the walk does not stop: it goes on to strip 0 and round again. Strip 0 lies 1200 below strip 7, so they are linked, and at the end of the row that link is the only way on. Along the rows the walk went straight on, because straight beats a 90° turn, so the cross-links did no harm until then. The program writes <code data-kft="examples/mistakes/rows.kft" data-in="abcd" data-starts="abcd\xff\xff\xff\xff">abcd</code> and then bytes 255 for ever. <code>2&gt;&amp;1 &gt;/dev/null</code> sends the trace into <code>head</code> and the output away; <code>head</code> stops it after 10 lines.</p>
-<p><b>The fix.</b> Rows two lengths apart, with one strip at the bend. In the editor, check that no thin line joins the rows except at the bend.</p>
+<p><b>The fix.</b> Rows two lengths apart, with one strip at the bend. In the editor, check that no line joins the rows except at the bend.</p>
 <figure><svg class="prog" data-kft="examples/mistakes/rows-fixed.kft" viewBox="-64 -150 348 202" role="img" aria-label="examples/mistakes/rows-fixed.kft: 0 black at (1200, 0); 1 white at (2400, 0); 2 black at (3600, 0); 3 white at (4800, 0); 4 black at (4800, 1200); 5 white at (4800, 2400); 6 black at (3600, 2400); 7 white at (2400, 2400)" style="max-width:522px"><line class="ar" x1="81.0" y1="0.0" x2="98.0" y2="0.0"/><line class="ar" x1="141.0" y1="0.0" x2="158.0" y2="0.0"/><line class="ar" x1="201.0" y1="0.0" x2="218.0" y2="0.0"/><line class="ar" x1="240.0" y1="-10.5" x2="240.0" y2="-48.5"/><line class="ar" x1="240.0" y1="-70.5" x2="240.0" y2="-108.5"/><line class="ar" x1="219.0" y1="-120.0" x2="202.0" y2="-120.0"/><line class="ar" x1="159.0" y1="-120.0" x2="142.0" y2="-120.0"/><line class="ar soft" x1="7.0" y1="0.0" x2="37.0" y2="0.0"/><rect class="st" data-xy="1200 0" x="42.0" y="-7.5" width="36" height="15" rx="2" fill="#2a2c3a" data-bit="0"/><text class="num on-dark" x="60.0" y="0.0" dy=".36em" text-anchor="middle">0</text><rect class="st" data-xy="2400 0" x="102.0" y="-7.5" width="36" height="15" rx="2" fill="#fff8ec" data-bit="1"/><text class="num" x="120.0" y="0.0" dy=".36em" text-anchor="middle">1</text><rect class="st" data-xy="3600 0" x="162.0" y="-7.5" width="36" height="15" rx="2" fill="#2a2c3a" data-bit="2"/><text class="num on-dark" x="180.0" y="0.0" dy=".36em" text-anchor="middle">2</text><rect class="st" data-xy="4800 0" x="222.0" y="-7.5" width="36" height="15" rx="2" fill="#fff8ec" data-bit="3"/><text class="num" x="240.0" y="0.0" dy=".36em" text-anchor="middle">3</text><rect class="st" data-xy="4800 1200" x="222.0" y="-67.5" width="36" height="15" rx="2" fill="#2a2c3a" data-bit="4"/><text class="num on-dark" x="240.0" y="-60.0" dy=".36em" text-anchor="middle">4</text><rect class="st" data-xy="4800 2400" x="222.0" y="-127.5" width="36" height="15" rx="2" fill="#fff8ec" data-bit="5"/><text class="num" x="240.0" y="-120.0" dy=".36em" text-anchor="middle">5</text><rect class="st" data-xy="3600 2400" x="162.0" y="-127.5" width="36" height="15" rx="2" fill="#2a2c3a" data-bit="6"/><text class="num on-dark" x="180.0" y="-120.0" dy=".36em" text-anchor="middle">6</text><rect class="st" data-xy="2400 2400" x="102.0" y="-127.5" width="36" height="15" rx="2" fill="#fff8ec" data-bit="7"/><text class="num" x="120.0" y="-120.0" dy=".36em" text-anchor="middle">7</text><circle class="ring" cx="60.0" cy="0.0" r="25.0"/><circle class="org" cx="0" cy="0" r="4.5"/><text class="tc" x="0" y="19" text-anchor="middle">origin</text></svg><figcaption><code>examples/mistakes/rows-fixed.kft</code> copies <code data-kft="examples/mistakes/rows-fixed.kft" data-in="abcd" data-out="abcd">abcd</code> and stops.</figcaption></figure>
 
 <h3>The walk starts at the wrong end</h3>

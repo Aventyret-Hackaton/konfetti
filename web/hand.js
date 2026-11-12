@@ -1,6 +1,8 @@
 // A cartoon glove that stands in for the mouse pointer: it hovers over the ground and pinches
 // confetti. Four fingers, a puffy cuff and three stitches on the back, as cartoon gloves have.
+// It is painted like the rest of the world: one flat white, with an ink line round every part.
 import * as THREE from 'three';
+import { paint, hull } from './world.js';
 
 /**
  * Returns { group, setGrab(on), update(dt, t) }.
@@ -8,8 +10,9 @@ import * as THREE from 'three';
  * so turn the group to keep +z toward the camera.
  */
 export function createHand() {
-  const glove = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.5 });
-  const ink = new THREE.MeshBasicMaterial({ color: '#22242e' });
+  const glove = paint(new THREE.MeshLambertMaterial({ color: '#fffdf6' }));
+  const ink = new THREE.MeshBasicMaterial({ color: '#1c1f36' });
+  const line = hull('#1c1f36', 0.026);
   const group = new THREE.Group();
   const hand = new THREE.Group(); // everything, so the whole glove can dip and tilt inside the group
   group.add(hand);
@@ -44,7 +47,12 @@ export function createHand() {
     { ...digit(0.25, 0.72, 0, 0.25, 0.108), splay: -0.3 },
   ];
   const thumb = digit(-0.36, 0.98, -0.1, 0.2, 0.115);
-  hand.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  // The line is what tells finger from palm: nothing here is shaded round.
+  hand.traverse(o => {
+    if (!o.isMesh || o.material !== glove) return;
+    o.castShadow = true;
+    o.add(new THREE.Mesh(o.geometry, line));
+  });
 
   let grab = 0, target = 0; // 0 = open and relaxed, 1 = pinching
 
