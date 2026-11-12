@@ -13,6 +13,7 @@ Cargo may not be on `PATH`. If `cargo` is not found, prefix commands with
 make test     # cargo test: runtime and CLI tests
 make          # web/konfetti.wasm first, then the release CLI at target/release/konfetti
 make serve    # editor at http://localhost:8137/web/
+make app      # the Mac app: src-tauri/target/release/bundle/macos/Konfetti.app (needs the Tauri CLI)
 target/release/konfetti prog.kft            # stdin -> program -> stdout
 target/release/konfetti --trace prog.kft    # each step and both stacks, on stderr
 target/release/konfetti build prog.kft -o prog              # standalone executable
@@ -39,7 +40,11 @@ stderr for I/O and load errors, 2 with the usage text for bad arguments.
   `\x89KFTexe\n`; at startup the binary checks its own last 16 bytes), or the
   page template `APP`, whose `§` slots take the name, the source and the wasm
   as base64. Tests are at the bottom.
-- `web/index.html`: the page and the import map for three.js 0.170.0.
+- `web/index.html`: the page, and the import map that points `three` and
+  `three/addons/` at `web/vendor/three/`.
+- `web/vendor/three/`: three.js 0.170.0, the files the editor imports and
+  three's `LICENSE`, unchanged from the npm package. See "Rules of the
+  codebase".
 - `web/main.js`: the editor: bits and how they look, links and rings, the
   crayon outline, the paper tooth, wind physics, running, debug mode, keys,
   themes, `window.konfetti`. A mouse must hit a strip to pick it up; on a
@@ -74,11 +79,14 @@ stderr for I/O and load errors, 2 with the usage text for bad arguments.
   *Learn konfetti*, is 17 tutorials and a cheat sheet; see "Checking the docs".
 - `web/sw.js`, `web/pwa.js`, `web/pwa.css`, `web/manifest.webmanifest`,
   `web/icons/`: konfetti as an installable app. The worker is network-first
-  (3 s, then the cache) for our own files and cache-first for three.js at its
-  pinned CDN version; it never caches the weather API. See "The site and the
+  (3 s, then the cache) for our own files, three.js among them, and touches
+  nothing from another origin, so it never caches the weather API. See "The site and the
   app".
 - `index.html` and `.nojekyll` at the root: for GitHub Pages. The page only
   forwards to `web/`.
+- `src-tauri/`: the Mac app, a Tauri 2 crate of its own (`konfetti-app`), not
+  part of the root crate. `src/main.rs` is all of its code, `tauri.conf.json`
+  its window, CSP and bundle, `icons/icon@2x.png` its icon. See "The Mac app".
 - `lessons/`: the twelve lessons of learn mode. See "Lessons".
 - `examples/*.kft`: `hello` and `cat` are also test fixtures. `dad`,
   `countdown`, `compare` and `reverse` are the programs of tutorials 13 to 16.
@@ -94,15 +102,28 @@ stderr for I/O and load errors, 2 with the usage text for bad arguments.
   in the palette strip of `APP` in `src/main.rs`, in the tables in `SPEC.md`,
   `README.md` and `web/docs.html`, and in `docs.html`'s band. Change them all
   together.
-- The web side has no build step, no dependencies besides three.js from the
-  CDN import map, and no asset files: textures are drawn and sounds are
+- The web side has no build step and no dependencies besides three.js, and
+  loads nothing from another host: the only request that leaves is Wind's, to
+  `api.open-meteo.com`. three.js is vendored at exactly 0.170.0 in
+  `web/vendor/three/`, laid out as in the npm package: `build/three.module.js`
+  (sha256 `ce1fa418de16a19495a9f72495580e3015d7745c296d3ce0485897f902ddedfb`),
+  `examples/jsm/controls/OrbitControls.js` (`80efaadea4f8a636a65fb0bd08bfef62f3d93a0bb94e2e7500f23176c5c07f4e`)
+  and `LICENSE` (`4c40a1ef62450b857c3b2aaf294936304cd552d965fbcd9d32d4c5bcf4ba4454`).
+  Never edit them. An addon the editor starts to import is copied in from
+  `https://registry.npmjs.org/three/-/three-0.170.0.tgz` at the same path,
+  with every module it imports in turn.
+- There are no asset files: textures are drawn and sounds are
   synthesized in code. The one exception is the app icons, `web/icons/*.png`,
   which `web/icons/icon.html` draws. To redraw them, open that page from a
   local server and save as PNG the canvas `draw(size, 'blue4', shape, zoom)`
   returns (`.toDataURL('image/png')`): `draw(192, 'blue4', 'any')` and
   `draw(512, 'blue4', 'any')` for `icon-192.png` and `icon-512.png`,
   `draw(512, 'blue4', 'full')` for `maskable-512.png`, and
-  `draw(180, 'blue4', 'full', 1.12)` for `apple-touch-icon.png`.
+  `draw(180, 'blue4', 'full', 1.12)` for `apple-touch-icon.png`. The Mac
+  app's `src-tauri/icons/icon@2x.png` is `draw(896, 'blue4', 'any')` drawn at
+  `(64, 64)` on a clear 1024 px canvas, which leaves the margin Mac icons
+  have. Its name matters: the bundler makes the `.icns` from it and takes a
+  1024 px image only as `@2x`.
 - The editor maps language `(x, y)` to world `(origin.x + x, -, origin.z - y)`,
   1000 language units per world unit, where the origin is the first point of
   the crayon outline.
@@ -368,7 +389,83 @@ whenever you change what or how `sw.js` caches (the precache list, the
 strategy, the keys); the new worker then deletes the old cache. Keep `PAGES`
 in `sw.js` in step with the Examples menu in `index.html`. A new module or
 file the editor loads needs no entry: the page sends the worker what it
-loaded.
+loaded. The vendored three.js files are the exception and are listed in
+`PAGES`: the page that installs worker 2 may be a v0.0.5 page that loaded
+three.js from the CDN, and offline the new `./` needs them.
+
+## The Mac app
+
+`make app` runs `make`, copies `web/`, `lessons/` and `examples/` into
+`src-tauri/dist/` (git-ignored; laid out like the repo root, because the
+editor fetches `../lessons/` and `../examples/`), and runs `cargo tauri build`
+in `src-tauri/`. Tauri embeds `dist/` in the binary; every `make app`
+recompiles the crate, so the app never carries old files. The result is
+`src-tauri/target/release/bundle/macos/Konfetti.app`, about 8 MB, ad-hoc
+signed (`signingIdentity: "-"`), for the architecture of the Mac that built
+it. The Tauri CLI is needed only for this:
+`cargo install tauri-cli --version "^2" --locked`. The root crate does not
+depend on Tauri; `make`, `make test` and `cargo build` work without the CLI.
+`cargo tauri dev` does not work: with no `devUrl` the CLI serves `dist/` over
+`http://127.0.0.1`, and `on_navigation` hands that page, like any `http(s)`
+one, to the browser, so the window stays blank. Rebuild with `make app`.
+`src-tauri/Cargo.lock` is committed. The CLI rewrites the dependency lines in
+`src-tauri/Cargo.toml` as `{ version = "2", features = [] }`; keep that form
+or every build dirties the tree. The version is in `tauri.conf.json` and
+`src-tauri/Cargo.toml`; keep both in step with the root `Cargo.toml`.
+
+The page in the app is `tauri://localhost/web/index.html`, the same files as
+the web version, and it gets no Tauri API: `capabilities` is empty and the
+crate registers no commands. What differs in the app:
+
+- **Network.** The CSP in `tauri.conf.json` allows the app's own files and
+  `https://api.open-meteo.com`, nothing else. `style-src` is kept out of
+  Tauri's nonces (`dangerousDisableAssetCspModification`) because the pages
+  use `style` attributes. A new host the editor must reach needs a CSP entry.
+- **Wind.** The web view (WKWebView under wry) never answers
+  `navigator.geolocation`: no position, no error, no timeout, with or without
+  a usage string in `Info.plist`. So `main.js` does not ask when
+  `'__TAURI_INTERNALS__' in window` (`NO_LOCATION`) and goes straight to the
+  made-up wind, as in a browser that says no. That name is the only thing in
+  `web/` that knows about the app.
+- **Docs.** The link asks for a new tab (`target="_blank"`), which a web view
+  ignores. `on_new_window` in `src-tauri/src/main.rs` gives it a second
+  window, labelled `docs`, and a second press brings that window forward,
+  out of the Dock too (`set_focus` alone does nothing to a minimized window).
+  `on_navigation` keeps both windows on the app's own pages and hands any
+  `http(s)` link to `open`, so it opens in the browser. Closing the editor's
+  window quits the app, guide included (`on_window_event`): nothing in the
+  guide leads back to the editor.
+- **Service worker and install card.** `pwa.js` runs unchanged. Registration
+  fails silently on `tauri://` (no worker, no console message) and the card
+  never has a reason to show.
+- **Storage.** `localStorage` works and persists between launches, in
+  `~/Library/WebKit/io.github.aventyret-hackaton.konfetti/`.
+- **Window.** 1280 by 800 with the title bar, so the page is 1280 by 768.
+
+To check a change in the app, `make app`, then `open -n` the app. Never click
+or type in it from a script. To see what the page sees, add test code for the
+run and take it out again: a `#[tauri::command]` that appends a string to a
+file, registered with `invoke_handler`, and an `initialization_script` on the
+main window that calls it through `window.__TAURI_INTERNALS__.invoke` with
+`document.title`, `konfetti.theme()`, the output after loading hello and
+pressing `fast`, and what `console.error`, `error`, `unhandledrejection` and
+`securitypolicyviolation` reported (the hook's own `ipc://` CSP report is not
+the editor's). Set `localStorage['konfetti.muted'] = '1'` first in that script
+so nothing can sound, and `localStorage.clear()` at the end. For a picture,
+call `takeSnapshotWithConfiguration:completionHandler:` on the `WKWebView`
+from `with_webview`; `screencapture` needs a permission agents do not have.
+The snapshot is the whole web view, 32 px taller than the page, with an empty
+band at the bottom that the window does not show. With the screen locked the
+web view gets no animation frames and the editor stands still: replace
+`requestAnimationFrame` with a 16 ms timer in the hook, and keep the page
+awake from `with_webview` (`_setWindowOcclusionDetectionEnabled:` off on the
+web view). Even so WebKit may suspend the hidden page 5 to 20 s after it
+loads, so keep each launch's checks to a few seconds and split a longer probe
+into stages, one per launch, with a counter in `localStorage`. The guide
+window runs the main window's `initialization_script`, not one given to its
+own builder in `on_new_window` (WebKit makes it from the opener's
+configuration): put code for the guide in the main window's script, guarded
+on `location.pathname` ending in `docs.html`.
 
 ## Checking the CLI
 

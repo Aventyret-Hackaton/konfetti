@@ -1,18 +1,21 @@
 // The service worker: konfetti starts and works offline once it has been opened online.
 // The project changes every day, so the app's own files are network-first: online, a fresh copy
-// always wins and the cache is only the fallback. three.js comes from versioned CDN URLs that never
-// change, so those are cache-first. Change VERSION whenever this file changes how or what it caches;
-// a new VERSION throws the old cache away. Changing the editor's files needs no new VERSION.
-const VERSION = 1;
+// always wins and the cache is only the fallback. That goes for three.js too, which is a file of ours
+// under vendor/. Change VERSION whenever this file changes how or what it caches; a new VERSION
+// throws the old cache away. Changing the editor's files needs no new VERSION.
+const VERSION = 2;
 // Named after the scope too: copies on one host (user.github.io/konfetti/, /a-fork/) keep apart.
 const CACHE = `konfetti-${VERSION} ${self.registration.scope}`;
 // ms to wait for the network before falling back to a cached copy. ponytail: on a link slower than
 // this, a start can mix fresh and cached files; the late answers still land in the cache for next time.
 const WAIT = 3000;
 
-// What a first visit may not have fetched yet but should open offline. Everything the editor itself
-// loads (modules, styles, wasm, three.js) the page sends over once this worker controls it.
-const PAGES = ['./', 'docs.html', ...['hello', 'cat', 'count', 'dad', 'countdown', 'compare', 'reverse'].map(n => `../examples/${n}.kft`)];
+// What a first visit may not have fetched yet but should open offline. Everything else the editor
+// loads (modules, styles, wasm) the page sends over once this worker controls it. three.js is listed:
+// a page from before it moved into vendor/ may be the one that installs this worker, and it never
+// loaded those files, while the './' cached here needs them.
+const PAGES = ['./', 'docs.html', 'vendor/three/build/three.module.js', 'vendor/three/examples/jsm/controls/OrbitControls.js',
+  ...['hello', 'cat', 'count', 'dad', 'countdown', 'compare', 'reverse'].map(n => `../examples/${n}.kft`)];
 
 self.addEventListener('install', e => {
   e.waitUntil((async () => {
@@ -47,17 +50,14 @@ self.addEventListener('message', e => {
 self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET' || !ours(req.url)) return; // the weather and anything else: straight to the network
-  const url = new URL(req.url);
-  if (url.origin !== location.origin) return e.respondWith(cacheFirst(req));
   const { net, saved } = fresh(req);
   e.waitUntil(saved.catch(() => {})); // an answer that comes too late still refreshes the cache
   e.respondWith(networkFirst(req, net).then(recheck));
 });
 
-/** Our own files, and three.js at a pinned version on the CDN. */
+/** Our own files: everything the editor needs. Nothing from another origin is ever cached. */
 function ours(href) {
-  const url = new URL(href);
-  return url.origin === location.origin || (url.host === 'cdn.jsdelivr.net' && /^\/npm\/three@\d/.test(url.pathname));
+  return new URL(href).origin === location.origin;
 }
 
 /** The cache key: the URL without its query, so ?theme=arcade and the plain page share a copy. */
@@ -99,15 +99,4 @@ function recheck(res) {
   const headers = new Headers(res.headers);
   headers.set('Cache-Control', 'no-cache');
   return new Response(res.body, { status: 200, statusText: res.statusText, headers });
-}
-
-async function cacheFirst(req) {
-  const hit = await caches.match(key(req.url));
-  if (hit) return hit;
-  const res = await fetch(req);
-  if (res.ok) {
-    const copy = res.clone();
-    await caches.open(CACHE).then(cache => cache.put(key(req.url), copy));
-  }
-  return res;
 }

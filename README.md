@@ -193,7 +193,8 @@ across them, and black is dark slate with a pale line inside its edge.
   three bit lengths a minute in a 6 m/s wind, and never take off again, so a
   program keeps its shape for a while but slowly walks out of its outline.
   The flag on the stones hangs limp with the wind off and streams downwind as
-  the wind picks up. Without a location the editor invents a wind and says so.
+  the wind picks up. Without a location the editor invents a wind and says so;
+  the Mac app has no location, so there the wind is always invented.
 - **Sound** is all synthesized: the cannon, landings, the crayon, a note per
   step. **Mute** (or M) silences it and is remembered.
 - **Themes** for the panel, the hint, the lesson card and the debugger: paper
@@ -208,8 +209,8 @@ across them, and black is dark slate with a pale line inside its edge.
   explained, and tap it twice to flick it.
 
 On a slow machine, add `?grass=20000` to the address for a thinner meadow.
-The editor loads three.js from a CDN, so its first visit needs a network
-connection.
+The editor needs no network: three.js 0.170.0 is in the repo, under
+`web/vendor/three/`. Only **Wind** goes out, to Open-Meteo.
 
 The editor is installable as an app (a PWA): `web/manifest.webmanifest` and
 `web/icons/` describe it, `web/sw.js` makes it start offline after one visit,
@@ -220,6 +221,34 @@ month before offering again. It only works over HTTPS or on localhost; online,
 the worker always fetches the latest files first, so a change reaches people
 on their next load.
 
+### The Mac app
+
+`make app` builds the editor as a Mac app, `Konfetti.app`, with
+[Tauri](https://tauri.app): the same files as the web version, in a window of
+its own, with nothing to serve and no network needed. It needs the Tauri CLI
+once, on top of Rust and Xcode's command line tools:
+
+```sh
+cargo install tauri-cli --version "^2" --locked
+make app
+open src-tauri/target/release/bundle/macos/Konfetti.app
+```
+
+- **Docs** opens the guide in a second window, or brings it back; a link out
+  of the guide opens in your browser. Closing the editor's window quits the
+  app, guide included.
+- The theme you pick, **Mute** and the lessons you have passed are remembered
+  between launches.
+- **Wind** is always an invented one: the app's web view cannot ask for your
+  location.
+- The app is not signed by an Apple developer. On the Mac that built it, it
+  just opens. A copy that reached another Mac through a browser, a chat or
+  AirDrop is stopped the first time: open it once, then go to **System
+  Settings > Privacy & Security** and press **Open Anyway** (before macOS 15:
+  right-click the app and choose **Open**). Or, in a terminal:
+  `xattr -dr com.apple.quarantine Konfetti.app`. It runs on the kind of Mac
+  that built it (Apple silicon or Intel).
+
 ## Layout of this repo
 
 | Path | What |
@@ -227,7 +256,8 @@ on their next load.
 | `SPEC.md` | The language definition |
 | `src/lib.rs` | The whole runtime: parse, link, compile, run, tests, wasm exports |
 | `src/main.rs` | The CLI: run, trace, and `build` for executables and web pages |
-| `web/` | The editor: `index.html`, `main.js` (editing and running), `world.js` (the painted scenery, cannon, flag), `debug.js` (the debugger's words and views), `learn.js` (learn mode), `sound.js`, `hand.js` (the glove), `ui.css` (panel and themes), the built `konfetti.wasm`, `docs.html`, the guide and tutorials, and the installable app: `manifest.webmanifest`, `icons/`, `sw.js`, `pwa.js`, `pwa.css` |
+| `web/` | The editor: `index.html`, `main.js` (editing and running), `world.js` (the painted scenery, cannon, flag), `debug.js` (the debugger's words and views), `learn.js` (learn mode), `sound.js`, `hand.js` (the glove), `ui.css` (panel and themes), the built `konfetti.wasm`, `vendor/three/` (three.js 0.170.0, as published), `docs.html`, the guide and tutorials, and the installable app: `manifest.webmanifest`, `icons/`, `sw.js`, `pwa.js`, `pwa.css` |
+| `src-tauri/` | The Mac app: a small Tauri crate of its own that shows `web/` in a window; `make app` builds it |
 | `index.html`, `.nojekyll` | For GitHub Pages: the site's root forwards to `web/` |
 | `lessons/` | The lessons of learn mode: `index.json` and a starter and a solution program for each; `make test` checks that each can be solved |
 | `examples/` | Programs, including the tutorials' |

@@ -378,8 +378,12 @@ function windAt(t) {
   return { x: wind.x * k, z: wind.z * k };
 }
 
+// The Mac app has no location: its web view never answers the request below, not even with a no.
+const NO_LOCATION = '__TAURI_INTERNALS__' in window;
+
 async function fetchWind() {
   try {
+    if (NO_LOCATION) throw new Error('no location');
     const pos = await new Promise((ok, no) => navigator.geolocation.getCurrentPosition(ok, no, { timeout: 8000 }));
     // One decimal (about 10 km) is plenty for weather and keeps the location vague.
     const q = `latitude=${pos.coords.latitude.toFixed(1)}&longitude=${pos.coords.longitude.toFixed(1)}`;

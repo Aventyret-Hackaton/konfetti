@@ -1,0 +1,21 @@
+# The Mac app: the editor under ../web in a native window. A crate of its own, so that the language
+# runtime in the root crate builds without Tauri. `make app` builds it.
+[package]
+name = "konfetti-app"
+version = "0.0.6"
+edition = "2024"
+
+[workspace]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

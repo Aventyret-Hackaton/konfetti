@@ -341,6 +341,12 @@ white  13000 0</code></pre>
 <p>The editor is a meadow you can walk around in, painted like a watercolor pop-up book: flat painted trees, bushes, rocks, hills and clouds stand in layers around a circle of pale stones, and the grass bends in the wind. The panel on the right holds every control; the bubble at the top left says what to do next and what just happened.</p>
 <p>On a phone the panel is a sheet at the bottom of the screen. Its edge shows the end of the output; tap or drag the handle to open it half way or all the way. <b>Crayon</b>, <b>Fire</b> and <b>Run</b> float just above it, with <b>Check</b> while a lesson is open. Each group of controls folds away: tap its title to open or close it.</p>
 <p><b>As an app.</b> konfetti can be installed, to open from its own icon like an app. In Chrome or Edge, press <b>Install</b> on the card that offers it a few seconds after the editor opens, or use the browser's own install button. On an iPhone or iPad, tap <b>Share</b>, then <b>Add to Home Screen</b>. After one visit, the editor also works offline.</p>
+<p id="mac"><b>As a Mac app.</b> With the konfetti folder and <a href="https://rustup.rs">Rust</a> on a Mac, <code>make app</code> builds <code>Konfetti.app</code>: the same editor in a window of its own, with no server and no internet. It needs one tool first, and takes a few minutes the first time:</p>
+<pre><code>cargo install tauri-cli --version "^2" --locked
+make app
+open src-tauri/target/release/bundle/macos/Konfetti.app</code></pre>
+<p>Drag the app to <i>Applications</i> to keep it. In the app, <b>Docs</b> opens this guide in a second window (closing the editor's window quits the app, guide included), and your theme, <b>Mute</b> and the lessons you have passed are remembered. The app is not signed by an Apple developer, so a copy sent to another Mac is stopped the first time it is opened. If you trust it: try to open it once, then open <b>System Settings</b>, <b>Privacy &amp; Security</b>, and press <b>Open Anyway</b>. On macOS 14 and older, right-click the app and choose <b>Open</b> instead. This does the same in the terminal:</p>
+<pre><code>xattr -dr com.apple.quarantine Konfetti.app</code></pre>
 
 <h3>In the meadow</h3>
 <dl class="controls">
@@ -357,7 +363,7 @@ white  13000 0</code></pre>
   <tbody>
     <tr><td>konfetti logo</td><td>A puff of paper confetti. Just for fun.</td></tr>
     <tr><td><b>Mute</b> <kbd>M</kbd></td><td>Turns all sound off or on. See <a href="#sound">Sound</a>.</td></tr>
-    <tr><td><b>Docs</b></td><td>Opens this guide.</td></tr>
+    <tr><td><b>Docs</b></td><td>Opens this guide: in a new tab, or in the Mac app in a second window.</td></tr>
     <tr><td><b>Learn konfetti</b> <kbd>L</kbd></td><td>Opens the lessons. See <a href="#learnmode">Learn mode</a>.</td></tr>
     <tr><td><b>Fire</b> <kbd>Space</kbd></td><td>Shoots a burst of 40 strips of random colors from the cannon.</td></tr>
     <tr><td><b>Crayon</b> <kbd>C</kbd></td><td>Pick it, then drag on the stones to draw an outline. It closes itself when you let go. The dot where it touched down is the origin. Drawing again replaces the outline.</td></tr>
@@ -440,7 +446,7 @@ white  13000 0</code></pre>
 <p>Browsers stay silent until you click or press a key on the page, so the sound starts then. <b>Mute</b> or <kbd>M</kbd> turns it all off, and the editor remembers that in this browser. When the tab is hidden, it goes quiet by itself.</p>
 
 <h2 id="wind"><span class="strip" style="--c:#29d3e6"></span>Wind and the flag</h2>
-<p>Press <b>Wind</b> or <kbd>W</kbd> to bring in the real wind. Your browser asks for your location; konfetti rounds it to about 10 km and asks the free weather service <a href="https://open-meteo.com">Open-Meteo</a> for the wind there right now. The panel shows it, for example <i>5.7 m/s from 196°</i>: the speed, and the compass direction it blows from. If you say no, or the weather cannot be reached, the editor makes up a wind of 3 to 10 m/s and says so. Press Wind again to stop it.</p>
+<p>Press <b>Wind</b> or <kbd>W</kbd> to bring in the real wind. Your browser asks for your location; konfetti rounds it to about 10 km and asks the free weather service <a href="https://open-meteo.com">Open-Meteo</a> for the wind there right now. The panel shows it, for example <i>5.7 m/s from 196°</i>: the speed, and the compass direction it blows from. If you say no, or the weather cannot be reached, the editor makes up a wind of 3 to 10 m/s and says so. The Mac app cannot ask where you are, so its wind is always made up. Press Wind again to stop it.</p>
 <ul>
   <li><b>In the air</b>, confetti drifts with the wind: about one strip length a second for every m/s.</li>
   <li><b>On the ground</b>, strips only move in gusts, and slowly: about two or three lengths a minute in a 6 m/s wind. They never lift off again. All strips move at nearly the same pace, so a program keeps its shape for a while, but the whole pile creeps out of the crayon outline, which stays put.</li>
@@ -492,7 +498,7 @@ echo hi | ./cat</code></pre>
 <h2 id="trouble"><span class="strip" style="--c:#ff4b5c"></span>When something goes wrong</h2>
 <dl class="controls">
   <dt>The meadow does not appear, or the buttons do nothing.</dt>
-  <dd>Open it through the web server with <code>make serve</code>, not by opening <code>index.html</code> as a file. The first time, it also needs the internet, to fetch the 3D library. No Rust? <code>python3 -m http.server 8137</code> in the konfetti folder serves it too, with the runtime that comes ready built.</dd>
+  <dd>Open it through the web server with <code>make serve</code>, not by opening <code>index.html</code> as a file. No Rust? <code>python3 -m http.server 8137</code> in the konfetti folder serves it too, with the runtime that comes ready built.</dd>
   <dt>"Nothing to run: draw an outline with the crayon first."</dt>
   <dd>Press Crayon and draw an outline around your strips.</dd>
   <dt>The program starts at the wrong strip.</dt>
