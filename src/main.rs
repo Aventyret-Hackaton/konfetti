@@ -208,8 +208,8 @@ const APP: &str = r##"<!doctype html>
   body { margin: 0; font: 16px/1.5 system-ui, sans-serif; color: var(--ink); background: var(--bg); }
   /* The palette, in opcode order, as a strip of confetti. */
   body::before { content: ""; display: block; height: 10px; background: linear-gradient(90deg,
-    #ff4b5c 0 7.7%, #ff9233 0 15.4%, #ffe14d 0 23.1%, #2fd07a 0 30.8%, #29d3e6 0 38.5%, #3d7bff 0 46.2%, #9b5cff 0 53.8%,
-    #ff6ec7 0 61.5%, #fff8ec 0 69.2%, #2a2c3a 0 76.9%, #b06a3c 0 84.6%, #dfe6ee 0 92.3%, #f2b73a 0); }
+    #d2103a 0 7.7%, #f16603 0 15.4%, #ffff00 0 23.1%, #28b260 0 30.8%, #00f0ff 0 38.5%, #195cec 0 46.2%, #7a0a9e 0 53.8%,
+    #ff659a 0 61.5%, #ffffff 0 69.2%, #1c1c1c 0 76.9%, #6e3104 0 84.6%, #9ca8ac 0 92.3%, #ffb300 0); }
   main { max-width: 40rem; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
   h1 { margin: 0; font-size: 2rem; letter-spacing: -.02em; overflow-wrap: anywhere; }
   .by { margin: 0 0 1.5rem; color: var(--dim); }

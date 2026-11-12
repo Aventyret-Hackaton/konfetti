@@ -160,9 +160,10 @@ The world is a watercolor pop-up book: flat painted cut-outs of trees,
 bushes, rocks, hills, clouds, a windmill and a balloon stand in layers on a
 painted ground, each with a rim of bare paper, and the grass is painted tufts
 that bend in the wind. The stones the cannon stands on are one pale wash with
-a few curved pencil seams. The confetti is the brightest thing in the
-picture: every strip has a dark outline, silver and gold are foil with bands
-across them, and black is dark slate with a pale line inside its edge.
+a few curved pencil seams. The confetti does not belong to the painting: it
+lies on it like stickers. Every strip is one flat, bright color inside the
+same border, a dark line with a white hairline inside it, and the thirteen
+colors are set as far from each other as their names allow.
 
 - **Learn konfetti** (or L) opens twelve lessons. Each lays out a program
   with the spare strips it needs; **Check my program** runs it on the lesson's

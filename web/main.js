@@ -12,11 +12,11 @@ import { createLearn } from './learn.js';
 import { initPwa } from './pwa.js';
 
 const PALETTE = [
-  ['red', '#ff4b5c', 'PUSH'], ['orange', '#ff9233', 'DUP'], ['yellow', '#ffe14d', 'SWAP'],
-  ['green', '#2fd07a', 'ADD'], ['cyan', '#29d3e6', 'SUB'], ['blue', '#3d7bff', 'MUL'],
-  ['purple', '#9b5cff', 'DIVMOD'], ['pink', '#ff6ec7', 'BRANCH'], ['white', '#fff8ec', 'OUT'],
-  ['black', '#2a2c3a', 'IN'], ['brown', '#b06a3c', 'DROP'], ['silver', '#dfe6ee', 'STASH'],
-  ['gold', '#f2b73a', 'FETCH'],
+  ['red', '#d2103a', 'PUSH'], ['orange', '#f16603', 'DUP'], ['yellow', '#ffff00', 'SWAP'],
+  ['green', '#28b260', 'ADD'], ['cyan', '#00f0ff', 'SUB'], ['blue', '#195cec', 'MUL'],
+  ['purple', '#7a0a9e', 'DIVMOD'], ['pink', '#ff659a', 'BRANCH'], ['white', '#ffffff', 'OUT'],
+  ['black', '#1c1c1c', 'IN'], ['brown', '#6e3104', 'DROP'], ['silver', '#9ca8ac', 'STASH'],
+  ['gold', '#ffb300', 'FETCH'],
 ];
 const UNIT = 1000, REACH = 1500, MIN_GAP = 500;
 const TOOTH = 0.03;             // how much the paper's tooth darkens the picture at most
@@ -24,8 +24,6 @@ const THICK = 0.008;            // a bit is a paper-thin strip
 const LAYER = THICK * 1.5;      // height step between stacked bits; the slack keeps faces from flickering
 const FOOTPRINT = 1.05;         // bits with centres closer than this may touch, so they stack
 const CRAYON = '#2447d8';
-const OUTLINE = 'rgba(40,32,54,0.9)'; // the line round every strip
-const EDGE = 0.04;                     // its width, in strip lengths
 const $ = id => document.getElementById(id);
 const params = new URLSearchParams(location.search);
 // The phone layout (the panel is a sheet at the bottom): the same query is in ui.css.
@@ -212,46 +210,34 @@ function setCrayonMode(on) {
 }
 
 // ---- bits ----
+// Strips are stickers: one flat, solid color each, inside one border that is the same on all thirteen: an ink
+// line with a white hairline inside it. A light strip shows the ink, a dark one the white, so any strip lying
+// on any other (black on black, white on white) is seen to be a second strip, and the upper one. There is no
+// texture: the shader draws the border from how far a point is from the strip's edge.
+const EDGE = [0.036, 1.6], HAIR = [0.016, 1.2]; // the ink line and the white hairline: [width in strip lengths, least width in pixels]
 const bitGeo = new THREE.BoxGeometry(1, THICK, 0.4);
-// Paper strips: an even wash that pools darker along the edge, inside a dark line, so that every color
-// (white on pale stone or bare paper, black in shade) has its own outline. Silver and gold are foil, with
-// bands of glint across them, which tells them from white and yellow by more than their color. Black has a
-// pale line inside its dark one: without it two black strips lying across each other are one blot.
-function stripTexture(kind) {
-  const c = document.createElement('canvas'), g = c.getContext('2d'), W = 320, H = 128;
-  c.width = W; c.height = H;
-  g.fillStyle = kind === 'black' ? PALETTE[9][1] : '#fff'; g.fillRect(0, 0, W, H);
-  // the wash is not quite even: soft blooms, fainter on black, where a pale bloom would show as smoke
-  for (let i = 0; i < 50; i++) {
-    const x = Math.random() * W, y = Math.random() * H, r = 16 + Math.random() * 40, tone = Math.random() < 0.5 ? '110,110,120' : '255,255,255';
-    const bloom = g.createRadialGradient(x, y, 0, x, y, r);
-    bloom.addColorStop(0, `rgba(${tone},${(0.05 + Math.random() * 0.06) * (kind === 'black' ? 0.4 : 1)})`); bloom.addColorStop(1, `rgba(${tone},0)`);
-    g.fillStyle = bloom;
-    g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
-  }
-  const band = { silver: 'rgba(48,60,100,0.82)', gold: 'rgba(150,62,0,0.5)' }[kind];
-  if (band) {
-    for (let x = -80, i = 0; x < W + 80; x += 44, i++) { g.lineWidth = i & 1 ? 25 : 17; g.strokeStyle = i & 1 ? band : 'rgba(255,255,255,0.95)'; g.beginPath(); g.moveTo(x, H + 10); g.lineTo(x + 70, -10); g.stroke(); }
-  }
-  for (const [lw, a] of [[30, 0.07], [20, 0.09]]) { g.strokeStyle = `rgba(60,45,70,${a})`; g.lineWidth = lw; g.strokeRect(0, 0, W, H); } // the pooled edge
-  if (kind === 'black') { g.strokeStyle = 'rgba(222,216,232,0.85)'; g.lineWidth = 8; g.strokeRect(19, 19, W - 38, H - 38); }
-  g.strokeStyle = OUTLINE; g.lineWidth = EDGE * 2 * W; g.strokeRect(0, 0, W, H); // half of the line is off the sheet
-  const t = new THREE.CanvasTexture(c);
-  t.colorSpace = THREE.SRGBColorSpace;
-  t.anisotropy = renderer.capabilities.getMaxAnisotropy();
-  return t;
+{ // uv: where on the face a point is, in strip lengths from its middle. The four thin sides are all edge.
+  const { position, normal, uv } = bitGeo.attributes;
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, normal.getY(i) ? position.getX(i) : 0.5, normal.getY(i) ? position.getZ(i) : 0.2);
 }
-// A few washes of each kind, each laid either way round (addBit), so strips side by side in a row do not show the same blooms.
-const WASHES = 3, washes = kind => Array.from({ length: WASHES }, () => stripTexture(kind));
-const stripMaps = { plain: washes(), silver: washes('silver'), gold: washes('gold'), black: washes('black') };
-// A strip only a few pixels across would be mostly outline, and colors would muddy into each other: there it
-// fades to the middle of its own wash. Measured across the strip's short side, so a strip seen end-on keeps its line.
-const farWash = shader => {
-  shader.fragmentShader = shader.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
-    float across = 1.0 / max(length(vec2(dFdx(vMapUv.y), dFdy(vMapUv.y))), 1e-4);
-    diffuseColor.rgb = mix(diffuse * textureLod(map, vec2(0.5), 5.0).rgb, diffuseColor.rgb, smoothstep(3.0, 8.0, across));`);
+const sticker = shader => {
+  shader.uniforms.rim = { value: new THREE.Color(ink) };
+  shader.fragmentShader = shader.fragmentShader.replace('#include <common>', '#include <common>\nuniform vec3 rim;').replace('#include <color_fragment>', `#include <color_fragment>
+    // strip lengths per pixel, along the strip and across it; then how many pixels this point is in from the edge, each way
+    vec2 perPx = vec2(length(vec2(dFdx(vUv.x), dFdy(vUv.x))), length(vec2(dFdx(vUv.y), dFdy(vUv.y)))) + 1e-6;
+    vec2 inPx = (vec2(0.5, 0.2) - abs(vUv)) / perPx;
+    float across = 0.4 / perPx.y;
+    // Neither line gets thinner on screen than a pixel or so, and the two never take more than half of the strip.
+    vec2 line = max(vec2(${EDGE[0]}) / perPx, ${EDGE[1].toFixed(1)}), hair = max(vec2(${HAIR[0]}) / perPx, ${HAIR[1].toFixed(1)});
+    vec2 fit = min(vec2(1.0), 0.25 * vec2(1.0 / perPx.x, across) / (line + hair));
+    line *= fit; hair *= fit;
+    // A strip only a few pixels across would be mostly border, and colors would muddy into each other: there it
+    // is all fill. Measured across the strip's short side, so a strip seen end-on keeps its border.
+    float far = 1.0 - smoothstep(3.0, 8.0, across);
+    vec3 inner = mix(vec3(1.0), diffuseColor.rgb, max(clamp(min(inPx.x - line.x - hair.x, inPx.y - line.y - hair.y) + 0.5, 0.0, 1.0), far));
+    diffuseColor.rgb = mix(rim, inner, max(clamp(min(inPx.x - line.x, inPx.y - line.y) + 0.5, 0.0, 1.0), far));`);
 };
-const bitMats = PALETTE.map(([name, hex]) => (stripMaps[name] || stripMaps.plain).map(map => paint(new THREE.MeshLambertMaterial({ color: name === 'black' ? '#fff' : hex, map }), farWash)));
+const bitMats = PALETTE.map(([, hex]) => Object.assign(paint(new THREE.MeshLambertMaterial({ color: hex }), sticker), { defines: { USE_UV: '' } }));
 /** state: 'air' (flying) | 'land' (lying on the ground) | 'held' (being dragged) */
 let bits = [];
 let dirty = true; // the program may have changed: redraw the overlay and the text
@@ -271,8 +257,7 @@ const haloTexture = (() => {
   return new THREE.CanvasTexture(c);
 })();
 const haloGeo = new THREE.PlaneGeometry(1.17, 0.585).rotateX(-Math.PI / 2).translate(0, -THICK / 2 - 0.001, 0);
-// Both sides: a mirrored strip (see addBit) turns its halo's winding round.
-const haloMat = new THREE.MeshBasicMaterial({ color: '#33293c', alphaMap: haloTexture, transparent: true, opacity: 0.5, depthWrite: false, side: THREE.DoubleSide });
+const haloMat = new THREE.MeshBasicMaterial({ color: '#33293c', alphaMap: haloTexture, transparent: true, opacity: 0.5, depthWrite: false });
 // All halos are one mesh, one draw call however many strips there are. Same color, so the order they blend in is no matter.
 let halos = new THREE.InstancedMesh(haloGeo, haloMat, 64);
 /** Puts a halo under every landed strip, where it lies this frame. */
@@ -294,8 +279,7 @@ function drawHalos() {
 }
 
 function addBit(color, x, y, z, state) {
-  const mesh = new THREE.Mesh(bitGeo, bitMats[color][Math.floor(Math.random() * WASHES)]);
-  mesh.scale.set(Math.random() < 0.5 ? 1 : -1, 1, Math.random() < 0.5 ? 1 : -1); // mirrored: the same box, its wash the other way round
+  const mesh = new THREE.Mesh(bitGeo, bitMats[color]);
   mesh.castShadow = true;
   mesh.position.set(x, y, z);
   mesh.rotation.y = Math.random() * Math.PI;
@@ -1135,7 +1119,7 @@ function burst() {
     $('burst').append(s);
   }
 }
-$('logo').innerHTML = [...'konfetti'].map((ch, i) => `<span style="--c:${PALETTE[[0, 1, 3, 5, 6, 7, 4, 12][i]][1]};--i:${i}">${ch}</span>`).join('');
+$('logo').innerHTML = [...'konfetti'].map((ch, i) => `<span style="--c:${PALETTE[[0, 1, 3, 5, 2, 7, 4, 12][i]][1]};--i:${i}">${ch}</span>`).join('');
 $('logo').onclick = burst;
 
 $('fire').onclick = fire;

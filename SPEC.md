@@ -62,19 +62,19 @@ Loops are literal: bend the trail back into itself.
 
 | Color  | Hex       | Op     | Effect                                                        |
 |--------|-----------|--------|---------------------------------------------------------------|
-| red    | `#ff4b5c` | PUSH   | If the previously executed bit was red: increment top. Else push 1. So a run of *n* reds pushes *n*. |
-| orange | `#ff9233` | DUP    | `a -- a a`                                                    |
-| yellow | `#ffe14d` | SWAP   | `a b -- b a`                                                  |
-| green  | `#2fd07a` | ADD    | `a b -- a+b`                                                  |
-| cyan   | `#29d3e6` | SUB    | `a b -- a-b`                                                  |
-| blue   | `#3d7bff` | MUL    | `a b -- a*b`                                                  |
-| purple | `#9b5cff` | DIVMOD | `a b -- a/b a%b` (floored; `b = 0` is a no-op)                |
-| pink   | `#ff6ec7` | BRANCH | Pop `a`. `a = 0`: go straightest. `a > 0`: take the leftmost candidate (largest turn). `a < 0`: take the rightmost (smallest turn). |
-| white  | `#fff8ec` | OUT    | Pop `a`, write its low 8 bits as one byte                     |
-| black  | `#2a2c3a` | IN     | Push next input byte, or -1 at end of input                   |
-| brown  | `#b06a3c` | DROP   | `a --`                                                        |
-| silver | `#dfe6ee` | STASH  | Pop main, push onto stash                                     |
-| gold   | `#f2b73a` | FETCH  | Pop stash, push onto main                                     |
+| red    | `#d2103a` | PUSH   | If the previously executed bit was red: increment top. Else push 1. So a run of *n* reds pushes *n*. |
+| orange | `#f16603` | DUP    | `a -- a a`                                                    |
+| yellow | `#ffff00` | SWAP   | `a b -- b a`                                                  |
+| green  | `#28b260` | ADD    | `a b -- a+b`                                                  |
+| cyan   | `#00f0ff` | SUB    | `a b -- a-b`                                                  |
+| blue   | `#195cec` | MUL    | `a b -- a*b`                                                  |
+| purple | `#7a0a9e` | DIVMOD | `a b -- a/b a%b` (floored; `b = 0` is a no-op)                |
+| pink   | `#ff659a` | BRANCH | Pop `a`. `a = 0`: go straightest. `a > 0`: take the leftmost candidate (largest turn). `a < 0`: take the rightmost (smallest turn). |
+| white  | `#ffffff` | OUT    | Pop `a`, write its low 8 bits as one byte                     |
+| black  | `#1c1c1c` | IN     | Push next input byte, or -1 at end of input                   |
+| brown  | `#6e3104` | DROP   | `a --`                                                        |
+| silver | `#9ca8ac` | STASH  | Pop main, push onto stash                                     |
+| gold   | `#ffb300` | FETCH  | Pop stash, push onto main                                     |
 
 An instruction without enough operands is a no-op (BRANCH then goes
 straightest). Sloppy confetti should misbehave, not crash.

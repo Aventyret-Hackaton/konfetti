@@ -101,7 +101,11 @@ stderr for I/O and load errors, 2 with the usage text for bad arguments.
   `src/lib.rs`, in `PALETTE` in `web/main.js`, in `EXPLAIN` in `web/debug.js`,
   in the palette strip of `APP` in `src/main.rs`, in the tables in `SPEC.md`,
   `README.md` and `web/docs.html`, and in `docs.html`'s band. Change them all
-  together.
+  together. The hex values also stand in the docs-check script below (`HEX`)
+  and in every strip `docs.html` draws; its diagrams number the dark strips
+  (red, blue, purple, black, brown) in white (`num on-dark`). The theme
+  accents in `web/ui.css`, `--mark` in `docs.html` and the app icons are the
+  interface's own colors, not the palette.
 - The web side has no build step and no dependencies besides three.js, and
   loads nothing from another host: the only request that leaves is Wind's, to
   `api.open-meteo.com`. three.js is vendored at exactly 0.170.0 in
@@ -259,17 +263,19 @@ overlay one too.
 The program must stay clear over all of that. This is how it is drawn, in
 `main.js`:
 
-- **Strips** keep the palette colors, washed onto a paper texture
-  (`stripTexture()`) inside a dark outline (`OUTLINE`, `EDGE` = 0.04 strip
-  lengths). Silver and gold are foil with slanting bands, blue-grey on silver
-  and brown on gold, so they differ from white and yellow by more than color.
-  Black has its own texture: dark slate with a pale line inside the outline,
-  so two black strips across each other stay two. Each kind has `WASHES`
-  textures and strips lie mirrored at random, so a row does not repeat its
-  blooms. A strip under about 8 px across fades to the middle of its wash
-  (`farWash`): at a pixel or two the outline would muddy its color. A
-  landed strip has a soft dark halo under it; all halos are one
-  `InstancedMesh`, refilled every frame by `drawHalos()`.
+- **Strips** are stickers on the painting, not part of it: one flat, solid
+  palette color each, no texture, and round every one of the thirteen the
+  same border, an ink (`#1c1f36`) line with a white hairline inside it
+  (`EDGE`, `HAIR`: 0.036 and 0.016 strip lengths, never under 1.6 and 1.2 px
+  on screen, together never more than half of the strip). A light strip
+  shows the ink and a dark one the white, so any strip lying on any other,
+  black on black and white on white too, is seen to be a second strip and
+  the upper one. The shader draws the border (`sticker`) from the strip's
+  `uv`, which holds where on the face a point is. No strip may get a mark of
+  its own: what tells two colors apart is the color. A strip under about
+  8 px across fades to its fill alone: at a pixel or two the border would
+  muddy its color. A landed strip has a soft dark halo under it; all halos
+  are one `InstancedMesh`, refilled every frame by `drawHalos()`.
 - **Links** are ink (`#1c1f36`) lines on a paper-colored rim (`cased()`, made
   of two `strokes()`), never thinner than 1.6 px on screen.
 - **The start ring** is an ink ring on a paper rim, with a drawn hairline
@@ -282,27 +288,44 @@ The program must stay clear over all of that. This is how it is drawn, in
   strokes, so none can be taken for a link.
 
 **Legibility criteria.** Measured on rendered pixels, not on palette values,
-at the framing the editor gives a loaded program, in sun, in shade, on the
-ring of bare paper round the stones, and with strips half over each other.
-Contrast is the WCAG ratio; color distance is CIE76 ΔE in Lab.
+in a 1400 by 860 window at 1x, at the framing the editor gives a loaded
+program, in sun, in shade, on the ring of bare paper round the stones, and
+with strips half over each other. Contrast is the WCAG ratio; color distance
+is CIEDE2000 (ΔE00).
 
-- Every two strip colors' fills are at least ΔE 18 apart.
-- Every strip stands off the ground: its outline or its fill at 3:1 or more,
-  or a fill at least ΔE 25 from the ground.
-- A half-covered strip keeps its color within ΔE 12 of its color in the open.
-- Where one strip lies on another, the upper one's edge is at least 2:1
-  against the lower one's fill, or the two fills are at least ΔE 20 apart.
+- Every two strip colors' fills are at least ΔE00 20 apart, and at least
+  ΔE00 10 apart as a deuteranope and as a protanope see them (simulated with
+  the matrices of Machado, Oliveira and Fernandes, severity 1).
+- A strip is flat: no point of its face is more than ΔE00 3 from the face's
+  mean.
+- Every strip stands off the ground: its border is at least 4.5:1 against
+  the ground beside it, in sun, in shade and on bare paper.
+- A half-covered strip keeps its color within ΔE00 3 of its color in the
+  open.
+- Where one strip lies on another, the upper one's edge is at least 2.5:1
+  against the lower one's fill. This holds for all 169 pairs of colors, the
+  thirteen same-color pairs among them, with no way out for fills that differ.
+- Where a link crosses a strip, the link (its ink or its paper rim) is at
+  least 3.6:1 against the strip's fill; the debugger's arrow (its yellow or
+  its ink rim) at least 3.4:1.
 - Links and the start ring are at least 4.5:1 against the ground, the crayon
   outline at least 3:1, and the pencil seams at most 2:1.
 
-Strips at the far edge of the stones, seen from the default camera, are a few
-pixels across and are not judged. Any change to the world, the strips, the
-links, the rings or the debug marks must be checked against these criteria
-before it lands. One way: load the 13 colors 1700 apart with **Load text**
-(`red 0 1000`, `orange 1700 1000`, five to a row), project the strips' faces
-and edges to the screen with `konfetti.camera`, and sample a screenshot.
-The closest calls today are orange against gold, and black, purple or brown
-lying on black.
+Strips at the far edge of the stones, seen from the default camera, are a
+pixel or two high and are not judged. Any change to the world, the strips,
+the links, the rings or the debug marks must be checked against these
+criteria before it lands. One way: load the 13 colors 1700 apart with **Load
+text** (`red 0 1000`, `orange 1700 1000`, five to a row), project the strips'
+faces and edges to the screen with `konfetti.camera`, and sample a
+screenshot; for the pairs, load each lower strip with its upper one 440
+along and 200 up from it, 24 pairs at a time. The closest calls today are
+white against silver (ΔE00 21.8) and red against pink (22.6); yellow against
+gold to a deuteranope (10.9); orange lying on orange (3.2:1); and links and
+the arrow across red and blue (4.1:1 and 3.7:1), whose fills are about as
+far from ink as from paper or yellow. Moving one color moves these: the
+palette was found by pushing the smallest of all the distances up, with
+every color held to what its name allows, so check all 78 pairs again, not
+only the one that moved.
 
 ## Checking editor changes
 
@@ -499,8 +522,8 @@ After `make`, from the repo root, this checks all of it (Python 3, no Rust):
 python3 - <<'CHECK'
 import codecs, html, re, shlex, subprocess, sys
 K, doc = './target/release/konfetti', open((sys.argv + ['web/docs.html'])[1]).read()
-HEX = dict(zip('red orange yellow green cyan blue purple pink white black brown silver gold'.split(), '#ff4b5c #ff9233 #ffe14d #2fd07a #29d3e6 '
-               '#3d7bff #9b5cff #ff6ec7 #fff8ec #2a2c3a #b06a3c #dfe6ee #f2b73a'.split()))
+HEX = dict(zip('red orange yellow green cyan blue purple pink white black brown silver gold'.split(), '#d2103a #f16603 #ffff00 #28b260 #00f0ff '
+               '#195cec #7a0a9e #ff659a #ffffff #1c1c1c #6e3104 #9ca8ac #ffb300'.split()))
 data = lambda s: codecs.decode(html.unescape(s), 'unicode_escape').encode('latin1')  # \xff in an attribute is byte 255
 text = lambda s: html.unescape(re.sub('<[^>]+>', '', s))
 nums = lambda s: [int(v) for v in re.findall(r'-?\d+', text(s).replace('−', '-'))]
