@@ -1,0 +1,135 @@
+# 8ball: ask it a yes-or-no question and it answers Yes, No or Maybe.
+# konfetti has no dice, so the answer comes from the question itself: the ring adds up its
+# characters, the trail going west takes that sum (less one) modulo 3, and the pink at the
+# end of the trail branches three ways. The same question always gets the same answer.
+# No question at all gets Maybe.
+#
+#        Yes  <-----------------.
+#        .--- Yes ...           |          (right: north, then east, then back west)
+#   No ..|                      |
+#   '--- No ... pink <-- mod 3 <-- pink --- green
+#   Maybe ...... |                   |         |
+#   |                              green      red      (the ring, counter-clockwise)
+#   |                                |         |
+#   '--- Maybe ...        origin   black --- orange
+#
+# Rows 2400 apart, joined by one strip at each bend; strips in a row lie end to end.
+black     1000     0   # IN:     sum c        (c is -1 at the end of the question)
+orange    2200     0   # DUP:    sum c c
+red       2200  1200   # PUSH 1: sum c c 1
+green     2200  2400   # ADD:    sum c c+1    (0 at the end)
+pink      1000  2400   # BRANCH: >0 turn left to green, 0 straight on, out of the ring
+green     1000  1200   # ADD:    sum+c        (the first time round there is no sum yet: nothing happens)
+green     -200  2400   # ADD:    t = sum-1    (-1 for no question at all)
+red      -1200  2400
+red      -2200  2400
+red      -3200  2400   # PUSH 3: t 3
+purple   -4200  2400   # DIVMOD: t/3 r        (r = t mod 3, one of 0 1 2)
+yellow   -5200  2400   # SWAP:   r t/3
+brown    -6200  2400   # DROP:   r
+red      -7200  2400   # PUSH 1: r 1
+cyan     -8200  2400   # SUB:    r-1          (one of -1 0 1)
+pink     -9200  2400   # BRANCH: 0 straight on to No, >0 left to Maybe, <0 right to Yes
+red     -10200  2400
+red     -11200  2400
+red     -12200  2400
+orange  -13200  2400
+orange  -14200  2400
+blue    -15200  2400
+orange  -16200  2400
+blue    -17200  2400
+yellow  -18200  2400
+cyan    -19200  2400
+white   -20200  2400   # writes N
+red     -21200  2400
+red     -22200  2400
+red     -23200  2400
+orange  -24200  2400
+orange  -24200  3600
+green   -24200  4800
+orange  -23200  4800
+blue    -22200  4800
+red     -21200  4800
+green   -20200  4800
+blue    -19200  4800
+white   -18200  4800   # writes o
+red      -9200  1200
+red      -9200     0
+red     -10200     0
+orange  -11200     0
+orange  -12200     0
+blue    -13200     0
+orange  -14200     0
+blue    -15200     0
+red     -16200     0
+cyan    -17200     0
+yellow  -18200     0
+cyan    -19200     0
+orange  -20200     0
+white   -21200     0   # writes M
+red     -22200     0
+red     -23200     0
+red     -24200     0
+red     -25200     0
+red     -25200 -1200
+orange  -25200 -2400
+green   -24200 -2400
+orange  -23200 -2400
+green   -22200 -2400
+green   -21200 -2400
+orange  -20200 -2400
+white   -19200 -2400   # writes a
+red     -18200 -2400
+red     -17200 -2400
+red     -16200 -2400
+orange  -15200 -2400
+blue    -14200 -2400
+red     -13200 -2400
+red     -12200 -2400
+green   -11200 -2400
+orange  -10200 -2400
+blue     -9200 -2400
+white    -8200 -2400   # writes y
+red      -7200 -2400
+green    -6200 -2400
+orange   -5200 -2400
+white    -4200 -2400   # writes b
+red      -3200 -2400
+red      -2200 -2400
+red      -1200 -2400
+green     -200 -2400
+white      800 -2400   # writes e
+red      -9200  3600
+red      -9200  4800
+red      -8200  4800
+orange   -7200  4800
+blue     -6200  4800
+orange   -5200  4800
+red      -4200  4800
+green    -3200  4800
+blue     -2200  4800
+red      -1200  4800
+cyan      -200  4800
+orange     800  4800
+white     1800  4800   # writes Y
+red       2800  4800
+red       2800  6000
+red       2800  7200
+orange    1800  7200
+green      800  7200
+orange    -200  7200
+green    -1200  7200
+green    -2200  7200
+orange   -3200  7200
+white    -4200  7200   # writes e
+red      -5200  7200
+red      -6200  7200
+red      -7200  7200
+red      -8200  7200
+red      -9200  7200
+red     -10200  7200
+red     -11200  7200
+orange  -12200  7200
+green   -13200  7200
+green   -14200  7200
+white   -15200  7200   # writes s

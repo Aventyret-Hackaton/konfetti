@@ -451,6 +451,21 @@ mod tests {
     }
 
     #[test]
+    fn aventyret() {
+        assert_eq!(run(include_str!("../examples/aventyret.kft"), b""), "Hello, Äventyret".as_bytes());
+    }
+
+    #[test]
+    fn eight_ball() {
+        // The answer is (the sum of the question's bytes, less one) modulo 3; no question is -1.
+        let ball = include_str!("../examples/8ball.kft");
+        assert_eq!(run(ball, b""), b"Maybe");
+        assert_eq!(run(ball, b"a"), b"Yes");
+        assert_eq!(run(ball, b"b"), b"No");
+        assert_eq!(run(ball, b"Will it rain?"), b"Maybe");
+    }
+
+    #[test]
     fn cat_loops_until_end_of_input() {
         assert_eq!(run(include_str!("../examples/cat.kft"), b"konfetti\n"), b"konfetti\n");
         assert_eq!(run(include_str!("../examples/cat.kft"), b""), b"");

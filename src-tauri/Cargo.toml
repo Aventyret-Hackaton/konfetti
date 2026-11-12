@@ -2,7 +2,7 @@
 # runtime in the root crate builds without Tauri. `make app` builds it.
 [package]
 name = "konfetti-app"
-version = "0.0.8"
+version = "0.0.9"
 edition = "2024"
 
 [workspace]
@@ -14,8 +14,10 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = [] }
 # CoreLocation, for Wind: see `location` in src/main.rs.
 objc2 = { version = "0.6", features = [] }
-objc2-foundation = { version = "0.3", default-features = false, features = ["std", "NSArray", "NSError"] }
+objc2-foundation = { version = "0.3", default-features = false, features = ["std", "NSArray", "NSError", "NSString", "NSURL"] }
 objc2-core-location = { version = "0.3", default-features = false, features = ["std", "CLLocation", "CLLocationManager", "CLLocationManagerDelegate"] }
+# The save panel, for Save: see `save` in src/main.rs. Tauri builds this crate anyway.
+objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "NSApplication", "NSPanel", "NSResponder", "NSSavePanel", "NSWindow"] }
 
 [profile.release]
 opt-level = "s"

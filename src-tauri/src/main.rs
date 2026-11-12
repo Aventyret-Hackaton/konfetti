@@ -1,15 +1,18 @@
 // The Mac app: the editor's own files (see `make app`) in a native window. Nothing here knows
-// konfetti; the page is the same one the web version serves, and the one thing it may ask of the
-// app is `location`, for Wind.
+// konfetti; the page is the same one the web version serves, and the two things it may ask of the
+// app are `location`, for Wind, and `save`, for Save.
 use objc2::rc::Retained;
 use objc2::runtime::ProtocolObject;
 use objc2::{MainThreadMarker, MainThreadOnly, define_class, msg_send};
 use objc2_core_location::{
     CLAuthorizationStatus, CLLocation, CLLocationManager, CLLocationManagerDelegate, kCLLocationAccuracyThreeKilometers,
 };
-use objc2_foundation::{NSArray, NSError, NSObject, NSObjectProtocol};
+use objc2_app_kit::{NSModalResponseOK, NSSavePanel};
+use objc2_foundation::{NSArray, NSError, NSObject, NSObjectProtocol, ns_string};
 use std::cell::{OnceCell, RefCell};
 use std::collections::HashMap;
+use std::fs;
+use std::path::PathBuf;
 use std::process::Command;
 use std::sync::mpsc::{Sender, channel};
 use std::time::Duration;
@@ -133,6 +136,24 @@ async fn location(app: AppHandle) -> Result<Place, String> {
     tauri::async_runtime::spawn_blocking(wait).await.map_err(|e| e.to_string())?
 }
 
+/// Save, for the editor. A download, the browser's way, would make the Mac ask about the Downloads
+/// folder and tell the page nothing, so the app asks where with the Mac's save panel and writes the
+/// text there itself. It answers the file's name, or nothing when the person cancels; the page
+/// never learns the folder.
+#[tauri::command]
+async fn save(app: AppHandle, text: String) -> Result<Option<String>, String> {
+    let (done, mut answer) = tauri::async_runtime::channel(1);
+    app.run_on_main_thread(move || {
+        let panel = NSSavePanel::savePanel(MainThreadMarker::new().unwrap());
+        panel.setNameFieldStringValue(ns_string!("program.kft"));
+        let to = (panel.runModal() == NSModalResponseOK).then(|| panel.URL()).flatten().and_then(|url| url.to_file_path());
+        let name = |to: &PathBuf| to.file_name().unwrap_or_default().to_string_lossy().into_owned();
+        let _ = done.try_send(to.map(|to| fs::write(&to, text).map(|()| name(&to)).map_err(|e| e.to_string())).transpose());
+    })
+    .map_err(|e| e.to_string())?;
+    answer.recv().await.unwrap_or(Err("no answer".into()))
+}
+
 /// The app's windows show the app's own pages only. A link that leads elsewhere opens in the browser.
 fn ours(url: &Url) -> bool {
     let outside = matches!(url.scheme(), "http" | "https"); // ours are tauri://localhost/...
@@ -173,7 +194,7 @@ fn main() {
                 window.app_handle().exit(0);
             }
         })
-        .invoke_handler(tauri::generate_handler![location])
+        .invoke_handler(tauri::generate_handler![location, save])
         .run(tauri::generate_context!())
         .expect("konfetti could not start");
 }

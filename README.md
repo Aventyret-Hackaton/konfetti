@@ -124,6 +124,8 @@ red     2000 0
 | [examples/countdown.kft](examples/countdown.kft) | A counted loop with a constant in the stash. `5` prints `54321` |
 | [examples/compare.kft](examples/compare.kft) | A three-way branch. `ab` prints `<` |
 | [examples/reverse.kft](examples/reverse.kft) | Two rings in a row. `stressed` prints `desserts` |
+| [examples/aventyret.kft](examples/aventyret.kft) | A long trail of arithmetic, with no input. Prints `Hello, Äventyret` |
+| [examples/8ball.kft](examples/8ball.kft) | A ring, then a three-way branch into three long arms. Answers a question with `Yes`, `No` or `Maybe` |
 
 `examples/mistakes` holds the broken programs of the guide's last tutorial,
 with their fixes. `examples/exercises` holds the programs that answer
@@ -186,7 +188,8 @@ colors are set as far from each other as their names allow.
   instruction, and the bit that runs next is marked, with an arrow for the turn.
 - **As text (.kft)**, under **Program**, shows the program as text. Paste
   text and press **Load text** to lay it out with an outline around it, or
-  pick one of the seven examples.
+  pick one of the nine examples. **Save** writes the text to a file,
+  `program.kft`, and **Open…** lays such a file out again.
 - **Sweep outside** removes the litter outside the outline.
 - **Wind** (or W) asks for your location (your browser asks you; in the Mac
   app, macOS does), rounds it to about 10 km, and fetches the current wind
@@ -241,6 +244,8 @@ open src-tauri/target/release/bundle/macos/Konfetti.app
   app, guide included.
 - The theme you pick, **Mute** and the lessons you have passed are remembered
   between launches.
+- **Save** asks where to keep the program, as Mac apps do, with `program.kft`
+  filled in as its name, and **Open…** shows the Mac's own file chooser.
 - **Wind** uses the Mac's location. The first time you press it, macOS asks
   whether Konfetti may use your location, and says what for. Say yes and you
   get the real wind where you are. Choose **Don't Allow** and the wind is an

@@ -1138,6 +1138,26 @@ $('run').onclick = () => start(false);
 $('fast').onclick = () => start(true);
 $('stop').onclick = stop;
 $('load').onclick = () => loadText($('kft').value);
+// Save writes the text in the box to a file, as a download; Open reads such a file back and lays it out.
+$('save').onclick = () => {
+  const text = $('kft').value;
+  if (!text.trim()) return say('Nothing to save yet: the program box is empty.');
+  // In the Mac app a download cannot say whether it worked. There the app asks where and writes the file: `save` in src-tauri.
+  if (APP) return APP.invoke('save', { text: text.replace(/\n?$/, '\n') }) // ending in one newline, as below
+    .then(name => say(name ? `Saved as ${name}.` : 'Not saved.'), e => say(`Not saved: ${e}`));
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text.endsWith('\n') ? text : text + '\n'], { type: 'text/plain' }));
+  a.download = 'program.kft';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  say('Saved as program.kft, where your browser keeps downloads.');
+};
+$('open').onclick = () => $('file').click();
+$('file').onchange = async e => {
+  const file = e.target.files[0];
+  e.target.value = ''; // so that choosing the same file again loads it again
+  if (file) loadText(await file.text());
+};
 // A pick made with the pointer hands the keys back to the editor, or every shortcut would go to the
 // list; a pick made with the keyboard leaves focus where the user put it.
 let pickedByPointer = false;

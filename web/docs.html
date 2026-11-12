@@ -339,7 +339,7 @@ white  13000 0</code></pre>
 <pre><code>cargo install tauri-cli --version "^2" --locked
 make app
 open src-tauri/target/release/bundle/macos/Konfetti.app</code></pre>
-<p>Drag the app to <i>Applications</i> to keep it. In the app, <b>Docs</b> opens this guide in a second window (closing the editor's window quits the app, guide included), and your theme, <b>Mute</b> and the lessons you have passed are remembered. The first time you press <b>Wind</b>, macOS asks whether Konfetti may use your location, and says what for. Say yes and you get the real wind where you are. Choose <b>Don't Allow</b> and the wind is made up, marked <i>(made up: no location)</i>, as in a browser that says no. macOS remembers your answer; to change it, open <b>System Settings</b>, <b>Privacy &amp; Security</b>, <b>Location Services</b>, and find Konfetti in the list. If you leave the question unanswered for a minute, the wind is made up that time: answer the question, then press Wind off and on.</p>
+<p>Drag the app to <i>Applications</i> to keep it. In the app, <b>Docs</b> opens this guide in a second window (closing the editor's window quits the app, guide included), and your theme, <b>Mute</b> and the lessons you have passed are remembered. <b>Save</b> asks where to keep the program, with the name <code>program.kft</code> filled in, and <b>Open…</b> shows the Mac's own file chooser. The first time you press <b>Wind</b>, macOS asks whether Konfetti may use your location, and says what for. Say yes and you get the real wind where you are. Choose <b>Don't Allow</b> and the wind is made up, marked <i>(made up: no location)</i>, as in a browser that says no. macOS remembers your answer; to change it, open <b>System Settings</b>, <b>Privacy &amp; Security</b>, <b>Location Services</b>, and find Konfetti in the list. If you leave the question unanswered for a minute, the wind is made up that time: answer the question, then press Wind off and on.</p>
 <p>The app is not signed by an Apple developer, so a copy sent to another Mac is stopped the first time it is opened. If you trust it: try to open it once, then open <b>System Settings</b>, <b>Privacy &amp; Security</b>, and press <b>Open Anyway</b>. On macOS 14 and older, right-click the app and choose <b>Open</b> instead. This does the same in the terminal:</p>
 <pre><code>xattr -dr com.apple.quarantine Konfetti.app</code></pre>
 
@@ -370,9 +370,11 @@ open src-tauri/target/release/bundle/macos/Konfetti.app</code></pre>
     <tr><td><b>Input</b></td><td>The text the program reads, one byte at a time, with black strips.</td></tr>
     <tr><td><b>Output</b></td><td>What the program wrote with white strips, or what went wrong. Past 64 KB it shows only the end, after a <code>…</code>.</td></tr>
     <tr><td><b>Stacks</b></td><td>The main stack and the stash as rows of boxes, bottom on the left, the top one marked. A number that is a letter shows the letter too.</td></tr>
-    <tr><td><b>As text (.kft)</b></td><td>The program inside the outline as text, kept up to date as you move strips. Copy it to keep your program.</td></tr>
+    <tr><td><b>As text (.kft)</b></td><td>The program inside the outline as text, kept up to date as you move strips. <b>Save</b> keeps it for you.</td></tr>
     <tr><td><b>Load text</b></td><td>Lays out the text in the box as strips in front of the cannon, with a fresh outline around them. It replaces all the confetti. It stops a run first; if the text is not a program, the confetti stays as it was and <b>Output</b> says why.</td></tr>
-    <tr><td><b>Examples…</b></td><td>Loads hello, cat or count, or dad, countdown, compare or reverse, the programs of <a href="#further">tutorials 13 to 16</a>.</td></tr>
+    <tr><td><b>Examples…</b></td><td>Loads hello, cat or count; dad, countdown, compare or reverse, the programs of <a href="#further">tutorials 13 to 16</a>; aventyret, which writes <i>Hello, Äventyret</i>; or 8ball, which answers the question in <b>Input</b> with Yes, No or Maybe.</td></tr>
+    <tr><td><b>Save</b></td><td>Saves the text in the box as a file, <code>program.kft</code>, where your browser keeps downloads (the <a href="#mac">Mac app</a> asks where). It is plain text: the terminal's <code>konfetti</code> runs the same file.</td></tr>
+    <tr><td><b>Open…</b></td><td>Chooses a <code>.kft</code> file and lays it out, as <b>Load text</b> does with the text in the box.</td></tr>
     <tr><td><b>Sweep outside</b></td><td>Removes the litter: every landed strip outside the outline, except a lesson's spare strips.</td></tr>
     <tr><td><b>Clear all</b></td><td>Removes every strip and the outline.</td></tr>
     <tr><td><b>Colors</b></td><td>The thirteen colors. Hold the pointer over one to read what it does.</td></tr>
@@ -448,7 +450,7 @@ open src-tauri/target/release/bundle/macos/Konfetti.app</code></pre>
   <li>A strip that moves has new coordinates, so <b>the wind rewrites your program</b>. A run that has started keeps the program as it was when it started.</li>
 </ul>
 <p><b>The flag</b> on the tall pole at the back left of the stone circle shows the wind. With the wind off it hangs limp. As the wind grows it lifts, streams away downwind and ripples faster, so you can read both direction and strength from it. Even with the wind off, the grass and trees sway, the clouds drift and the windmill turns in a light breeze of their own; turn the wind on and they follow the real one.</p>
-<p class="note">Copy the program text before you turn the wind on. <b>Load text</b> puts it back exactly.</p>
+<p class="note"><b>Save</b> the program before you turn the wind on. <b>Open…</b> puts it back exactly.</p>
 
 <h2 id="terminal"><span class="strip" style="--c:#28b260"></span>In the terminal</h2>
 <p>The editor is one way to run konfetti; the terminal is another. Building needs <a href="https://rustup.rs">Rust</a> with its WebAssembly target, and Python 3 for the editor's little web server.</p>
