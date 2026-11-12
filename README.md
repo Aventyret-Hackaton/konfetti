@@ -150,6 +150,7 @@ red     2000 0
 | [examples/reverse.kft](examples/reverse.kft) | Two rings in a row. `stressed` prints `desserts` |
 | [examples/aventyret.kft](examples/aventyret.kft) | A long trail of arithmetic, with no input. Prints `Hello, Äventyret` |
 | [examples/8ball.kft](examples/8ball.kft) | A ring, then a three-way branch into three long arms. Answers a question with `Yes`, `No` or `Maybe` |
+| [examples/calc.kft](examples/calc.kft) | A calculator in reverse Polish notation: `3 4 + 2 *` prints `14`. Three three-way branches sort each character; three counted rings print the number |
 
 `examples/mistakes` holds the broken programs of the guide's last tutorial,
 with their fixes. `examples/exercises` holds the programs that answer
@@ -212,7 +213,7 @@ colors are set as far from each other as their names allow.
   instruction, and the bit that runs next is marked, with an arrow for the turn.
 - **As text (.kft)**, under **Program**, shows the program as text. Paste
   text and press **Load text** to lay it out with an outline around it, or
-  pick one of the nine examples. **Save** writes the text to a file,
+  pick one of the ten examples. **Save** writes the text to a file,
   `program.kft`, and **Open…** lays such a file out again. **Build** writes
   `program.html`, the web page `konfetti build --html` would make of that
   file (see [Share a program](#share-a-program)).

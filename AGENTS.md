@@ -107,13 +107,17 @@ stderr for I/O and load errors, 2 with the usage text for bad arguments.
   three systems and publishes a release for a version tag, with that
   version's section of `CHANGELOG.md` as its text. See "Releases".
 - `lessons/`: the twelve lessons of learn mode. See "Lessons".
-- `examples/*.kft`: `hello`, `cat`, `aventyret` and `8ball` are also test
-  fixtures. `dad`, `countdown`, `compare` and `reverse` are the programs of
+- `examples/*.kft`: `hello`, `cat`, `aventyret`, `8ball` and `calc` are also
+  test fixtures. `dad`, `countdown`, `compare` and `reverse` are the programs of
   tutorials 13 to 16. The arithmetic that writes the letters in `aventyret`
   ("Hello, Äventyret", 142 strips) and `8ball` (119 strips) was found by a
   search for the shortest, not written by hand. Both are laid out to just fit
   on the stones when loaded: five rows 2400 apart is as deep as a program can
-  be there, and the row nearest the viewer about 28 strips wide.
+  be there, and the row nearest the viewer about 28 strips wide. `calc` (an
+  RPN calculator, 117 strips) is not on a grid: its coordinates came out of a
+  layout search that keeps every unintended pair more than 1600 apart and
+  every turn decided by at least 27 degrees, and the walk survives each strip
+  moved by 40, not more. Do not edit it by hand; its header says how it works.
 - `examples/mistakes/`: broken programs for tutorial 17, and their fixes.
 - `examples/exercises/`: answers to the tutorials' exercises.
 

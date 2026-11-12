@@ -466,6 +466,16 @@ mod tests {
     }
 
     #[test]
+    fn calc() {
+        // Reverse Polish notation, one expression per line; the last line needs no newline.
+        let calc = include_str!("../examples/calc.kft");
+        assert_eq!(run(calc, b"3 4 + 2 *"), b"14\n");
+        assert_eq!(run(calc, b"2 10 -\n7 2 /\n\n1000000 1000000 *\n"), b"-8\n3\n1000000000000\n");
+        assert_eq!(run(calc, b"5 0 /\n0"), b"5\n0\n");
+        assert_eq!(run(calc, b""), b"");
+    }
+
+    #[test]
     fn cat_loops_until_end_of_input() {
         assert_eq!(run(include_str!("../examples/cat.kft"), b"konfetti\n"), b"konfetti\n");
         assert_eq!(run(include_str!("../examples/cat.kft"), b""), b"");

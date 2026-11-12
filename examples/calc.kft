@@ -1,0 +1,184 @@
+# calc: a calculator in reverse Polish notation. One expression per line in, its value on a line out.
+#
+#   3 4 + 2 *      writes 14        numbers and + - * / with one space between them
+#   2 10 -         writes -8        first the two numbers, then what to do with them
+#   7 2 /          writes 3         division rounds down; dividing by 0 leaves the number as it was
+#
+# The last line needs no newline, an empty line writes nothing, and both stacks are empty when the input
+# ends. Numbers are 64-bit and wrap. A line that leaves more than one number writes the top one.
+#
+# The idea. The main stack is the calculator's stack and nothing else remembers anything. A space pushes
+# a 0, a digit d turns the top n into 10n + d, so a number grows out of the 0 the space left; the first
+# number of a line grows out of nothing. An operator first gets rid of the 0 that the space before it
+# left, then works on the two numbers below. A character is sorted by three pinks, three ways each:
+#
+#   black --> z = c - 32 --> pink --- zero: space. The z left over is the new 0. Back to black.
+#     ^                      |   \
+#     |             negative |    positive --> w = c - 47 --> pink --- zero: /
+#     |   newline, the end   |                                |   \
+#     |                      |                       negative |    positive: digit, 10n + w - 1
+#     |                      v                                v
+#     |       is there anything under z?           c - 43 --> pink: zero +, positive -, negative *
+#     |         |                 |
+#     |         | yes             '-- no, an empty line ---------------.
+#     |         v                                                      v
+#     |       empty the stack but for its top; if that is negative,    drop what is left, read a character:
+#     |       write - and negate; cut the digits off into the stash    the end of input --> a dead end, halt
+#     |       on top of a newline; write the stash  ---------------->  anything else --.
+#     |                                                                                |
+#     '--------------------------- into the ring, just after its black <---------------'
+#
+# Three counted rings do the work after a newline: one empties the stack (push 1, swap, drop, while the 1
+# comes back), one divides by ten while the quotient is positive, one writes while the stash gives.
+# Two trails cross another one, each on a strip that both need: the newline trail leaves the reading
+# ring through the ring's first orange, and the + - * trail crosses the / trail on its first green.
+# The walk goes straight on over a crossing because straight beats a quarter turn.
+# The digit trail ends on the minus strip of the + - * fork: 10n + w, then 1, then minus.
+#
+# Malformed input never hangs and never leaves anything behind for the next line. What it does:
+# a second space pushes one more 0, and a space at the end of a line leaves its 0 on top, so the line
+# writes 0; an operator written straight after a number uses that number up in place of the 0; + - *
+# short of numbers do nothing, / short of numbers drops the one that is there; a character above 9 is a
+# digit worth its code less 48; ! " # $ % & ' ( ) act as *; , and . act as -; a tab, a carriage return or
+# any other control character ends the line as a newline does. -9223372036854775808 is written as -2.
+#
+# Made by gen_calc.py, which also checks every link and every turn. Tested by test_calc.py.
+#
+# The reading ring: read a character c, make z = c - 32, branch. Clockwise.
+black      380    130   # c          IN (-1 at the end of input). The walk starts here, and every token comes back here
+red       1560    550
+red       2410     70
+red       3290    220
+red       4220   -250   # c 4
+orange    4400  -1220   # c 4 4      (the newline trail crosses the ring on this strip and uses it as its own DUP)
+orange    4300  -2490   # c 4 4 4
+green     3820  -3270   # c 4 8
+blue      2920  -3370   # c 32
+cyan      2040  -3280   # z          z = c - 32
+orange    1150  -3200   # z z
+pink       640  -2290   # z          zero: a space, straight on, and the z left behind is the 0 the next number grows from. Positive: digit or operator, left. Negative: newline or end of input, right
+gold       160  -1100   #            (nothing to fetch) a spacer: room for the trails that come back to black
+#
+# Digit or operator: w = z - 15 = c - 47, branch.
+red       -460  -3050
+red      -1600  -3670
+red      -2890  -3950
+red      -3490  -4620   # z 4
+orange   -4800  -4860   # z 4 4
+blue     -5900  -4700   # z 16
+red      -7080  -4190   # z 16 1
+cyan     -7540  -3060   # z 15
+cyan     -7340  -2010   # w          w = c - 47
+orange   -6940   -780   # w w
+pink     -5720   -630   # w          zero: /, straight on. Positive: a digit worth w - 1, left. Negative: + - *, right
+#
+# /   from a b 0 0 (the 0 the space left, and w = 0) to a/b.
+green    -4410   -800   # a b 0      0 + 0. The + - * trail crosses here and uses this strip as its own ADD
+green    -3170  -1160   # a b        b + 0
+purple   -2180  -1760   # a/b a%b    floored. b = 0: nothing happens
+brown     -940  -1500   # a/b        (b = 0: a) and back to the ring at its gold
+#
+# Digit   from n w to 10n + w - 1. With no n under it, the first digit of a line: from w to w - 1.
+silver   -6020    640   # n          w waits in the stash
+orange   -6240   1530   # n n
+orange   -5150   2020   # n n n
+green    -4280   2760   # n 2n
+orange   -4710   3910   # n 2n 2n
+green    -3760   4390   # n 4n
+green    -2810   4300   # 5n
+orange   -1720   4350   # 5n 5n
+green     -720   3710   # 10n        (no n: these eight do nothing)
+gold     -1150   2660   # 10n w
+green    -2190   2800   # 10n+w
+red      -2730   2080   # 10n+w 1    next: the minus strip of the fork below takes the 1 off
+#
+# + - *   from a b 0 w to a b and a three-way branch on w + 4 = c - 43.
+red      -5720  -1850
+red      -5860  -3080
+red      -4540  -3090
+red      -4700  -1920   # a b 0 w 4  next: across the / trail on its first green, which makes a b 0 w+4
+green    -4010    400   # a b w+4    the 0 the space left is gone
+pink     -2860    460   # a b        zero: +, straight on. Positive: -, left. Negative: *, right
+green    -1660    510   # a+b
+cyan     -1790   1140   # a-b        (and the last step of a digit)
+blue     -1850   -130   # a*b
+gold      -750    310   #            (nothing to fetch) the three meet here and go back to black
+#
+# Newline or end of input   ... r z. Is there a result r under z?
+yellow    1790  -1640   # ... z r    (nothing under z: no change)
+silver    3080  -1410   # ... z      r waits in the stash; an empty line stashes z itself. Next: across the ring on its first orange
+pink      5700   -900   # ... z      popped a negative z: a result waits, right. Nothing to pop: the line was empty, straight on
+#
+# Empty the main stack, so that the next line starts fresh: push 1, swap it under, drop.
+red       5860  -2060   # ... x 1
+yellow    5870  -2980   # ... 1 x    (nothing left: 1)
+brown     7210  -2970   # ... 1      (nothing left: nothing)
+pink      7140  -1650   # ...        popped the 1: left, round again. Nothing to pop: straight on
+gold      7980  -1410   # r          the result is back, alone
+#
+# The sign.
+orange    8750  -2240   # r r
+pink      9170  -3470   # r          negative: right, write the sign and negate. Otherwise straight on
+red       8130  -4310
+red       6910  -4570
+red       5720  -4600
+red       4750  -4650
+red       3620  -4880   # r 5
+orange    2320  -4880   # r 5 5
+orange    1270  -4830   # r 5 5 5
+green      670  -5930   # r 5 10
+red       1670  -6400   # r 5 10 1
+cyan      2960  -6390   # r 5 9
+blue      4290  -6380   # r 45
+white     5350  -6320   # r          writes -
+orange    6640  -6160   # r r
+orange    7750  -5960   # r r r
+green     9020  -5670   # r 2r
+cyan      9670  -5060   # n          n = -r
+#
+# The digits, last one first, onto the stash; under them the newline.
+red      10280  -4210
+red      11360  -4370
+red      12560  -4180
+red      13100  -3120
+red      11980  -2650   # n 5
+orange   10810  -2530   # n 5 5
+green    10640  -1470   # n 10
+silver   11600   -970   # n          the newline waits at the bottom of the stash
+red      11820     80
+red      12790    500
+red      13340   1530
+red      12850   2520
+red      11790   3340   # n 5
+orange   11010   4090   # n 5 5
+green     9860   4380   # n 10
+purple    8570   4380   # q d        q = n/10, d = n%10
+red       7690   4400
+red       6770   4400
+red       5440   4400   # q d 3
+orange    4280   4310   # q d 3 3
+red       4130   3350   # q d 3 3 1
+green     5120   2800   # q d 3 4
+orange    6120   2910   # q d 3 4 4
+blue      6950   2550   # q d 3 16
+blue      7810   2780   # q d 48
+green     9150   2860   # q d+48
+silver   10350   2540   # q          the digit waits in the stash
+orange   11310   1630   # q q
+pink     10590    510   # q          positive: left, round again with n = q. Zero: straight on
+#
+# Write the stash, top first, until it is empty.
+gold      9330    910   # 0 ch
+orange    8560   1350   # 0 ch ch    (stash empty: 0 0)
+pink      7860    210   # 0 ch       positive: left, write it. Zero: all written, straight on
+white     9130   -210   # 0          writes a digit, and the newline last
+#
+# The next line: read its first character here, and stop at the end of input.
+gold      6310   -260   # z          (the empty line left z in the stash)
+brown     6580    610   #            DROP z, or the 0 the digits left: both stacks are empty
+black     5880   1310   # c          IN
+orange    5010   1160   # c c
+red       3850   1740   # c c 1
+green     2630   1830   # c c+1
+pink      1310   1750   # c          positive: left, into the ring just after its black. Zero: end of input, straight on
+brown      520   2440   #            DROP the -1. Dead end: halt

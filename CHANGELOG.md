@@ -4,6 +4,22 @@ What changed in each version of konfetti, newest first. The editor runs at
 <https://konfetti.ax/>; the desktop apps are on the
 [releases page](https://github.com/Aventyret-Hackaton/konfetti/releases).
 
+## v0.0.11
+
+2026-11-12
+
+- **A calculator, written in konfetti.** `calc` in the **Examples** menu
+  works in reverse Polish notation: numbers first, then what to do with them.
+  Put `3 4 + 2 *` in **Input** and it writes `14`. It knows `+ - * /`,
+  negative results and big numbers, and in the terminal it answers one
+  expression per line. 117 strips: three three-way branches sort each
+  character, and three small loops print the number.
+- **Build**, next to Save and Open, makes your program into one web page,
+  `program.html`, that anyone can open and run with nothing installed. It is
+  exactly the page `konfetti build --html` makes in the terminal.
+- In the desktop app on Linux, the world is now drawn on machines without a
+  graphics card too.
+
 ## v0.0.10
 
 2026-11-12
