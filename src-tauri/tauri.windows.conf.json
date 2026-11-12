@@ -1,0 +1,10 @@
+{
+  "app": {
+    "security": {
+      "csp": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' http://ipc.localhost https://api.open-meteo.com"
+    }
+  },
+  "bundle": {
+    "icon": ["icons/icon.ico"]
+  }
+}

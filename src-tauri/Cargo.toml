@@ -1,8 +1,8 @@
-# The Mac app: the editor under ../web in a native window. A crate of its own, so that the language
+# The app: the editor under ../web in a native window. A crate of its own, so that the language
 # runtime in the root crate builds without Tauri. `make app` builds it.
 [package]
 name = "konfetti-app"
-version = "0.0.9"
+version = "0.0.10"
 edition = "2024"
 
 [workspace]
@@ -12,12 +12,21 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 tauri = { version = "2", features = [] }
-# CoreLocation, for Wind: see `location` in src/main.rs.
+
+[target.'cfg(target_os = "macos")'.dependencies]
+# CoreLocation, for Wind: see `location` in src/mac.rs.
 objc2 = { version = "0.6", features = [] }
 objc2-foundation = { version = "0.3", default-features = false, features = ["std", "NSArray", "NSError", "NSString", "NSURL"] }
 objc2-core-location = { version = "0.3", default-features = false, features = ["std", "CLLocation", "CLLocationManager", "CLLocationManagerDelegate"] }
-# The save panel, for Save: see `save` in src/main.rs. Tauri builds this crate anyway.
+# The save panel, for Save: see `save` in src/mac.rs. Tauri builds this crate anyway.
 objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "NSApplication", "NSPanel", "NSResponder", "NSSavePanel", "NSWindow"] }
+
+[target.'cfg(not(target_os = "macos"))'.dependencies]
+# Hands a link that leads out of the app to the browser: see `ours` in src/main.rs. On a Mac `open` does.
+open = { version = "5", features = ["shellexecute-on-windows"] }
+# The save dialog on Linux and Windows: see `save` in src/other.rs. The version and the GTK 3 backend
+# are the ones Tauri's own dialog plugin uses; a newer rfd wants a newer GTK binding than Tauri's.
+rfd = { version = "0.17", default-features = false, features = ["gtk3"] }
 
 [profile.release]
 opt-level = "s"

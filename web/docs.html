@@ -335,13 +335,23 @@ white  13000 0</code></pre>
 <p>The editor is a meadow you can walk around in, painted like a watercolor pop-up book: flat painted trees, bushes, rocks, hills and clouds stand in layers around a circle of pale stones, and the grass bends in the wind. The panel on the right holds every control; the bubble at the top left says what to do next and what just happened.</p>
 <p>On a phone the panel is a sheet at the bottom of the screen. Its edge shows the end of the output; tap or drag the handle to open it half way or all the way. <b>Crayon</b>, <b>Fire</b> and <b>Run</b> float just above it, with <b>Check</b> while a lesson is open. Each group of controls folds away: tap its title to open or close it.</p>
 <p><b>As an app.</b> konfetti can be installed, to open from its own icon like an app. In Chrome or Edge, press <b>Install</b> on the card that offers it a few seconds after the editor opens, or use the browser's own install button. On an iPhone or iPad, tap <b>Share</b>, then <b>Add to Home Screen</b>. After one visit, the editor also works offline.</p>
-<p id="mac"><b>As a Mac app.</b> With the konfetti folder and <a href="https://rustup.rs">Rust</a> on a Mac, <code>make app</code> builds <code>Konfetti.app</code>: the same editor in a window of its own, needing no server and no internet. It needs one tool first, and takes a few minutes the first time:</p>
+<p id="desktop"><b>As a desktop app.</b> konfetti also comes as an app for macOS, Windows and Linux: the same editor in a window of its own, needing no browser and no internet. Download it from the <a href="https://github.com/Aventyret-Hackaton/konfetti/releases">releases page</a>, under the newest release:</p>
+<ul>
+  <li><b>macOS</b> 11 or later: the <code>.dmg</code>. Open it and drag Konfetti to <i>Applications</i>.</li>
+  <li><b>Windows</b> 10 or 11: the <code>-setup.exe</code>. Run it; it installs konfetti for you alone.</li>
+  <li><b>Linux</b>: the <code>.AppImage</code>, which runs as it is once you let it (<code>chmod +x Konfetti_*.AppImage</code>), or the <code>.deb</code> or <code>.rpm</code> package.</li>
+</ul>
+<p>In the app, <b>Docs</b> opens this guide in a second window (closing the editor's window quits the app, guide included), and your theme, <b>Mute</b> and the lessons you have passed are remembered. <b>Save</b> asks where to keep the program, with the name <code>program.kft</code> filled in, and <b>Open…</b> shows the system's own file chooser.</p>
+<p><b>Wind</b> in the app: on Windows and Linux the app cannot tell where you are, so the wind there is always made up, marked <i>(made up: no location)</i>. On a Mac, the first time you press <b>Wind</b>, macOS asks whether Konfetti may use your location, and says what for. Say yes and you get the real wind where you are. Choose <b>Don't Allow</b> and the wind is made up, as in a browser that says no. macOS remembers your answer; to change it, open <b>System Settings</b>, <b>Privacy &amp; Security</b>, <b>Location Services</b>, and find Konfetti in the list. If you leave the question unanswered for a minute, the wind is made up that time: answer the question, then press Wind off and on.</p>
+<p>The first time you open it, your computer may stop the app, because nobody has paid Apple or Microsoft to vouch for it. If you trust it:</p>
+<ul>
+  <li><b>macOS</b>: try to open it once, then open <b>System Settings</b>, <b>Privacy &amp; Security</b>, and press <b>Open Anyway</b>. On macOS 14 and older, right-click the app and choose <b>Open</b> instead. In the terminal, <code>xattr -dr com.apple.quarantine /Applications/Konfetti.app</code> does the same.</li>
+  <li><b>Windows</b>: when the installer shows <i>Windows protected your PC</i>, press <b>More info</b>, then <b>Run anyway</b>.</li>
+  <li><b>Linux</b>: if the AppImage asks for FUSE, start it with <code>--appimage-extract-and-run</code>. If the window opens but the meadow stays blank, start the app with <code>WEBKIT_DISABLE_DMABUF_RENDERER=1</code> in front of its name.</li>
+</ul>
+<p>To build the app yourself, for the computer you are on: with the konfetti folder and <a href="https://rustup.rs">Rust</a>, install one tool, then <code>make app</code>. It takes a few minutes the first time. On a Mac the result is <code>src-tauri/target/release/bundle/macos/Konfetti.app</code>.</p>
 <pre><code>cargo install tauri-cli --version "^2" --locked
-make app
-open src-tauri/target/release/bundle/macos/Konfetti.app</code></pre>
-<p>Drag the app to <i>Applications</i> to keep it. In the app, <b>Docs</b> opens this guide in a second window (closing the editor's window quits the app, guide included), and your theme, <b>Mute</b> and the lessons you have passed are remembered. <b>Save</b> asks where to keep the program, with the name <code>program.kft</code> filled in, and <b>Open…</b> shows the Mac's own file chooser. The first time you press <b>Wind</b>, macOS asks whether Konfetti may use your location, and says what for. Say yes and you get the real wind where you are. Choose <b>Don't Allow</b> and the wind is made up, marked <i>(made up: no location)</i>, as in a browser that says no. macOS remembers your answer; to change it, open <b>System Settings</b>, <b>Privacy &amp; Security</b>, <b>Location Services</b>, and find Konfetti in the list. If you leave the question unanswered for a minute, the wind is made up that time: answer the question, then press Wind off and on.</p>
-<p>The app is not signed by an Apple developer, so a copy sent to another Mac is stopped the first time it is opened. If you trust it: try to open it once, then open <b>System Settings</b>, <b>Privacy &amp; Security</b>, and press <b>Open Anyway</b>. On macOS 14 and older, right-click the app and choose <b>Open</b> instead. This does the same in the terminal:</p>
-<pre><code>xattr -dr com.apple.quarantine Konfetti.app</code></pre>
+make app</code></pre>
 
 <h3>In the meadow</h3>
 <dl class="controls">
@@ -358,7 +368,7 @@ open src-tauri/target/release/bundle/macos/Konfetti.app</code></pre>
   <tbody>
     <tr><td>konfetti logo</td><td>A puff of paper confetti. Just for fun.</td></tr>
     <tr><td><b>Mute</b> <kbd>M</kbd></td><td>Turns all sound off or on. See <a href="#sound">Sound</a>.</td></tr>
-    <tr><td><b>Docs</b></td><td>Opens this guide: in a new tab, or in the Mac app in a second window.</td></tr>
+    <tr><td><b>Docs</b></td><td>Opens this guide: in a new tab, or in the <a href="#desktop">desktop app</a> in a second window.</td></tr>
     <tr><td><b>Learn konfetti</b> <kbd>L</kbd></td><td>Opens the lessons. See <a href="#learnmode">Learn mode</a>.</td></tr>
     <tr><td><b>Fire</b> <kbd>Space</kbd></td><td>Shoots a burst of 40 strips of random colors from the cannon.</td></tr>
     <tr><td><b>Crayon</b> <kbd>C</kbd></td><td>Pick it, then drag on the stones to draw an outline. It closes itself when you let go. The dot where it touched down is the origin. Drawing again replaces the outline.</td></tr>
@@ -373,7 +383,7 @@ open src-tauri/target/release/bundle/macos/Konfetti.app</code></pre>
     <tr><td><b>As text (.kft)</b></td><td>The program inside the outline as text, kept up to date as you move strips. <b>Save</b> keeps it for you.</td></tr>
     <tr><td><b>Load text</b></td><td>Lays out the text in the box as strips in front of the cannon, with a fresh outline around them. It replaces all the confetti. It stops a run first; if the text is not a program, the confetti stays as it was and <b>Output</b> says why.</td></tr>
     <tr><td><b>Examples…</b></td><td>Loads hello, cat or count; dad, countdown, compare or reverse, the programs of <a href="#further">tutorials 13 to 16</a>; aventyret, which writes <i>Hello, Äventyret</i>; or 8ball, which answers the question in <b>Input</b> with Yes, No or Maybe.</td></tr>
-    <tr><td><b>Save</b></td><td>Saves the text in the box as a file, <code>program.kft</code>, where your browser keeps downloads (the <a href="#mac">Mac app</a> asks where). It is plain text: the terminal's <code>konfetti</code> runs the same file.</td></tr>
+    <tr><td><b>Save</b></td><td>Saves the text in the box as a file, <code>program.kft</code>, where your browser keeps downloads (the <a href="#desktop">desktop app</a> asks where). It is plain text: the terminal's <code>konfetti</code> runs the same file.</td></tr>
     <tr><td><b>Open…</b></td><td>Chooses a <code>.kft</code> file and lays it out, as <b>Load text</b> does with the text in the box.</td></tr>
     <tr><td><b>Sweep outside</b></td><td>Removes the litter: every landed strip outside the outline, except a lesson's spare strips.</td></tr>
     <tr><td><b>Clear all</b></td><td>Removes every strip and the outline.</td></tr>
@@ -443,7 +453,7 @@ open src-tauri/target/release/bundle/macos/Konfetti.app</code></pre>
 <p>Browsers stay silent until you click or press a key on the page, so the sound starts then. <b>Mute</b> or <kbd>M</kbd> turns it all off, and the editor remembers that in this browser. When the tab is hidden, it goes quiet by itself.</p>
 
 <h2 id="wind"><span class="strip" style="--c:#00f0ff"></span>Wind and the flag</h2>
-<p>Press <b>Wind</b> or <kbd>W</kbd> to bring in the real wind. Your browser asks for your location (in the <a href="#mac">Mac app</a>, macOS asks); konfetti rounds it to about 10 km and asks the free weather service <a href="https://open-meteo.com">Open-Meteo</a> for the wind there right now. The panel shows it, for example <i>5.7 m/s from 196°</i>: the speed, and the compass direction it blows from. If you say no, or the weather cannot be reached, the editor makes up a wind of 3 to 10 m/s and says so. Press Wind again to stop it.</p>
+<p>Press <b>Wind</b> or <kbd>W</kbd> to bring in the real wind. Your browser asks for your location (in the <a href="#desktop">desktop app</a>, macOS asks on a Mac, and Windows and Linux have none to give); konfetti rounds it to about 10 km and asks the free weather service <a href="https://open-meteo.com">Open-Meteo</a> for the wind there right now. The panel shows it, for example <i>5.7 m/s from 196°</i>: the speed, and the compass direction it blows from. If you say no, or the weather cannot be reached, the editor makes up a wind of 3 to 10 m/s and says so. Press Wind again to stop it.</p>
 <ul>
   <li><b>In the air</b>, confetti drifts with the wind: about one strip length a second for every m/s.</li>
   <li><b>On the ground</b>, strips only move in gusts, and slowly: about two or three lengths a minute in a 6 m/s wind. They never lift off again. All strips move at nearly the same pace, so a program keeps its shape for a while, but the whole pile creeps out of the crayon outline, which stays put.</li>

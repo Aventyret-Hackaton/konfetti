@@ -86,7 +86,8 @@ export function initPwa() {
 
 /** Registers sw.js where that is allowed: https or localhost. Elsewhere the editor works as before. */
 function register() {
-  if (!isSecureContext || !('serviceWorker' in navigator)) return;
+  // Not in the desktop app: its files are in the app itself. On Windows its pages are http://tauri.localhost, where a worker would register.
+  if (window.__TAURI_INTERNALS__ || !isSecureContext || !('serviceWorker' in navigator)) return;
   const sw = navigator.serviceWorker;
   // On a first visit the page loaded before the worker existed, so the worker never saw those files.
   // Once it takes over, tell it what was loaded, so that the next start works offline.

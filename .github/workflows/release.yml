@@ -1,0 +1,199 @@
+# Builds the desktop app (src-tauri/) for macOS, Linux and Windows.
+#
+#   push a tag v*            builds all three, then publishes a GitHub Release for the tag with the
+#                            installers attached and the tag's section of CHANGELOG.md as its text
+#   push to release-builds   builds all three and keeps the installers as workflow artifacts: no
+#                            release. This branch is for trying a change to the build.
+#   run by hand              as release-builds does, on the branch chosen; on a tag, as a tag push
+#
+# Nothing here is signed with a paid identity, and no secret is used besides the token GitHub gives
+# every run. See "The desktop app" in AGENTS.md.
+name: release
+
+on:
+  push:
+    tags: ['v*']
+    branches: [release-builds]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: build (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # One Mac build for both Apple Silicon and Intel.
+          - name: macos
+            os: macos-latest
+            args: --target universal-apple-darwin --bundles app,dmg
+            out: src-tauri/target/universal-apple-darwin/release
+          # 22.04 on purpose: an AppImage runs on systems as old as the one that built it, not older.
+          - name: linux
+            os: ubuntu-22.04
+            args: --bundles deb,rpm,appimage
+            out: src-tauri/target/release
+          - name: windows
+            os: windows-latest
+            args: --bundles nsis
+            out: src-tauri/target/release
+    defaults:
+      run:
+        shell: bash
+    env:
+      OUT: ${{ matrix.out }}
+    steps:
+      # Git for Windows would turn every line end into CR LF, and those files go into the app.
+      - name: Keep the files' line ends
+        run: git config --global core.autocrlf false
+
+      - uses: actions/checkout@v7
+
+      - name: The tag is the app's version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          grep -q "\"version\": \"${GITHUB_REF_NAME#v}\"" src-tauri/tauri.conf.json || {
+            echo "::error::tag $GITHUB_REF_NAME is not the version in src-tauri/tauri.conf.json"; exit 1; }
+
+      - name: Rust
+        run: |
+          rustup update stable --no-self-update
+          rustup default stable
+
+      - name: Rust targets for a universal Mac build
+        if: runner.os == 'macOS'
+        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
+
+      # WebKitGTK and GTK to build against (GTK also draws the save dialog), librsvg and patchelf for
+      # the AppImage, xdg-utils because the app opens links with xdg-open, and a virtual screen and a
+      # camera for the smoke test.
+      - name: Linux packages
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libwebkit2gtk-4.1-dev librsvg2-dev patchelf file xdg-utils xvfb imagemagick
+
+      # The same script `make app` runs. web/konfetti.wasm is used as committed.
+      - name: Copy the editor into src-tauri/dist
+        run: sh src-tauri/dist.sh
+
+      # The Tauri CLI from npm is the one `cargo install tauri-cli` builds, ready-made. The Mac build
+      # is signed ad hoc (signingIdentity "-" in tauri.conf.json), which needs no certificate.
+      - name: Build
+        working-directory: src-tauri
+        run: npx --yes @tauri-apps/cli@2 build ${{ matrix.args }}
+
+      # Smoke tests: start the app, and fail if it has ended by itself a few seconds later. Nothing
+      # is clicked. Each also takes a picture of the screen if it can, kept as an artifact: the only
+      # look anyone gets at these builds before a person installs one.
+      - name: Smoke test (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          app=$OUT/bundle/macos/Konfetti.app
+          # Signed ad hoc with the hardened runtime, with the location entitlement and the sentence
+          # macOS shows, as `make app` builds it, and for both kinds of Mac. (An `|| exit` each: the
+          # Mac's bash is 3.2, where a failed [[ ]] does not stop a script.)
+          want() { [[ $1 == *"$2"* ]] || { echo "::error::$3"; exit 1; }; }
+          codesign --verify --deep --strict "$app"
+          want "$(codesign -dv "$app" 2>&1)" 'adhoc,runtime' 'not signed ad hoc with the hardened runtime'
+          want "$(codesign -d --entitlements - "$app" 2>/dev/null)" com.apple.security.personal-information.location 'the location entitlement is missing'
+          want "$(plutil -p "$app/Contents/Info.plist")" NSLocationWhenInUseUsageDescription 'the sentence for the location question is missing'
+          archs=$(lipo -archs "$app/Contents/MacOS/konfetti-app")
+          want "$archs" x86_64 "no Intel half: $archs"
+          want "$archs" arm64 "no Apple silicon half: $archs"
+          "$app/Contents/MacOS/konfetti-app" & pid=$!
+          sleep 15
+          kill -0 $pid || { echo "::error::the app ended by itself"; exit 1; }
+          screencapture -x smoke-macos.png || true
+          kill $pid
+
+      - name: Smoke test (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          # `timeout` ends the app after 20 s and then says 124; any other status is the app's own.
+          alive() { code=0; xvfb-run -a timeout 20 "$@" || code=$?; pkill -x konfetti-app || true
+                    [ $code = 124 ] || { echo "::error::$1 ended by itself with status $code"; exit 1; }; }
+          alive $OUT/konfetti-app
+          chmod +x $OUT/bundle/appimage/*.AppImage
+          alive $OUT/bundle/appimage/*.AppImage --appimage-extract-and-run # the runner has no FUSE
+          # The picture. WebKitGTK's default renderer draws no WebGL on a screen without a graphics card.
+          WEBKIT_DISABLE_DMABUF_RENDERER=1 xvfb-run -a -s '-screen 0 1400x900x24' sh -c \
+            "$OUT/konfetti-app & sleep 30; import -window root smoke-linux.png; kill \$!" || true
+
+      - name: Smoke test (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $app = Start-Process -PassThru (Resolve-Path "$env:OUT/konfetti-app.exe").Path
+          Start-Sleep 20
+          if ($app.HasExited) { Write-Host "::error::the app ended by itself with status $($app.ExitCode)"; exit 1 }
+          try {
+            Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+            $screen = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+            $picture = New-Object System.Drawing.Bitmap $screen.Width, $screen.Height
+            [System.Drawing.Graphics]::FromImage($picture).CopyFromScreen($screen.Location, [System.Drawing.Point]::Empty, $screen.Size)
+            $picture.Save("$pwd\smoke-windows.png")
+          } catch { Write-Host "no picture: $_" }
+          Stop-Process -Id $app.Id -Force
+
+      - name: Keep the installers
+        uses: actions/upload-artifact@v7
+        with:
+          name: konfetti-${{ matrix.name }}
+          if-no-files-found: error
+          path: |
+            ${{ matrix.out }}/bundle/dmg/*.dmg
+            ${{ matrix.out }}/bundle/deb/*.deb
+            ${{ matrix.out }}/bundle/rpm/*.rpm
+            ${{ matrix.out }}/bundle/appimage/*.AppImage
+            ${{ matrix.out }}/bundle/nsis/*.exe
+
+      - name: Keep the smoke test's picture
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: smoke-${{ matrix.name }}
+          if-no-files-found: ignore
+          path: smoke-*.png
+
+  release:
+    name: release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write # to make the release; the build jobs can only read
+    steps:
+      - uses: actions/checkout@v7 # for CHANGELOG.md
+
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: konfetti-*
+          path: installers
+          merge-multiple: true
+
+      # The lines under "## v0.0.10" (or "## v0.0.10 - a date") up to the next "## ".
+      - name: Take the release's text from CHANGELOG.md
+        run: |
+          awk -v h="## $GITHUB_REF_NAME" '$0 == h || index($0, h " ") == 1 { on = 1; next } /^## / { on = 0 } on' CHANGELOG.md > notes.md || true
+          grep -q '[^[:space:]]' notes.md || echo "konfetti $GITHUB_REF_NAME" > notes.md
+          cat notes.md
+
+      # A release that is already there (made by hand, or by a run that was started again) keeps
+      # its text and gets the files.
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          find installers -type f | sort
+          if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
+            find installers -type f -print0 | xargs -0 gh release upload "$GITHUB_REF_NAME" --clobber
+          else
+            find installers -type f -print0 | xargs -0 gh release create "$GITHUB_REF_NAME" --verify-tag --title "konfetti $GITHUB_REF_NAME" --notes-file notes.md
+          fi

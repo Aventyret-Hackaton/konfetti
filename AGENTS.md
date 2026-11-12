@@ -13,7 +13,7 @@ Cargo may not be on `PATH`. If `cargo` is not found, prefix commands with
 make test     # cargo test: runtime and CLI tests
 make          # web/konfetti.wasm first, then the release CLI at target/release/konfetti
 make serve    # editor at http://localhost:8137/web/
-make app      # the Mac app: src-tauri/target/release/bundle/macos/Konfetti.app (needs the Tauri CLI)
+make app      # the desktop app for this machine; on a Mac src-tauri/target/release/bundle/macos/Konfetti.app (needs the Tauri CLI)
 target/release/konfetti prog.kft            # stdin -> program -> stdout
 target/release/konfetti --trace prog.kft    # each step and both stacks, on stderr
 target/release/konfetti build prog.kft -o prog              # standalone executable
@@ -84,12 +84,20 @@ stderr for I/O and load errors, 2 with the usage text for bad arguments.
   app".
 - `index.html` and `.nojekyll` at the root: for GitHub Pages. The page only
   forwards to `web/`.
-- `src-tauri/`: the Mac app, a Tauri 2 crate of its own (`konfetti-app`), not
-  part of the root crate. `src/main.rs` is all of its code, `tauri.conf.json`
-  its window, CSP and bundle, `icons/icon@2x.png` its icon. `build.rs` and the
-  capability in `tauri.conf.json` give its two commands, `location` and
-  `save`, to the editor's window alone; `Info.plist` and `Entitlements.plist`
-  are what macOS wants before an app may ask where it is. See "The Mac app".
+- `src-tauri/`: the desktop app for macOS, Linux and Windows, a Tauri 2 crate
+  of its own (`konfetti-app`), not part of the root crate. `src/main.rs` is
+  the windows. Its two commands, `location` and `save`, are in `src/mac.rs` on
+  a Mac and in `src/other.rs` on Linux and Windows: one file or the other is
+  compiled, as the module `native`. `tauri.conf.json` is the window, CSP and
+  bundle; `tauri.linux.conf.json` and `tauri.windows.conf.json` are laid over
+  it on those systems (their icons, and on Windows the CSP). `build.rs` and
+  the capability in `tauri.conf.json` give the two commands to the editor's
+  window alone; `Info.plist` and `Entitlements.plist` are what macOS wants
+  before an app may ask where it is; `dist.sh` fills `dist/`, which Tauri
+  embeds. See "The desktop app".
+- `.github/workflows/release.yml`: builds the desktop app on GitHub for all
+  three systems and publishes a release for a version tag, with that
+  version's section of `CHANGELOG.md` as its text. See "Releases".
 - `lessons/`: the twelve lessons of learn mode. See "Lessons".
 - `examples/*.kft`: `hello`, `cat`, `aventyret` and `8ball` are also test
   fixtures. `dad`, `countdown`, `compare` and `reverse` are the programs of
@@ -135,7 +143,13 @@ stderr for I/O and load errors, 2 with the usage text for bad arguments.
   app's `src-tauri/icons/icon@2x.png` is `draw(896, 'blue4', 'any')` drawn at
   `(64, 64)` on a clear 1024 px canvas, which leaves the margin Mac icons
   have. Its name matters: the bundler makes the `.icns` from it and takes a
-  1024 px image only as `@2x`.
+  1024 px image only as `@2x`. Linux and Windows get the same drawing without
+  that margin: `sips -c 896 896 src-tauri/icons/icon@2x.png --out k.png`, then
+  `cargo tauri icon k.png -o` a scratch folder, and of what that writes only
+  `32x32.png`, `128x128.png`, `128x128@2x.png`, `icon.png` (512 px) and
+  `icon.ico` are kept, in `src-tauri/icons/`. They are named only in
+  `tauri.linux.conf.json` and `tauri.windows.conf.json`: a PNG added to the
+  list in `tauri.conf.json` would go into the Mac's `.icns` as well.
 - The editor maps language `(x, y)` to world `(origin.x + x, -, origin.z - y)`,
   1000 language units per world unit, where the origin is the first point of
   the crayon outline.
@@ -426,16 +440,22 @@ loaded. The vendored three.js files are the exception and are listed in
 `PAGES`: the page that installs worker 2 may be a v0.0.5 page that loaded
 three.js from the CDN, and offline the new `./` needs them.
 
-## The Mac app
+## The desktop app
 
-`make app` runs `make`, copies `web/`, `lessons/` and `examples/` into
-`src-tauri/dist/` (git-ignored; laid out like the repo root, because the
-editor fetches `../lessons/` and `../examples/`), and runs `cargo tauri build`
-in `src-tauri/`. Tauri embeds `dist/` in the binary; every `make app`
-recompiles the crate, so the app never carries old files. The result is
-`src-tauri/target/release/bundle/macos/Konfetti.app`, about 8 MB, ad-hoc
-signed (`signingIdentity: "-"`), for the architecture of the Mac that built
-it. The Tauri CLI is needed only for this:
+`make app` runs `make`, then `src-tauri/dist.sh`, which copies `web/`,
+`lessons/` and `examples/` into `src-tauri/dist/` (git-ignored; laid out like
+the repo root, because the editor fetches `../lessons/` and `../examples/`),
+then `cargo tauri build` in `src-tauri/`. Tauri embeds `dist/` in the binary;
+every `make app` recompiles the crate, so the app never carries old files. On
+a Mac the result is `src-tauri/target/release/bundle/macos/Konfetti.app`,
+about 8 MB, ad-hoc signed (`signingIdentity: "-"`), for the architecture of
+the Mac that built it. `bundle.targets` is `"app"`, which only a Mac has, so
+on Linux and Windows `make app` leaves just the program,
+`src-tauri/target/release/konfetti-app`. The installers people download are
+made by the release workflow, which names its formats with `--bundles`: see
+"Releases". Never build a dmg on a person's Mac: Tauri's dmg script drives
+Finder with AppleScript and opens windows on their screen. The Tauri CLI is
+needed only for this:
 `cargo install tauri-cli --version "^2" --locked`. The root crate does not
 depend on Tauri; `make`, `make test` and `cargo build` work without the CLI.
 `cargo tauri dev` does not work: with no `devUrl` the CLI serves `dist/` over
@@ -446,21 +466,24 @@ one, to the browser, so the window stays blank. Rebuild with `make app`.
 or every build dirties the tree. The version is in `tauri.conf.json` and
 `src-tauri/Cargo.toml`; keep both in step with the root `Cargo.toml`.
 
-The page in the app is `tauri://localhost/web/index.html`, the same files as
-the web version. It gets two things from the app, the commands `location`
-(for Wind) and `save` (for Save), and no Tauri API besides. `build.rs` names
-the commands (`AppManifest::commands`), which takes them away from every
-window, and the one capability in `tauri.conf.json` (`editor`) gives
-`allow-location` and `allow-save` back to the window `main`. Any other call,
-and either command from the guide's window, is refused with
+The page in the app is `tauri://localhost/web/index.html` (on Windows
+`http://tauri.localhost/web/index.html`: see "Linux and Windows"), the same
+files as the web version. It gets two things from the app, the commands
+`location` (for Wind) and `save` (for Save), and no Tauri API besides.
+`build.rs` names the commands (`AppManifest::commands`), which takes them
+away from every window, and the one capability in `tauri.conf.json`
+(`editor`) gives `allow-location` and `allow-save` back to the window `main`.
+Any other call, and either command from the guide's window, is refused with
 `Command ... not allowed by ACL`. tauri-build writes
 `src-tauri/permissions/autogenerated/` on every build; it is git-ignored.
+The list below is the Mac; "Linux and Windows" says where those differ.
 What differs in the app:
 
 - **Network.** The CSP in `tauri.conf.json` allows the app's own files and
   `https://api.open-meteo.com`, nothing else. `style-src` is kept out of
   Tauri's nonces (`dangerousDisableAssetCspModification`) because the pages
-  use `style` attributes. A new host the editor must reach needs a CSP entry.
+  use `style` attributes. A new host the editor must reach needs a CSP entry,
+  in `tauri.windows.conf.json` too, which holds a CSP of its own.
   `ipc:` in `connect-src` is how a command is called (a `fetch` to
   `ipc://localhost`); without it Tauri reports a CSP violation, warns on the
   console and falls back to `postMessage`.
@@ -470,8 +493,9 @@ What differs in the app:
   the app instead: when `window.__TAURI_INTERNALS__` is there (`APP`), it
   calls `APP.invoke('location')` in place of the browser's request, and all
   that follows is shared. `APP` is the only thing in `web/` that knows about
-  the app (Save uses it too); no Tauri JS package is loaded. `location` in
-  `src-tauri/src/main.rs` asks CoreLocation (one `CLLocationManager` with a
+  the app (Save uses it too, and `pwa.js` looks for the same object); no
+  Tauri JS package is loaded. `location` in `src-tauri/src/mac.rs` asks
+  CoreLocation (one `CLLocationManager` with a
   delegate, on the main thread, made at the first press) and answers
   `{ latitude, longitude }`, rounded to one decimal in Rust so the page never
   sees more, or an error. An error makes the page invent a wind, as a
@@ -495,7 +519,7 @@ What differs in the app:
   makes macOS ask whether Konfetti may access the Downloads folder, and the
   page cannot tell a no, or any failure, from a file written. So in the app
   the Save button calls `APP.invoke('save', { text })`, the text already
-  ending in one newline. `save` in `src-tauri/src/main.rs` shows the Mac's
+  ending in one newline. `save` in `src-tauri/src/mac.rs` shows the Mac's
   save panel (`NSSavePanel`, `runModal` on the main thread, the way wry runs
   the open panel) with `program.kft` as the name, writes the text where the
   person says, and answers the file's name, never its folder; `null` when
@@ -516,16 +540,144 @@ What differs in the app:
   WebKit (`NewWindowResponse::Create` with `window_features`): a web view
   WebKit makes from the editor's shares the editor's IPC handler, Tauri takes
   its calls for `main`'s, and the guide could call `location`.
-  `on_navigation` keeps both windows on the app's own pages and hands any
-  `http(s)` link to `open`, so it opens in the browser. Closing the editor's
+  `on_navigation` (`ours`) keeps both windows on the app's own pages and
+  hands any `http(s)` link to `open`, so it opens in the browser. Closing the editor's
   window quits the app, guide included (`on_window_event`): nothing in the
   guide leads back to the editor.
-- **Service worker and install card.** `pwa.js` runs unchanged. Registration
-  fails silently on `tauri://` (no worker, no console message) and the card
-  never has a reason to show.
+- **Service worker and install card.** `pwa.js` registers no worker when
+  `window.__TAURI_INTERNALS__` is there, and the card never has a reason to
+  show. On `tauri://` registration only failed silently, but on Windows the
+  page is `http://tauri.localhost`, a secure context, and wry answers a
+  worker's requests too: a worker would register there and keep a second
+  copy of files the app already holds.
 - **Storage.** `localStorage` works and persists between launches, in
   `~/Library/WebKit/io.github.aventyret-hackaton.konfetti/`.
 - **Window.** 1280 by 800 with the title bar, so the page is 1280 by 768.
+
+### Linux and Windows
+
+No person has run the Linux or the Windows app. What is known: the Linux app
+was built (deb, rpm and AppImage), started and driven in an Ubuntu 22.04
+container on an Apple silicon Mac, so as aarch64, not the x86_64 the release
+builds; the Windows app was only type-checked from a Mac. "Checking the Linux
+app in a container" says how; the release workflow starts each build once and
+keeps a picture of the screen. What differs from the Mac:
+
+- **Address.** WebView2 has no schemes of its own, so on Windows Tauri serves
+  the app at `http://tauri.localhost` and takes commands at
+  `http://ipc.localhost`. Linux is as the Mac: `tauri://localhost` and
+  `ipc://localhost`. So `ours` in `main.rs` counts `http://tauri.localhost`
+  as the app's own on Windows only (otherwise the editor's first page would
+  be refused and sent to the browser), and `tauri.windows.conf.json` replaces
+  the CSP with one whose `connect-src` names `http://ipc.localhost` in place
+  of `ipc:`. Tauri lays `tauri.<system>.conf.json` over `tauri.conf.json` as
+  a JSON merge patch: objects merge, arrays and strings are replaced whole.
+- **Wind.** `location` in `other.rs` answers an error at once, so the wind is
+  always the made-up one, marked *(made up: no location)*. Real location on
+  those systems has not been asked for.
+- **Save.** `save` in `other.rs` shows the system's save dialog with
+  `program.kft` through the `rfd` crate (GTK's file chooser on Linux, the
+  shell's dialog on Windows), made on the main thread and waited for off it,
+  the way Tauri's dialog plugin calls rfd. It answers as the Mac's does: the
+  file's name, `null` on cancel, an error. rfd stays at 0.17 with its `gtk3`
+  backend, as in Tauri's plugin: rfd 0.18 binds a newer GTK crate (`gtk-sys`
+  0.19) than Tauri's (0.18), and Cargo refuses two crates that link `gtk-3`.
+  On Linux the dialog is a window of its own, not tied to the editor's (rfd's
+  GTK backend takes no parent), so a second press of Save opens a second one.
+- **Links out.** `ours` uses the `open` crate: `xdg-open` and its fallbacks
+  on Linux, `ShellExecuteExW` on Windows (the feature
+  `shellexecute-on-windows`: no console window, nothing parsed by a shell).
+  The Mac keeps its own line, `open`, so `open` and `rfd` are dependencies
+  only off the Mac, and the objc2 crates only on it.
+- **Open and Docs** need nothing more: the file input brings up GTK's chooser
+  (*Select File*) on Linux and WebView2's on Windows, and `on_new_window`
+  works on all three. On Linux a scripted `click()` on `#docs` opened nothing
+  in a probe; a real click did.
+- **Windows.** `#![windows_subsystem = "windows"]` in release builds keeps a
+  console window from opening behind the app. The installer is NSIS, per
+  user, and fetches WebView2 when Windows lacks it.
+- **Linux drawing.** On a screen with no graphics card (Xvfb, some virtual
+  machines) WebKitGTK's default renderer shows the panel but leaves the
+  meadow white. `WEBKIT_DISABLE_DMABUF_RENDERER=1` in the app's environment
+  draws it. The app does not set that itself, since on a real card the
+  default is the fast path; `README.md` and `docs.html` tell people.
+- **Storage.** On Linux `~/.local/share/io.github.aventyret-hackaton.konfetti/`.
+- **Icons.** See "Rules of the codebase". The deb and rpm install
+  `/usr/bin/konfetti-app`, a desktop entry `Konfetti` and four icon sizes.
+
+### Releases
+
+`.github/workflows/release.yml` builds on GitHub's machines: one universal
+Mac app (Apple silicon and Intel) as a dmg, an AppImage, a deb and an rpm for
+x86_64 Linux, built on Ubuntu 22.04 so the AppImage also runs on systems that
+old, and an NSIS setup for x86_64 Windows. Each job runs `dist.sh`, then
+`npx @tauri-apps/cli@2 build` with its `--bundles` (the npm package is the
+same CLI as `cargo install tauri-cli`, ready-made), then a smoke test: the
+app is started and must still be running some seconds later; on the Mac the
+signature (ad hoc, hardened runtime), the location entitlement, the usage
+sentence and both architectures are checked too. Nothing is clicked. Each job
+also saves a picture of the screen with the app on it, if it can. No secret
+is used: the Mac build is ad-hoc signed exactly as `make app` signs it, which
+needs no certificate, and the Windows installer is unsigned.
+
+- **To release:** set the version in the root `Cargo.toml`,
+  `src-tauri/Cargo.toml` and `src-tauri/tauri.conf.json` (and let the two
+  `Cargo.lock` files follow), add a section `## vX.Y.Z` to `CHANGELOG.md`,
+  commit, tag `vX.Y.Z` and push the tag. The workflow refuses a tag that is
+  not the version in `tauri.conf.json`. When all three builds and their smoke
+  tests pass, the `release` job (the only one that may write to the repo)
+  publishes a GitHub Release for the tag with the installers attached. Its
+  text is the tag's section of `CHANGELOG.md`, from the line `## vX.Y.Z` to
+  the next `## `, or one line when there is none. If a release for the tag
+  already exists, it keeps its text and gets the files. Only a tag runs the
+  `release` job, so `release-builds` cannot rehearse it. If it fails after
+  the builds passed, publish by hand from the run's artifacts:
+  `gh run download <run> -p 'konfetti-*' -D installers`, then
+  `gh release create vX.Y.Z --notes-file notes.md` with the files under
+  `installers/`.
+- **To try a change to the build:** push it to the branch `release-builds`
+  (`git push -f origin HEAD:release-builds`). That builds all three and
+  publishes nothing. The installers are the run's artifacts `konfetti-macos`,
+  `konfetti-linux` and `konfetti-windows`, the pictures `smoke-macos`,
+  `smoke-linux` and `smoke-windows`: `gh run watch`, then
+  `gh run download <run> -n smoke-windows`. Look at the pictures: a build that
+  starts and shows a blank window still passes the smoke test. The workflow
+  can also be started by hand from the Actions page.
+- Keep `dist.sh` the one place that says what goes into the app: `make app`
+  and the workflow both run it. Windows runners have no `make`.
+- The first step turns off Git's line-end conversion: on Windows it would
+  otherwise put CR LF into every file the app embeds.
+
+### Checking the Linux app in a container
+
+With podman or docker, on any machine, nothing touches the person's screen:
+an `ubuntu:22.04` container with the repo mounted read-only at `/repo`,
+copied to a folder inside (the build writes into `src-tauri/`), and
+`apt-get install build-essential pkg-config libwebkit2gtk-4.1-dev
+librsvg2-dev patchelf file xdg-utils xvfb imagemagick xdotool openbox`, Rust
+from rustup, and the CLI from
+`github.com/tauri-apps/tauri/releases/download/tauri-cli-v<version>/cargo-tauri-<arch>-unknown-linux-gnu.tgz`.
+Then `sh src-tauri/dist.sh` and `cargo tauri build --bundles deb,rpm,appimage`
+in `src-tauri/`. To see it:
+`xvfb-run -a -s "-screen 0 1400x900x24" sh -c 'openbox & WEBKIT_DISABLE_DMABUF_RENDERER=1 target/release/konfetti-app & sleep 12; import -window root shot.png'`.
+Without that variable the meadow is white there. `xdotool mousemove X Y
+click 1` is a real click (Docs, Open…), and
+`xdotool search --name "Save File"`, `windowactivate` and `key Return` or
+`key Escape` answer the save dialog. To press Save or Wind without a pointer,
+build a copy with an `initialization_script` on the main window that clicks
+`#save` or `#wind` a few seconds after `load`. Run an AppImage with
+`--appimage-extract-and-run`: a container has no FUSE. After `timeout` or
+`kill` ends an AppImage, its `konfetti-app` lives on: `pkill -x konfetti-app`.
+
+For Windows, from a Mac, only the types can be checked:
+`rustup target add x86_64-pc-windows-msvc`, then
+`cargo check --release --features tauri/custom-protocol --target x86_64-pc-windows-msvc`
+in `src-tauri/`. tauri-build wants `llvm-rc` for the app's icon; without
+LLVM, a script of that name on `PATH` that prints `Resource Converter` for
+`/?` and otherwise writes an empty file to the path after `/fo` is enough
+for a check, though not for a build.
+
+### Checking the Mac app
 
 To check a change in the app, `make app`, then `open -n` the app. Never click
 or type in it from a script. To see what the page sees, add test code for the

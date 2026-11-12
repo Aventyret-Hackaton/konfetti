@@ -30,6 +30,28 @@ The second half of [web/docs.html](web/docs.html#learn) teaches the same
 twelve as tutorials you can follow in the terminal, then four more that design
 programs from nothing, one on finding mistakes, and a cheat sheet.
 
+## Download
+
+Nothing needs downloading: konfetti runs in the browser at
+<https://konfetti.ax/>, and installs from there as an app that works offline.
+
+The same editor as a desktop app, in a window of its own, is on the
+[releases page](https://github.com/Aventyret-Hackaton/konfetti/releases).
+Under the newest release, pick the file for your system:
+
+| System | File | The first time |
+|--------|------|----------------|
+| macOS 11 or later, Apple silicon or Intel | `Konfetti_…_universal.dmg` | Open it and drag Konfetti to Applications. The app is not signed by an Apple developer, so macOS stops it once: try to open it, then go to **System Settings > Privacy & Security** and press **Open Anyway** (before macOS 15: right-click the app and choose **Open**). |
+| Windows 10 or 11, 64-bit | `Konfetti_…_x64-setup.exe` | The installer is not signed, so SmartScreen says *Windows protected your PC*: press **More info**, then **Run anyway**. It installs for you alone, without an administrator, and fetches Microsoft's WebView2 if Windows lacks it. |
+| Linux, x86_64 | `Konfetti_…_amd64.AppImage`, or the `.deb` (Debian, Ubuntu) or `.rpm` (Fedora) | The AppImage runs as it is once it may: `chmod +x Konfetti_*.AppImage`, then `./Konfetti_*.AppImage`. If it asks for FUSE, add `--appimage-extract-and-run`. If the window opens but the meadow stays blank, start the app with `WEBKIT_DISABLE_DMABUF_RENDERER=1` in front. |
+
+On Linux and Windows the app cannot tell where you are, so **Wind** there is
+always a made-up wind; on a Mac it is the real one, if you allow it. GitHub
+builds all three (`.github/workflows/release.yml`) and starts each once
+before a release is published, but nobody has used the Linux and Windows apps
+yet, so tell us what you see. [CHANGELOG.md](CHANGELOG.md) says what changed
+in each version, and [The desktop app](#the-desktop-app) below says more.
+
 ## Quick start
 
 You need [Rust](https://rustup.rs) with the wasm target
@@ -191,8 +213,8 @@ colors are set as far from each other as their names allow.
   pick one of the nine examples. **Save** writes the text to a file,
   `program.kft`, and **Open…** lays such a file out again.
 - **Sweep outside** removes the litter outside the outline.
-- **Wind** (or W) asks for your location (your browser asks you; in the Mac
-  app, macOS does), rounds it to about 10 km, and fetches the current wind
+- **Wind** (or W) asks for your location (your browser asks you; in the
+  desktop app on a Mac, macOS does), rounds it to about 10 km, and fetches the current wind
   from [Open-Meteo](https://open-meteo.com).
   Flying bits drift with it. Landed bits only creep in gusts, about two or
   three bit lengths a minute in a 6 m/s wind, and never take off again, so a
@@ -226,12 +248,14 @@ month before offering again. It only works over HTTPS or on localhost; online,
 the worker always fetches the latest files first, so a change reaches people
 on their next load.
 
-### The Mac app
+### The desktop app
 
-`make app` builds the editor as a Mac app, `Konfetti.app`, with
+The editor is also a desktop app for macOS, Linux and Windows, made with
 [Tauri](https://tauri.app): the same files as the web version, in a window of
-its own, with nothing to serve and no network needed. It needs the Tauri CLI
-once, on top of Rust and Xcode's command line tools:
+its own, with nothing to serve and no network needed. [Download](#download)
+says where to get it. `make app` builds it for the machine you are on; on a
+Mac that is `Konfetti.app`. It needs the Tauri CLI once, on top of Rust and
+the system's build tools (Xcode's command line tools on a Mac):
 
 ```sh
 cargo install tauri-cli --version "^2" --locked
@@ -239,14 +263,19 @@ make app
 open src-tauri/target/release/bundle/macos/Konfetti.app
 ```
 
+The installers on the releases page are built by GitHub Actions when a
+version tag is pushed.
+
 - **Docs** opens the guide in a second window, or brings it back; a link out
   of the guide opens in your browser. Closing the editor's window quits the
   app, guide included.
 - The theme you pick, **Mute** and the lessons you have passed are remembered
   between launches.
-- **Save** asks where to keep the program, as Mac apps do, with `program.kft`
-  filled in as its name, and **Open…** shows the Mac's own file chooser.
-- **Wind** uses the Mac's location. The first time you press it, macOS asks
+- **Save** asks where to keep the program, with `program.kft` filled in as
+  its name, and **Open…** shows the system's own file chooser.
+- **Wind** on Linux and Windows is always an invented wind, marked *(made up:
+  no location)*: the app has no way to ask where it is there. On a Mac it
+  uses the Mac's location. The first time you press it, macOS asks
   whether Konfetti may use your location, and says what for. Say yes and you
   get the real wind where you are. Choose **Don't Allow** and the wind is an
   invented one, marked *(made up: no location)*, as in a browser that says
@@ -255,13 +284,14 @@ open src-tauri/target/release/bundle/macos/Konfetti.app
   app rounds your position to about 10 km before the page gets it, and only
   that goes to Open-Meteo. If the question stays unanswered for a minute, the
   wind is invented that time: answer the question, then press Wind off and on.
-- The app is not signed by an Apple developer. On the Mac that built it, it
-  just opens. A copy that reached another Mac through a browser, a chat or
+- The Mac app is not signed by an Apple developer. On the Mac that built it,
+  it just opens. A copy that reached another Mac through a browser, a chat or
   AirDrop is stopped the first time: open it once, then go to **System
   Settings > Privacy & Security** and press **Open Anyway** (before macOS 15:
   right-click the app and choose **Open**). Or, in a terminal:
-  `xattr -dr com.apple.quarantine Konfetti.app`. It runs on the kind of Mac
-  that built it (Apple silicon or Intel).
+  `xattr -dr com.apple.quarantine Konfetti.app`. One built with `make app`
+  runs on the kind of Mac that built it (Apple silicon or Intel); the one on
+  the releases page runs on both.
 
 ## Layout of this repo
 
@@ -271,7 +301,8 @@ open src-tauri/target/release/bundle/macos/Konfetti.app
 | `src/lib.rs` | The whole runtime: parse, link, compile, run, tests, wasm exports |
 | `src/main.rs` | The CLI: run, trace, and `build` for executables and web pages |
 | `web/` | The editor: `index.html`, `main.js` (editing and running), `world.js` (the painted scenery, cannon, flag), `debug.js` (the debugger's words and views), `learn.js` (learn mode), `sound.js`, `hand.js` (the glove), `ui.css` (panel and themes), the built `konfetti.wasm`, `vendor/three/` (three.js 0.170.0, as published), `docs.html`, the guide and tutorials, and the installable app: `manifest.webmanifest`, `icons/`, `sw.js`, `pwa.js`, `pwa.css` |
-| `src-tauri/` | The Mac app: a small Tauri crate of its own that shows `web/` in a window; `make app` builds it |
+| `src-tauri/` | The desktop app: a small Tauri crate of its own that shows `web/` in a window; `make app` builds it |
+| `.github/workflows/release.yml` | Builds the desktop app for macOS, Linux and Windows, and publishes a release when a version tag is pushed |
 | `index.html`, `.nojekyll` | For GitHub Pages: the site's root forwards to `web/` |
 | `lessons/` | The lessons of learn mode: `index.json` and a starter and a solution program for each; `make test` checks that each can be solved |
 | `examples/` | Programs, including the tutorials' |

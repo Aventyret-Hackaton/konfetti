@@ -364,6 +364,7 @@ function windAt(t) {
 
 // The Mac app's web view never answers a browser's request for the location, not even with a no.
 // There the app asks the Mac instead, and hands over `coords` it has already rounded to one decimal.
+// The app on Linux and Windows says no at once.
 const APP = window.__TAURI_INTERNALS__;
 
 async function fetchWind() {
@@ -1142,7 +1143,7 @@ $('load').onclick = () => loadText($('kft').value);
 $('save').onclick = () => {
   const text = $('kft').value;
   if (!text.trim()) return say('Nothing to save yet: the program box is empty.');
-  // In the Mac app a download cannot say whether it worked. There the app asks where and writes the file: `save` in src-tauri.
+  // In the desktop app a download cannot say whether it worked. There the app asks where and writes the file: `save` in src-tauri.
   if (APP) return APP.invoke('save', { text: text.replace(/\n?$/, '\n') }) // ending in one newline, as below
     .then(name => say(name ? `Saved as ${name}.` : 'Not saved.'), e => say(`Not saved: ${e}`));
   const a = document.createElement('a');
