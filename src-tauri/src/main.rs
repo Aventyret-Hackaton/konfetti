@@ -24,6 +24,13 @@ fn ours(url: &Url) -> bool {
 }
 
 fn main() {
+    // Linux: WebKitGTK's newer renderer leaves the meadow blank where there is no graphics card it
+    // likes (a virtual machine, some drivers); the older one draws everywhere, as the release
+    // workflow's pictures show. Setting the variable yourself, to 0 for the newer one, wins.
+    #[cfg(target_os = "linux")]
+    if std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none() {
+        unsafe { std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1") }; // no other thread yet
+    }
     tauri::Builder::default()
         .setup(|app| {
             let handle = app.handle().clone();

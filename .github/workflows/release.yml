@@ -106,9 +106,8 @@ jobs:
           archs=$(lipo -archs "$app/Contents/MacOS/konfetti-app")
           want "$archs" x86_64 "no Intel half: $archs"
           want "$archs" arm64 "no Apple silicon half: $archs"
-          # For reading the picture: on a runner without Metal the web view has no WebGL, and the page
-          # shows its panel but no meadow.
-          system_profiler SPDisplaysDataType | grep -iE 'chipset|metal|vendor' || true
+          # The picture shows the panel and the hint but no meadow: the runner is a virtual machine
+          # without a graphics card, and its web view draws no WebGL.
           "$app/Contents/MacOS/konfetti-app" & pid=$!
           sleep 15
           kill -0 $pid || { echo "::error::the app ended by itself"; exit 1; }
@@ -124,18 +123,14 @@ jobs:
           alive $OUT/konfetti-app
           chmod +x $OUT/bundle/appimage/*.AppImage
           alive $OUT/bundle/appimage/*.AppImage --appimage-extract-and-run # the runner has no FUSE
-          # A window titled konfetti must be on the screen, and a picture of it is kept, once with
-          # WebKitGTK's default renderer and once with the older one: the runner has no graphics card,
-          # and there the default one may leave the meadow blank.
-          look() { xvfb-run -a -s '-screen 0 1400x900x24' sh -c "openbox & sleep 2; $OUT/konfetti-app > app.log 2>&1 & sleep 45
-                     id=\$(xdotool search --name '^konfetti\$' | head -1); xwininfo -id \$id | grep -iE 'map state|class' || true; xprop -id \$id WM_STATE _NET_WM_STATE || true
-                     xdotool search --onlyvisible --name '^konfetti\$' || echo 'not visible'; ps -eo pid,stat,etime,args | grep -iE 'konfetti|WebKit' | grep -v grep || true; cat app.log || true
-                     xdotool search --name '^konfetti\$' > /dev/null; found=\$?
-                     xdotool search --name '^konfetti\$' getwindowgeometry || true; xwininfo -root -tree | head -20 || true
-                     xwd -root -silent | convert xwd:- $1 || import -window root $1; pkill -x konfetti-app; exit \$found" \
-                   || { echo "::error::no konfetti window on the screen ($1)"; exit 1; }; }
-          look smoke-linux.png
-          WEBKIT_DISABLE_DMABUF_RENDERER=1 look smoke-linux-older-renderer.png
+          # A window titled konfetti must be on the screen, and a picture of it is kept. On the runner
+          # the window takes about 30 s to come up (a desktop is quicker), hence the wait. The runner
+          # has no graphics card: the meadow in the picture is drawn by the older renderer the app
+          # chooses for itself (see main.rs).
+          xvfb-run -a -s '-screen 0 1400x900x24' sh -c "openbox & sleep 2; $OUT/konfetti-app & sleep 45
+            xdotool search --onlyvisible --name '^konfetti\$' > /dev/null; found=\$?
+            xwd -root -silent | convert xwd:- smoke-linux.png; pkill -x konfetti-app; exit \$found" \
+            || { echo "::error::no konfetti window on the screen"; exit 1; }
 
       - name: Smoke test (Windows)
         if: runner.os == 'Windows'

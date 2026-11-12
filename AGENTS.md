@@ -597,10 +597,11 @@ keeps a picture of the screen. What differs from the Mac:
   console window from opening behind the app. The installer is NSIS, per
   user, and fetches WebView2 when Windows lacks it.
 - **Linux drawing.** On a screen with no graphics card (Xvfb, some virtual
-  machines) WebKitGTK's default renderer shows the panel but leaves the
-  meadow white. `WEBKIT_DISABLE_DMABUF_RENDERER=1` in the app's environment
-  draws it. The app does not set that itself, since on a real card the
-  default is the fast path; `README.md` and `docs.html` tell people.
+  machines) WebKitGTK's newer renderer shows the panel but leaves the meadow
+  white; the older one draws it. The release workflow's two pictures showed
+  exactly that on the x86_64 runner. So the app sets
+  `WEBKIT_DISABLE_DMABUF_RENDERER=1` for itself at start, unless the variable
+  is already set: `WEBKIT_DISABLE_DMABUF_RENDERER=0` gives the newer renderer.
 - **Storage.** On Linux `~/.local/share/io.github.aventyret-hackaton.konfetti/`.
 - **Icons.** See "Rules of the codebase". The deb and rpm install
   `/usr/bin/konfetti-app`, a desktop entry `Konfetti` and four icon sizes.
@@ -659,8 +660,8 @@ from rustup, and the CLI from
 `github.com/tauri-apps/tauri/releases/download/tauri-cli-v<version>/cargo-tauri-<arch>-unknown-linux-gnu.tgz`.
 Then `sh src-tauri/dist.sh` and `cargo tauri build --bundles deb,rpm,appimage`
 in `src-tauri/`. To see it:
-`xvfb-run -a -s "-screen 0 1400x900x24" sh -c 'openbox & WEBKIT_DISABLE_DMABUF_RENDERER=1 target/release/konfetti-app & sleep 12; import -window root shot.png'`.
-Without that variable the meadow is white there. `xdotool mousemove X Y
+`xvfb-run -a -s "-screen 0 1400x900x24" sh -c 'openbox & target/release/konfetti-app & sleep 12; xwd -root -silent | convert xwd:- shot.png'`.
+On GitHub's runner the window takes about 30 s to appear, not 12. `xdotool mousemove X Y
 click 1` is a real click (Docs, Open…), and
 `xdotool search --name "Save File"`, `windowactivate` and `key Return` or
 `key Escape` answer the save dialog. To press Save or Wind without a pointer,

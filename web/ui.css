@@ -75,7 +75,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; overscroll-behavior: non
          background: var(--panel); border: var(--panel-line); border-radius: var(--panel-radius); box-shadow: var(--panel-shadow); }
 header.top { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
 h1 { margin: 0; font-size: 26px; line-height: 1; }
-#logo { all: unset; cursor: pointer; font-weight: 900; letter-spacing: -.01em; border-radius: 8px; }
+#logo { all: unset; cursor: pointer; font-weight: 900; letter-spacing: -.01em; border-radius: 8px; white-space: nowrap; } /* one word, also in a wider font */
 #logo:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 #logo span { display: inline-block; color: var(--c); -webkit-text-stroke: 1.2px var(--ink); paint-order: stroke fill;
              animation: hop .5s calc(var(--i) * 45ms) both; }

@@ -43,7 +43,7 @@ Under the newest release, pick the file for your system:
 |--------|------|----------------|
 | macOS 11 or later, Apple silicon or Intel | `Konfetti_…_universal.dmg` | Open it and drag Konfetti to Applications. The app is not signed by an Apple developer, so macOS stops it once: try to open it, then go to **System Settings > Privacy & Security** and press **Open Anyway** (before macOS 15: right-click the app and choose **Open**). |
 | Windows 10 or 11, 64-bit | `Konfetti_…_x64-setup.exe` | The installer is not signed, so SmartScreen says *Windows protected your PC*: press **More info**, then **Run anyway**. It installs for you alone, without an administrator, and fetches Microsoft's WebView2 if Windows lacks it. |
-| Linux, x86_64 | `Konfetti_…_amd64.AppImage`, or the `.deb` (Debian, Ubuntu) or `.rpm` (Fedora) | The AppImage runs as it is once it may: `chmod +x Konfetti_*.AppImage`, then `./Konfetti_*.AppImage`. If it asks for FUSE, add `--appimage-extract-and-run`. If the window opens but the meadow stays blank, start the app with `WEBKIT_DISABLE_DMABUF_RENDERER=1` in front. |
+| Linux, x86_64 | `Konfetti_…_amd64.AppImage`, or the `.deb` (Debian, Ubuntu) or `.rpm` (Fedora) | The AppImage runs as it is once it may: `chmod +x Konfetti_*.AppImage`, then `./Konfetti_*.AppImage`. If it asks for FUSE, add `--appimage-extract-and-run`. The app draws with WebKitGTK's older renderer, which works everywhere; `WEBKIT_DISABLE_DMABUF_RENDERER=0` in front tries the newer one. |
 
 On Linux and Windows the app cannot tell where you are, so **Wind** there is
 always a made-up wind; on a Mac it is the real one, if you allow it. GitHub

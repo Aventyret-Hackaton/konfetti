@@ -347,7 +347,7 @@ white  13000 0</code></pre>
 <ul>
   <li><b>macOS</b>: try to open it once, then open <b>System Settings</b>, <b>Privacy &amp; Security</b>, and press <b>Open Anyway</b>. On macOS 14 and older, right-click the app and choose <b>Open</b> instead. In the terminal, <code>xattr -dr com.apple.quarantine /Applications/Konfetti.app</code> does the same.</li>
   <li><b>Windows</b>: when the installer shows <i>Windows protected your PC</i>, press <b>More info</b>, then <b>Run anyway</b>.</li>
-  <li><b>Linux</b>: if the AppImage asks for FUSE, start it with <code>--appimage-extract-and-run</code>. If the window opens but the meadow stays blank, start the app with <code>WEBKIT_DISABLE_DMABUF_RENDERER=1</code> in front of its name.</li>
+  <li><b>Linux</b>: if the AppImage asks for FUSE, start it with <code>--appimage-extract-and-run</code>. The app draws with WebKitGTK's older renderer, which works everywhere; to try the newer, faster one, start the app with <code>WEBKIT_DISABLE_DMABUF_RENDERER=0</code> in front of its name.</li>
 </ul>
 <p>To build the app yourself, for the computer you are on: with the konfetti folder and <a href="https://rustup.rs">Rust</a>, install one tool, then <code>make app</code>. It takes a few minutes the first time. On a Mac the result is <code>src-tauri/target/release/bundle/macos/Konfetti.app</code>.</p>
 <pre><code>cargo install tauri-cli --version "^2" --locked
