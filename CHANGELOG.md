@@ -4,6 +4,18 @@ What changed in each version of konfetti, newest first. The editor runs at
 <https://konfetti.ax/>; the desktop apps are on the
 [releases page](https://github.com/Aventyret-Hackaton/konfetti/releases).
 
+## v0.0.13
+
+2026-11-13
+
+- **`infix` takes a sign wherever a number may start.** `2 * -3` writes `-6`,
+  `4 - -3` writes `7`, `2 * -(3 + 4)` writes `-14`. A plus sign works too, and
+  two minus signs cancel. The calculator grew from 157 to 192 strips.
+- **Fire no longer litters a program you loaded.** Confetti from the cannon
+  that comes down on a program laid out by **Load text**, **Open…** or the
+  **Examples** menu hops on, out over the nearest side of the outline. An
+  outline you drew with the crayon takes confetti as before.
+
 ## v0.0.12
 
 2026-11-12
