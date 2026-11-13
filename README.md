@@ -151,7 +151,7 @@ red     2000 0
 | [examples/aventyret.kft](examples/aventyret.kft) | A long trail of arithmetic, with no input. Prints `Hello, Äventyret` |
 | [examples/8ball.kft](examples/8ball.kft) | A ring, then a three-way branch into three long arms. Answers a question with `Yes`, `No` or `Maybe` |
 | [examples/calc.kft](examples/calc.kft) | A calculator in reverse Polish notation: `3 4 + 2 *` prints `14`. Three three-way branches sort each character; three counted rings print the number |
-| [examples/infix.kft](examples/infix.kft) | A calculator with precedence and parentheses: `(4 + 3) * 2` prints `14`. A frame of four numbers for every open parenthesis, and a funnel that brings six trails back to one strip |
+| [examples/infix.kft](examples/infix.kft) | A calculator with precedence, parentheses and signs: `(4 + 3) * 2` prints `14`, `2 * -3` prints `-6`. A frame of four numbers and a flag for every open parenthesis, and a funnel that brings six trails back to one strip |
 
 `examples/mistakes` holds the broken programs of the guide's last tutorial,
 with their fixes. `examples/exercises` holds the programs that answer

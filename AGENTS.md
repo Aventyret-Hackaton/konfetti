@@ -119,9 +119,9 @@ stderr for I/O and load errors, 2 with the usage text for bad arguments.
   layout search that keeps every unintended pair more than 1600 apart and
   every turn decided by at least 27 degrees, and the walk survives each strip
   moved by 40, not more. Do not edit it by hand; its header says how it works.
-  `infix` (a calculator with precedence and parentheses, 157 strips) was made
-  the same way, with every turn decided by at least 27 degrees and the walk
-  surviving each strip moved by 50. It is 29,860 by 15,900, too big for the
+  `infix` (a calculator with precedence, parentheses and signs, 192 strips) was
+  made the same way, with every turn decided by at least 27 degrees and the walk
+  surviving each strip moved by 50. It is 28,990 by 15,920, too big for the
   patch in front of the cannon, so **Load text** slides it toward the cannon:
   `loadText` in `web/main.js` puts the outline's far side 12 from the cannon
   whenever every strip then lies within 27 of it (every other example and

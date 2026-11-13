@@ -1,30 +1,35 @@
-# infix: a calculator with precedence and parentheses. One expression per line in, its value on a line out.
+# infix: a calculator with precedence, parentheses and signs. One expression per line in, its value on a line out.
 #
 #   4 + 3 * 2        writes 10       * and / bind tighter than + and -
 #   (4 + 3) * 2      writes 14       parentheses, as deep as you like
 #   2 - 3 - 4        writes -5       the same precedence goes left to right
-#   -3 + 5           writes 2        a minus first on a line or straight after ( is 0 minus the term that follows
+#   2 * -3           writes -6       a + or - where a number should start is a sign
+#   4 - -3           writes 7        and so is a second one: --3 writes 3, 2 - - 3 writes 5
+#   -(4 + 3) * 2     writes -14      a sign in front of a ( too
 #   7 / 2            writes 3        division rounds down; dividing by 0 leaves the left side as it was
 #
-# Non-negative whole numbers, + - * / and ( ), with spaces anywhere between them. The last line needs no
-# newline, an empty line writes nothing, and both stacks are empty when the input ends. Numbers are 64-bit
-# and wrap.
+# Whole numbers, + - * / and ( ), with spaces anywhere between them. A sign belongs to the whole term it
+# stands in, so 7 / -2 writes -3, like -7 / 2. The last line needs no newline, an empty line writes
+# nothing, and both stacks are empty when the input ends. Numbers are 64-bit and wrap.
 #
 # The idea. No stack of operators and no stack of values: for every group that is open, the line itself
-# and each ( inside it, the main stack holds a frame of four numbers on top of a slot S for the group's sum:
+# and each ( inside it, the main stack holds a frame of four numbers and a flag on top of a slot S for
+# the group's sum:
 #
-#   S | sgn T M N      S    the sum of the terms finished so far
+#   S | sgn T M N F    S    the sum of the terms finished so far
 #                      sgn  1 or -1: the term being built is added or subtracted
 #                      T    the product so far within the term
 #                      M    what the next number does to T: 0 multiplies, positive divides
 #                      N    the number being read
+#                      F    1 once a digit or a ) has come since the last operator, 0 before
 #
-# A new frame is 1 1 0 0: plus one times the number to come. A digit d makes N = 10N + d. Every operator,
-# ) and the end of a line first does T = T*N or T/N. Then * and / set M N; + and - add sgn*T to S and start
-# a new term; ( pushes a frame; ) adds sgn*T to S, and S lies where the outer N was, which is where the
-# group's value belongs; the end of a line does the same and writes S. The stash keeps a 10 at its bottom
-# for the whole line: the digit trail copies it for 10N, the operator trail for c - 42, and the writing ring
-# writes it last, as the newline.
+# A new frame is 1 1 0 0 0: plus one times the number to come, which has not begun. A digit d makes
+# N = 10N + d and F = 1. Every operator, ) and the end of a line first looks at F: a + or - while F is 0
+# is a sign, which multiplies sgn by 1 or -1. Anything else does T = T*N or T/N, and then * and / set
+# M N; + and - add sgn*T to S and start a new term; ( pushes a frame; ) adds sgn*T to S, and S lies where
+# the outer N was, which is where the group's value belongs; the end of a line does the same and writes
+# S. The stash keeps a 10 at its bottom for the whole line: the digit trail copies it for 10N, the
+# operator trail for c - 42, and the writing ring writes it last, as the newline.
 #
 #   ring: empty the stack --> L: read c ----- the end of input: halt
 #     ^      ^                 |    '-------- a space, a newline: round again
@@ -32,12 +37,15 @@
 #     |                        v
 #     |             the first character: a 10 into the stash, a frame under c
 #     |                        v
-#     |    M: read c --> c divmod 16 ---- a digit: N = 10N + r ------------------------> M
+#     |    M: read c --> c divmod 16 ---- a digit: N = 10N + r, F = 1 -----------------> M
 #     |                    |     |
 #     |      the line ends |     '-- x = c - 42 ---- a space --------------------------> M
 #     |                    |              |   '----- ( : a frame out of the -2 --------> M
 #     |                    v              v
-#     |              T = T*N or T/N <-- x divmod 5:  ) -1 4   * 0 0   + 0 1   - 0 3   / 1 0
+#     |              F + q*q <-------- x divmod 5:  ) -1 4   * 0 0   + 0 1   - 0 3   / 1 0
+#     |                    |--- 0: a sign, sgn = sgn * (2 - r) -------------------------> M
+#     |                    v
+#     |              T = T*N or T/N
 #     |                    |--- * / : the two numbers are the new M N -----------------> M
 #     |                    v
 #     |              S = S + sgn*T
@@ -48,195 +56,233 @@
 #
 # A character is sorted by three pinks, three ways each: on 2 - c/16 (digit, line end, the rest), on
 # c - 40 (space, the opening parenthesis, an operator) and, after the arithmetic, on the quotient of
-# (c - 42)/5. The end of a line travels the operator trail as an operator of its own, so the arithmetic is
-# there once. Six trails come back to the reading black. They meet in a funnel, orange brown orange brown,
-# which does nothing: a trail that has one number too many joins at a brown, the others at an orange, and
-# no strip has more than two ways in. Three counted rings do the rest: one empties the main stack when a
-# line starts, one cuts the digits off into the stash (it goes round to the right: the pink tests q - 2q),
-# one writes the stash. The trails never cross.
+# (c - 42)/5; one more, on F + q*q, tells a sign from an operator. The end of a line travels the operator
+# trail as an operator of its own, so the arithmetic is there once. Seven trails come back to the reading
+# black. Six of them meet in a funnel, orange brown orange brown, which does nothing: a trail that has
+# one number too many joins at a brown, the others at an orange, and the signs and * / meet at one more
+# orange before it, which copies their 0 as the flag. No strip has more than two ways in. Three counted
+# rings do the rest: one empties the main stack when a line starts, one cuts the digits off into the
+# stash (it goes round to the right: the pink tests q - 2q), one writes the stash. The trails never cross.
 #
 # Malformed input never hangs and leaves nothing behind for the next line. A missing number counts as 0
-# (2+*3 writes 2, () writes 0); spaces inside a number are not there; a ( that is never closed makes its
-# group the answer; a ) too many gives nonsense; 5(2) writes 7 and (2)3 writes 23; a tab, a carriage return
-# or any other control character ends the line, so CRLF lines work; ! " # $ % & ' are skipped like spaces;
-# a comma drops the next term and a full stop subtracts it twice; : ; < = > ? and letters are digits worth
-# their code modulo 16. -9223372036854775808 is written as -2.
+# (3* writes 0, () writes 0); spaces inside a number are not there; a ( that is never closed makes its
+# group the answer; a ) too many gives nonsense; 5(2) writes 8 and (2)3 writes 23; a tab, a carriage
+# return or any other control character ends the line, so CRLF lines work; ! " # $ % & ' are skipped like
+# spaces; after a number a comma drops the next term and a full stop subtracts it twice, and where a
+# number should start * , . are signs worth 2, 0 and -2 (2+*3 writes 8); : ; < = > ? and letters are
+# digits worth their code modulo 16. -9223372036854775808 is written as -2.
 #
-# Not supported: a minus straight after an operator (2 * -3 is 2*0 - 3), a plus sign in front of a number,
-# powers, decimals, and messages about mistakes.
+# Not supported: powers, decimals, and messages about mistakes.
 #
 # Made by gen_infix.py from a layout search; do not edit by hand. Every strip that must not link is more
 # than 1600 from every other, and every turn is decided by more than 27 degrees.
 #
 # The start of a line: empty the main stack, then read until something that is not a space.
-red       -210     340
-yellow    -890    1440   # .. 1 x     push 1, swap it under. The walk starts on the red
-brown    -1830     490
-pink     -1120    -640   # drop, and pop the 1: positive, left, round again. Nothing to pop: straight on
-black    -1730   -1670
-orange   -2210   -2890
-red      -2340   -3890
-red      -3660   -3980
-red      -4800   -3370
-red      -4620   -2390
-red      -4950   -1330
-red      -4920    -450
-orange   -5730     220
-blue     -5460    1430
-purple   -4710    2170   # c q r      IN, then c divmod 36
-brown    -3610    2320
-pink     -2510    1620   # c          q zero: a space, a newline, anything below 36: straight on to the ring's brown, which drops c. Positive, left: the first character. Negative, right: the end of input
-brown    -3450     700   # the end of input: nothing to drop, both stacks are empty, no way on. The program halts here
+red       -150     370
+yellow    -610    1540   # .. 1 x     push 1, swap it under. The walk starts on the red
+brown    -1710     770
+pink     -1190    -470   # drop, and pop the 1: positive, left, round again. Nothing to pop: straight on
+black    -1040   -1620
+orange   -2030   -2010
+red      -1890   -3040
+red      -2940   -3390
+red      -3840   -3200
+red      -4440   -2010
+red      -3760   -1000
+red      -4430    -360
+orange   -4680     690
+blue     -4680    2030
+purple   -4360    2900   # c q r      IN, then c divmod 36
+brown    -3050    3020
+pink     -2150    2030   # c          q zero: a space, a newline, anything below 36: straight on to the ring's brown, which drops c. Positive, left: the first character. Negative, right: the end of input
+brown    -3210    1370   # the end of input: nothing to drop, both stacks are empty, no way on. The program halts here
 #
-# The first character of a line: a 10 into the stash for the whole line, a frame sgn T M N = 1 1 0 0 under the character.
-red      -1910    2750
-red      -1270    3880
-red       -160    3670
-orange     850    3570
-blue      1820    4180
-red       2930    4360
-green     4220    4370
-silver    5460    4070   # c          3 3 * is 9, and 1 is 10: it waits at the bottom of the stash
-silver    6380    3190   # c waits on top of it
-red       7470    2740
-orange    8670    2920
-orange    9670    2970
-orange   10670    2490
-cyan     11730    2310
-orange   12850    2360   # 1 1 0 0
-gold     13800    1850   # 1 1 0 0 c  into the reading ring, just after its black
+# The first character of a line: a 10 into the stash for the whole line, a frame sgn T M N F = 1 1 0 0 0 under the character.
+red      -1380    3040
+red      -1630    4270
+red       -610    4730
+orange     430    5320
+blue      1390    5000
+red       2420    5120
+green     3630    5160
+silver    4530    4870   # c          3 3 * is 9, and 1 is 10: it waits at the bottom of the stash
+silver    5670    4690   # c waits on top of it
+red       6410    3910
+orange    7040    3280
+orange    8240    3180
+orange    9010    2390
+cyan      9870    1600
+orange   11040    1950   # 1 1 0 0
+orange   12340    1860   # 1 1 0 0 0  and the flag F = 0 on top: no number has been read yet
+gold     13380    1330   # 1 1 0 0 0 c   into the reading ring, just after its black
 #
 # The reading ring: one character in, sorted by c divmod 16. Clockwise.
-black    15470    1630   # N c        IN. Every token comes back here
-red      14470    2450
-red      14500    3390
-red      14670    4260
-red      15800    4720
-orange   16980    4750
-blue     18280    4810
-purple   19530    4820   # N q r      c divmod 16
-yellow   20680    4750
-red      22000    4750
-red      23250    4610
-yellow   24080    3610
-cyan     24130    2400   # N r 2-q
-pink     23200    1780   # N r        q = 2, straight on: a space or an operator. q = 3 or more, right: a digit worth r. q below 2, left: the line ends
-yellow   22600    2960
-gold     21270    3110
-orange   19930    3190
-silver   18590    3200
-blue     17270    3020
-green    16400    2000   # 10N+r      r N, the stash's 10 copied, times, plus. Back to the black
+black    14880    1960   # N F c      IN. Every token comes back here
+red      13840    2500
+red      13920    3830
+red      14710    4860
+red      15910    5390
+orange   17210    5420
+blue     18490    5390
+purple   19810    5400   # N F q r    c divmod 16
+yellow   21090    5390
+red      22400    5260
+red      23230    4580
+yellow   24040    3690
+cyan     24240    2660   # N F r 2-q
+pink     23380    1870   # N F r      q = 2, straight on: a space or an operator. q = 3 or more, right: a digit worth r. q below 2, left: the line ends
+yellow   22510    2870
+brown    21820    3420   # N r        the flag is swapped up and dropped
+yellow   20970    3710
+gold     19940    3600
+orange   19030    3780
+silver   17990    3800
+blue     17000    3560
+green    15870    3430   # 10N+r      r N, the stash's 10 copied, times, plus
+red      15710    2430   # 10N+r 1    the flag: a number is there. Back to the black
 #
 # q = 2: x = c - 42 sorts ( ) * + - / and the space.
-gold     22350    1360
-orange   21840     640
-silver   21010     360
-cyan     20540    1610   # N x        x = r - 10 with the stash's 10: ( -2, ) -1, * 0, + 1, - 3, / 5, space -10
-orange   19460     860
-red      18920    1600
-red      17980    1540
-green    17500     800
-pink     17200     -50   # N x        on x + 2. Zero, straight on: (. Positive, left: ) * + - /. Negative, right: a space, and the funnel's last brown drops x
-orange   16940   -1090
-purple   17470   -1790
-red      18360   -2230
-yellow   18360   -3180
-orange   17220   -3400   # N 1 1 0 0  ( : x / x is 1, remainder 0; a 1 under the 0; one more 0. A frame out of the -2
-red      18460    -510
-red      19560    -980
-red      20180   -1690
-red      21080   -1590
-red      21900   -1170
-purple   22750    -710   # N q r      x divmod 5: ) -1 4, * 0 0, + 0 1, - 0 3, / 1 0
+gold     22440    1230
+orange   21660     720
+silver   20760     770
+cyan     20420    1970   # N F x      x = r - 10 with the stash's 10: ( -2, ) -1, * 0, + 1, - 3, / 5, space -10
+orange   19510    1910
+red      18620    2150
+red      17660    2070
+green    17000    1450
+pink     16780     550   # N F x      on x + 2. Zero, straight on: (. Positive, left: ) * + - /. Negative, right: a space, and the funnel's last brown drops x
+orange   16650    -690
+purple   17280   -1300
+red      18230   -1450
+yellow   18740   -2320
+orange   17690   -3030   # N F 1 1 0 0  ( : x / x is 1, remainder 0; a 1 under the 0; one more 0. A frame out of the -2
+orange   16780   -2950   # and its flag, 0
+red      18040     190
+red      19190    -110
+red      20090    -980
+red      20960   -1170
+red      22020   -1260
+purple   22880    -440   # N F q r    x divmod 5: ) -1 4, * 0 0, + 0 1, - 0 3, / 1 0
 #
-# Every operator, ) and the end of a line: T M N to T*N or T/N.
-silver   23680    -770
-silver   24110   -1750   # sgn T M N  r and q wait in the stash, q on top. The end-of-line trail joins on the first silver
-yellow   23010   -2500
-pink     21830   -3120   # sgn T N    popped M. Positive, left: divide. Zero, straight on: multiply
-blue     20540   -3440   # sgn T*N
-purple   21800   -4460
-brown    20630   -5090   # sgn T/N    floored, the remainder dropped. N = 0: purple does nothing and brown drops the 0, so T stays
-gold     19550   -4340
-gold     18320   -4860
-orange   16990   -5010
-pink     15870   -4290   # sgn T q r  on r. Zero, straight on: * or /, and q r are the new M N, back through the funnel. Positive, left: the rest
+# Every operator, ) and the end of a line: T M N to T*N or T/N. A + or - with no number since the last operator is a sign.
+silver   23910    -560
+silver   24310   -1610   # sgn T M N F  r and q wait in the stash, q on top. The end-of-line trail joins on the first silver
+gold     24170   -2740
+orange   24160   -3990
+silver   24180   -5260   # .. N F q    a copy of q; q itself goes back to the stash
+orange   23980   -6440
+blue     24120   -7600
+green    23570   -8650   # .. N v      v = F + q*q is 0 only for + - (and *) with no number before them
+pink     22330   -8350   # sgn T M N   positive, left: an operator. Zero, straight on: a sign
+yellow   21650   -9470
+pink     20330   -9380   # sgn T N    popped M. Positive, left: divide. Zero, straight on: multiply
+blue     19290   -8760   # sgn T*N
+purple   19510  -10430
+brown    18260  -10030   # sgn T/N    floored, the remainder dropped. N = 0: purple does nothing and brown drops the 0, so T stays
+gold     17960   -8750
+gold     17020   -7810
+orange   16360   -6640
+pink     15730   -5520   # sgn T q r  on r. Zero, straight on: * or /, and q r are the new M N, back through the funnel. Positive, left: the rest
 #
 # + - ) and the end of a line: S sgn T to S + sgn*T.
-silver   15370   -5300
-silver   14710   -6440
-blue     13780   -6940
-green    12880   -6230
-gold     12950   -4950
-gold     13760   -4540   # S q r      sgn*T, plus S. No S on a line's own frame: green does nothing and sgn*T is the sum
-yellow   14440   -3510
-pink     14110   -2360   # S r        on q. Negative, right: ) and S lies where the outer N was; the funnel's first brown drops r. Zero, straight on: + or -. Positive, left: the line ends
-red      13210   -1370
-red      11920   -1210
-yellow   10850   -1820
-cyan     10290   -1090   # S sgn      sgn = 2 - r: 1 for +, -1 for -
-red       9790     -20
-orange   10940     650
-orange   12260     580
-cyan     13430     250
-orange   14500    -380   # S sgn 1 0 0   a new term
+silver   14620   -5800
+silver   13640   -6560
+blue     13990   -7460
+green    12870   -7990
+gold     12100   -7300
+gold     11330   -6700   # S q r      sgn*T, plus S. No S on a line's own frame: green does nothing and sgn*T is the sum
+yellow   10940   -5620
+pink     10180   -4780   # S r        on q. Negative, right: ) and S lies where the outer N was; the funnel's first brown drops r. Zero, straight on: + or -. Positive, left: the line ends
+red       9230   -3940
+red       8700   -3080
+yellow    8210   -1910
+cyan      7890    -990   # S sgn      sgn = 2 - r: 1 for +, -1 for -
+red       8850    -350
+orange    9630    -750
+orange   10810    -670
+cyan     11580      90
+orange   12760    -510   # S sgn 1 0 0   a new term
+orange   13750    -590   # S sgn 1 0 0 0   and the flag, 0
+brown    11190   -3940
+green    12220   -3110
+red      13110   -2810
+orange   13900   -2300   # S 1 1      ) : r dropped; the group's sum S, grown in the outer flag's slot, is added to the outer N, which is 0; the flag, 1; a copy for the funnel's brown
+#
+# A sign: no number since the last operator, and the character is + or -. + keeps the sign of the term, - changes it.
+gold     21790   -7550
+brown    20870   -7580
+gold     19880   -7180
+red      18710   -7170
+red      18500   -6290
+yellow   19600   -5540
+cyan     20590   -5280   # sgn T M N k   q fetched and dropped, r fetched: k = 2 - r is 1 for +, -1 for -
+yellow   21690   -5900
+silver   22520   -5390
+yellow   22400   -4380
+silver   22630   -3290
+yellow   21460   -2850
+silver   20840   -3520   # sgn k      N, M and T go to the stash, k swapped down past each
+blue     19860   -3610
+gold     19030   -4000
+gold     18200   -4660
+gold     17080   -4600   # sgn*k T M N
+orange   15780   -4290   # .. 0 0      * / come in here too: the top is 0, and its copy is the flag
 #
 # The funnel back to the reading black. orange brown does nothing; a trail with one number too many joins at a brown.
-orange   15970   -2950   # * / and ( join here
-brown    15320   -1780   # ) joins here
-orange   15450    -450   # + - join here
-brown    15930     380   # a space joins here. On to the black
+orange   15490   -2990   # the signs and * /, and ( join here
+brown    15050   -1760   # ) joins here
+orange   15040    -430   # + - join here
+brown    15470     820   # a space joins here. On to the black
 #
 # The end of a line is an operator with q = r, both positive. Then write S: the sign, the digits into the stash, the stash.
-orange   23770     570   # N r r      onto the operators' first silver
-brown    12920   -2970   # V          r dropped: V is the line's value
-orange   11680   -3480
-orange   10350   -3570
-green     9050   -3530
-yellow    7720   -3610   # 2V V
-orange    6510   -3190
-pink      5270   -2860   # 2V V       on V. Negative, right: write the sign. Zero or positive, straight on
-red       5710   -1720
-red       6720   -1150
-red       7960    -790
-red       7550     350
-red       6620     830
-orange    5710    1660
-orange    4500    1730
-green     3430    2240
-red       2770    1460
-cyan      3270     460
-blue      4250     100
-white     4150    -910   # 2V V       5 * (10 - 1) is 45: OUT writes -
-yellow    3850   -1870   # V 2V
-cyan      4020   -2960   # n          2V - V is V; V - 2V is -V
-red       3130   -3800
-red       3200   -5060
-red       2140   -5370
-red       1400   -6210
-red       2350   -7130
-orange    2510   -8200
-green     3210   -9220
-purple    3880   -9860   # q d        n divmod 10. The ring's first red
-red       3470  -10860
-red       2280  -11010
-red       1290  -11080
-orange     110  -10450
-red       -850  -10550
-green    -2110  -10130
-orange   -2930   -9460
-blue     -3560   -8790
-blue     -4420   -7830
-green    -3890   -6960   # q d+48     3 * (3 + 1) * (3 + 1) is 48
-silver   -2940   -6900
-orange   -2040   -6170
-orange   -1200   -5590
-orange    -690   -4490
-green      200   -3880
-cyan      1380   -3770   # q -q       the digit waits in the stash, on top of the 10; q - 2q
-pink      2190   -2870   # q          negative, right: more digits, round again. Zero, straight on: q is 0 and stays for the ring to drop
-gold      1930   -1580
-orange    1840    -670
-pink       520    -760   # 0 ch       fetch and copy. Positive, left: write it. Nothing fetched, the stash is empty: straight on to the ring, which drops the 0
-white      770   -2070   # 0          OUT: a digit, and last the 10, a newline
+orange   24010     750   # N r r      onto the operators' first silver
+brown     9160   -5610   # V          r dropped: V is the line's value
+orange    8390   -6130
+orange    7350   -5910
+green     6180   -5680
+yellow    6170   -4340   # 2V V
+orange    5600   -3350
+pink      4730   -2570   # 2V V       on V. Negative, right: write the sign. Zero or positive, straight on
+red       5370   -1700
+red       5540    -550
+red       6400     400
+red       6880    1630
+red       5640    2080
+orange    4710    2170
+orange    4290    3240
+green     3290    3000
+red       2520    2220
+cyan      1880    1070
+blue      3140     620
+white     3560    -380   # 2V V       5 * (10 - 1) is 45: OUT writes -
+yellow    3710   -1270   # V 2V
+cyan      3600   -2510   # n          2V - V is V; V - 2V is -V
+red       3140   -3280
+red       3490   -4310
+red       3240   -5340
+red       2290   -6140
+red       2580   -7030
+orange    3870   -7260
+green     3590   -8310
+purple    3950   -9390   # q d        n divmod 10. The ring's first red
+red       3090  -10330
+red       1840  -10050
+red        590  -10500
+orange      90   -9590
+red      -1200   -9590
+green    -2530   -9700
+orange   -2610   -8460
+blue     -3650   -7890
+blue     -3730   -6870
+green    -3990   -5720   # q d+48     3 * (3 + 1) * (3 + 1) is 48
+silver   -3190   -5310
+orange   -2080   -4940
+orange   -1110   -4880
+orange    -350   -4450
+green      420   -3640
+cyan      1440   -3640   # q -q       the digit waits in the stash, on top of the 10; q - 2q
+pink      1920   -2770   # q          negative, right: more digits, round again. Zero, straight on: q is 0 and stays for the ring to drop
+gold      1820   -1440
+orange    1750    -560
+pink       410    -650   # 0 ch       fetch and copy. Positive, left: write it. Nothing fetched, the stash is empty: straight on to the ring, which drops the 0
+white      580   -1870   # 0          OUT: a digit, and last the 10, a newline

@@ -483,6 +483,8 @@ mod tests {
         assert_eq!(run(infix, b"4 + 3 * 2"), b"10\n");
         assert_eq!(run(infix, b"(4 + 3) * 2"), b"14\n");
         assert_eq!(run(infix, b"2 - 3 - 4"), b"-5\n");
+        assert_eq!(run(infix, b"2 * -3"), b"-6\n");
+        assert_eq!(run(infix, b"4 - -3"), b"7\n");
         assert_eq!(run(infix, b"2*(3+4)*5\n\n-(100 / 7 / 2)\n7/0 + 1"), b"70\n-7\n8\n");
         assert_eq!(run(infix, b""), b"");
     }
