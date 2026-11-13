@@ -184,8 +184,8 @@ function drawOutline(pts, closed) {
   if (pts.length) originDot.position.set(pts[0].x, 0.007, pts[0].z);
 }
 
-function setArea(pts) {
-  area = pts ? { pts, origin: pts[0] } : null;
+function setArea(pts, kept = false) {
+  area = pts ? { pts, origin: pts[0], kept } : null; // kept: laid out by Load text, so a burst may not land in it
   drawOutline(pts || [], true);
   dirty = true;
 }
@@ -199,6 +199,21 @@ function inArea(x, z) {
     if ((p[i].z > z) !== (p[j].z > z) && x < (p[j].x - p[i].x) * (z - p[i].z) / (p[j].z - p[i].z) + p[i].x) inside = !inside;
   }
   return inside;
+}
+
+/** The sideways speed that carries a strip, hopping up from (x, z), over the nearest side of the outline. */
+function wayOut(x, z) {
+  let near = { x: 0, z: 0 }, d2 = Infinity;
+  const p = area.pts;
+  for (let i = 0, j = p.length - 1; i < p.length; j = i++) {
+    const ax = p[j].x, az = p[j].z, bx = p[i].x - ax, bz = p[i].z - az;
+    const t = Math.max(0, Math.min(1, ((x - ax) * bx + (z - az) * bz) / (bx * bx + bz * bz || 1)));
+    const qx = ax + bx * t - x, qz = az + bz * t - z, q2 = qx * qx + qz * qz;
+    if (q2 < d2) { d2 = q2; near = { x: qx, z: qz }; }
+  }
+  // A hop that starts 6 upward lasts about 1.45 s and carries a strip 0.59 of its sideways speed: 1.7 = 1 / 0.59.
+  const d = Math.sqrt(d2) || 1, v = (d + 1.5) * 1.7;
+  return { x: near.x / d * v, z: near.z / d * v };
 }
 
 function setCrayonMode(on) {
@@ -334,6 +349,7 @@ function fire() {
     // Up the barrel, plus a sideways scatter wide enough that the burst lands as a spread, not a heap.
     const speed = 10 + Math.random() * 7, a = Math.random() * Math.PI * 2, out = 1 + Math.random() * 10;
     launch(b, dir.x * speed + Math.cos(a) * out, dir.y * speed + Math.random() * 2, dir.z * speed + Math.sin(a) * out);
+    b.shot = true; // from the cannon, not flicked: see where it lands, in physics
   }
   // ponytail: one mesh per bit. Past this many, drop the oldest litter; use an InstancedMesh if more are wanted.
   const extra = bits.length - 1200;
@@ -421,6 +437,13 @@ function physics(dt, t) {
       b.mesh.rotation.y += b.spin.y * dt;
       b.mesh.rotation.z += b.spin.z * dt;
       if (p.y <= THICK && b.vel.y < 0) {
+        // A program laid out by Load text keeps itself clean: a strip from the cannon that comes down on it skips on,
+        // out over the nearest side. (A strip you flick lands where it lands.)
+        if (b.shot && area?.kept && inArea(p.x, p.z)) {
+          const out = wayOut(p.x, p.z);
+          b.vel.set(out.x, 6, out.z);
+          continue;
+        }
         b.mesh.rotation.set(0, b.mesh.rotation.y, 0);
         b.state = 'land';
         settle(b);
@@ -916,7 +939,7 @@ function loadText(text, { fit = '', tray = [] } = {}) {
     }
   }
   pts.push({ x: ex, z: ez });
-  setArea(pts);
+  setArea(pts, true);
   $('output').textContent = '';
   $('kft').blur();
   // Look at it.

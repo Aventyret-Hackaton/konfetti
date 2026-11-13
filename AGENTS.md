@@ -185,6 +185,12 @@ stderr for I/O and load errors, 2 with the usage text for bad arguments.
   bits only creep in gusts (`0.03 * gust * wind * slip`) and never take off.
   `world.update` gets exactly `{ x: 0, z: 0 }` when wind is off, so the flag
   hangs limp. `SPEC.md` section 7 describes this; keep it in step.
+- An outline laid out by `loadText` is `kept` (`setArea(pts, true)`): a strip
+  shot by the cannon (`b.shot`) that comes down inside it does not land but
+  hops on, over the nearest side (`wayOut`), so **Fire** cannot litter a
+  loaded program, even one that slid under the burst. A crayon outline is not
+  kept: confetti landing in it joins the program, as always. A flicked strip
+  is not `shot` and lands where it lands.
 - A language change means: `SPEC.md`, then `src/lib.rs` with a test, then
   `README.md`, `web/docs.html` and this file if the tour or the recipes change.
 - An editor or CLI change that a person would notice (a control, a key, a
